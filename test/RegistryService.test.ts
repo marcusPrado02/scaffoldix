@@ -8,7 +8,7 @@ import {
   type Registry,
   type RegisterPackInput,
   type PackOrigin,
-} from "../RegistryService.js";
+} from "../src/core/registry/RegistryService.js";
 
 // =============================================================================
 // Test Helpers

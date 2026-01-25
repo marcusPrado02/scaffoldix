@@ -7,7 +7,7 @@ import {
   getStorePaths,
   isStoreInitialized,
   _resetStorePathsCache,
-} from "../paths.js";
+} from "../src/core/utils/paths.js";
 
 describe("Store paths module", () => {
   beforeEach(() => {

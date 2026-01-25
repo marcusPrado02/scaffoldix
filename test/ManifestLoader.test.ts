@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
-import { ManifestLoader, loadManifest } from "../ManifestLoader.js";
+import { ManifestLoader, loadManifest } from "../src/core/manifest/ManifestLoader.js";
 
 // =============================================================================
 // Test Helpers
