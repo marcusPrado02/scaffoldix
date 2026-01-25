@@ -4,21 +4,20 @@ import { Logger } from "../../core/logger/logger";
 export function buildGenerateCommand(logger: Logger): Command {
     const generateCommand = new Command("generate")
         .alias("g")
-        .description("Gera código baseado em templates")
+        .description("Generates code based on templates")
         .argument("<ref>","pack:archetype (ex: java-spring:base-entity)")
-        .option("--dry-run", "Executa uma simulação sem gerar arquivos")
-        .option("-o, --output <path>", "Caminho de saída para os arquivos gerados", "./output")
+        .option("--dry-run", "Executes a simulation without generating files")
+        .option("-o, --output <path>", "Output path for generated files", "./output")
         .action(async (ref: string, options: { dryRun?: boolean; output: string }) => {
-            logger.info(`Iniciando geração de código com o template: ${ref}`, { options });
-            logger.info("generate command chamado (stub)", { ref, options });
-
+            logger.info(`Starting code generation with template: ${ref}`, { options });
+            logger.info("generate command called (stub)", { ref, options });
             if (options.dryRun) {
-                logger.info("Executando em modo dry-run. Nenhum arquivo será gerado.");
+                logger.info("Executing in dry-run mode. No files will be generated.");
             }
 
-            logger.info(`Gerando arquivos no diretório: ${options.output}`);
+            logger.info(`Generating files in directory: ${options.output}`);
 
-            logger.info("Geração de código concluída com sucesso.");
+            logger.info("Code generation completed successfully.");
         });
     
     return generateCommand;

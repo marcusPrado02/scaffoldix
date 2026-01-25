@@ -6,28 +6,28 @@ export function buildPackCommand(logger: Logger): Command {
 
     packCommand
         .command("add")
-        .argument("<package>", "Caminho do pack local")
-        .description("Adiciona um pack local ao store (MVP: stub) ")
+        .argument("<package>", "Local pack path")
+        .description("Adds a local pack to the store (MVP: stub) ")
         .action((async(path: string) => {
-            logger.info(`Adicionando pack local do caminho: ${path}`);
-            logger.info("pack.add chamado (stub)", { path });
+            logger.info(`Adding local pack from path: ${path}`);
+            logger.info("pack.add called (stub)", { path });
         }))
 
     packCommand
         .command("list")
-        .description("Lista os packs instalados (MVP: stub)")
+        .description("Lists installed packs (MVP: stub)")
         .action((async () => {
-            logger.info("Listando packs instalados...");
-            logger.info("pack.list chamado (stub)");
+            logger.info("Listing installed packs...");
+            logger.info("pack.list called (stub)");
         }));
 
     packCommand
         .command("info")
-        .argument("<packId>", "ID do pack")
-        .description("Mostra informações sobre um pack específico (MVP: stub)")
+        .argument("<packId>", "Pack ID")
+        .description("Shows information about a specific pack (MVP: stub)")
         .action((async (packId: string) => {
-            logger.info(`Mostrando informações do pack: ${packId}`);
-            logger.info("pack.info chamado (stub)", { packId });
+            logger.info(`Showing information for pack: ${packId}`);
+            logger.info("pack.info called (stub)", { packId });
         }));
 
     return packCommand;

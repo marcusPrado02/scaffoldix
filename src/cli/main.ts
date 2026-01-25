@@ -9,7 +9,7 @@ async function main() {
 
   const program = new Command()
     .name("scaffoldix")
-    .description("Scaffoldix - CLI profissional de scaffolding via packs determinísticos")
+    .description("Scaffoldix - Professional scaffolding CLI via deterministic packs")
     .version("0.1.0");
 
   program.addCommand(buildPackCommand(logger));
