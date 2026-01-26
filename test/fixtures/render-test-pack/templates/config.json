@@ -1,0 +1,7 @@
+{
+  "name": "{{projectName}}",
+  "version": "1.0.0",
+  "features": {
+    "{{#if enableLogging}}logging{{/if}}": true
+  }
+}
