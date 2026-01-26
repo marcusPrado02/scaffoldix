@@ -3,6 +3,7 @@ import { Logger } from "../core/logger/logger.js";
 import { toUserMessage } from "../core/errors/errors.js";
 import { buildPackCommand } from "./commands/pack.js";
 import { buildGenerateCommand } from "./commands/generate.js";
+import { buildArchetypesCommand } from "./commands/archetypes.js";
 
 async function main() {
   const logger = new Logger(process.env.SCAFFOLDIX_LOG_LEVEL === "debug" ? "debug" : "info");
@@ -14,6 +15,7 @@ async function main() {
 
   program.addCommand(buildPackCommand(logger));
   program.addCommand(buildGenerateCommand(logger));
+  program.addCommand(buildArchetypesCommand(logger));
 
   try {
     await program.parseAsync(process.argv);
