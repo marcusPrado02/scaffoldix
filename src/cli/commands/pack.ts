@@ -18,6 +18,10 @@ import {
   formatPackAddSuccess,
   type PackAddDependencies,
 } from "../handlers/packAddHandler.js";
+import {
+  handlePackList,
+  formatPackListOutput,
+} from "../handlers/packListHandler.js";
 
 /**
  * Adapter to make Logger compatible with StoreLogger interface.
@@ -112,8 +116,34 @@ export function buildPackCommand(logger: Logger): Command {
     .command("list")
     .description("List installed packs")
     .action(async () => {
-      logger.info("Listing installed packs...");
-      logger.info("pack.list called (stub)");
+      try {
+        // Initialize store paths (creates directories if needed)
+        const storePaths = initStorePaths();
+
+        // Execute handler
+        const result = await handlePackList({
+          registryFile: storePaths.registryFile,
+        });
+
+        // Output formatted list
+        const lines = formatPackListOutput(result);
+        for (const line of lines) {
+          process.stdout.write(line + "\n");
+        }
+      } catch (err) {
+        // Format error for user
+        const userMessage = toUserMessage(err);
+        const prefix = userMessage.code ? `${userMessage.code}: ` : "";
+
+        // Include hint if available
+        let output = `Error: ${prefix}${userMessage.message}`;
+        if (err instanceof ScaffoldError && err.hint) {
+          output += `\n\nHint: ${err.hint}`;
+        }
+
+        process.stderr.write(output + "\n");
+        process.exitCode = 1;
+      }
     });
 
   // ─────────────────────────────────────────────────────────────────────────
