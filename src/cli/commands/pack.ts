@@ -22,6 +22,10 @@ import {
   handlePackList,
   formatPackListOutput,
 } from "../handlers/packListHandler.js";
+import {
+  handlePackInfo,
+  formatPackInfoOutput,
+} from "../handlers/packInfoHandler.js";
 
 /**
  * Adapter to make Logger compatible with StoreLogger interface.
@@ -154,8 +158,38 @@ export function buildPackCommand(logger: Logger): Command {
     .argument("<packId>", "Pack ID to show information for")
     .description("Show information about a specific pack")
     .action(async (packId: string) => {
-      logger.info(`Showing information for pack: ${packId}`);
-      logger.info("pack.info called (stub)", { packId });
+      try {
+        // Initialize store paths (creates directories if needed)
+        const storePaths = initStorePaths();
+
+        // Execute handler
+        const result = await handlePackInfo(
+          { packId },
+          {
+            registryFile: storePaths.registryFile,
+            packsDir: storePaths.packsDir,
+          }
+        );
+
+        // Output formatted info
+        const lines = formatPackInfoOutput(result);
+        for (const line of lines) {
+          process.stdout.write(line + "\n");
+        }
+      } catch (err) {
+        // Format error for user
+        const userMessage = toUserMessage(err);
+        const prefix = userMessage.code ? `${userMessage.code}: ` : "";
+
+        // Include hint if available
+        let output = `Error: ${prefix}${userMessage.message}`;
+        if (err instanceof ScaffoldError && err.hint) {
+          output += `\n\nHint: ${err.hint}`;
+        }
+
+        process.stderr.write(output + "\n");
+        process.exitCode = 1;
+      }
     });
 
   return packCommand;
