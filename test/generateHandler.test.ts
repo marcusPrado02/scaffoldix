@@ -129,6 +129,7 @@ async function createTestDependencies(): Promise<{
   const deps: GenerateDependencies = {
     registryFile,
     packsDir,
+    storeDir,
   };
 
   return { storeDir, packsDir, deps, registryFile };

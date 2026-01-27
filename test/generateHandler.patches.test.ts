@@ -107,7 +107,7 @@ describe("Generate with Patches", () => {
 
   describe("successful patch application", () => {
     it("applies patches after template rendering", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
       // Install the pack
@@ -124,7 +124,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       // Assert: generation succeeded
@@ -155,7 +155,7 @@ describe("Generate with Patches", () => {
     });
 
     it("is idempotent - skips patches when file already contains stamp", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
       // Install the pack
@@ -172,7 +172,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       expect(firstResult.patchReport!.applied).toBe(2);
@@ -195,7 +195,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       // Note: Since Renderer re-creates files, stamps are removed, patches re-apply
@@ -212,7 +212,7 @@ describe("Generate with Patches", () => {
     });
 
     it("skips patches when target file already has idempotency stamp", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
       await handlePackAdd(
@@ -228,7 +228,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       // Save the patched content
@@ -264,7 +264,7 @@ describe("Generate with Patches", () => {
     });
 
     it("includes patch report in formatted output", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
       await handlePackAdd(
@@ -279,7 +279,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       const output = formatGenerateOutput(result);
@@ -292,7 +292,7 @@ describe("Generate with Patches", () => {
     });
 
     it("renders Handlebars variables in patch content", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
       await handlePackAdd(
@@ -308,7 +308,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { appName: "TestApp", moduleName: "Customer" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       const appPath = path.join(targetDir, "src", "app.ts");
@@ -326,7 +326,7 @@ describe("Generate with Patches", () => {
 
   describe("patch failure - missing markers", () => {
     it("aborts generation when marker is missing (strict mode)", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
       await handlePackAdd(
@@ -343,13 +343,13 @@ describe("Generate with Patches", () => {
             dryRun: false,
             data: { appName: "MyApp" },
           },
-          { registryFile, packsDir }
+          { registryFile, packsDir, storeDir }
         )
       ).rejects.toThrow(/patch/i);
     });
 
     it("does not write state.json when patches fail", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
       await handlePackAdd(
@@ -366,7 +366,7 @@ describe("Generate with Patches", () => {
             dryRun: false,
             data: { appName: "MyApp" },
           },
-          { registryFile, packsDir }
+          { registryFile, packsDir, storeDir }
         );
       } catch {
         // Expected to throw
@@ -378,7 +378,7 @@ describe("Generate with Patches", () => {
     });
 
     it("error includes actionable details", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
       await handlePackAdd(
@@ -394,7 +394,7 @@ describe("Generate with Patches", () => {
             dryRun: false,
             data: { appName: "MyApp" },
           },
-          { registryFile, packsDir }
+          { registryFile, packsDir, storeDir }
         );
         expect.fail("Should have thrown");
       } catch (error) {
@@ -411,7 +411,7 @@ describe("Generate with Patches", () => {
 
   describe("dry-run behavior", () => {
     it("does not apply patches in dry-run mode", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
       await handlePackAdd(
@@ -427,7 +427,7 @@ describe("Generate with Patches", () => {
           dryRun: true,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       // Assert: no patch report (patches not executed)
@@ -440,7 +440,7 @@ describe("Generate with Patches", () => {
     });
 
     it("indicates patches were skipped in formatted output", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
       await handlePackAdd(
@@ -455,7 +455,7 @@ describe("Generate with Patches", () => {
           dryRun: true,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       const output = formatGenerateOutput(result);
@@ -471,7 +471,7 @@ describe("Generate with Patches", () => {
 
   describe("archetype without patches", () => {
     it("succeeds when archetype has no patches", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const examplePackPath = path.join(__dirname, "fixtures", "example-pack");
 
       await handlePackAdd(
@@ -486,7 +486,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { name: "Test", entity: "Item" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       // Assert: no patch report when no patches

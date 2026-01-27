@@ -107,7 +107,7 @@ describe("Generate with Quality Checks", () => {
 
   describe("multiple checks success", () => {
     it("executes all checks successfully in order", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       // Install the pack
@@ -124,7 +124,7 @@ describe("Generate with Quality Checks", () => {
           dryRun: false,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       // Assert: generation succeeded
@@ -151,7 +151,7 @@ describe("Generate with Quality Checks", () => {
     });
 
     it("executes single check successfully", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       await handlePackAdd(
@@ -166,7 +166,7 @@ describe("Generate with Quality Checks", () => {
           dryRun: false,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       expect(result.checkReport).toBeDefined();
@@ -176,7 +176,7 @@ describe("Generate with Quality Checks", () => {
     });
 
     it("includes check duration in report", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       await handlePackAdd(
@@ -191,7 +191,7 @@ describe("Generate with Quality Checks", () => {
           dryRun: false,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       expect(result.checkReport!.totalDurationMs).toBeGreaterThanOrEqual(0);
@@ -204,7 +204,7 @@ describe("Generate with Quality Checks", () => {
 
   describe("failure blocks subsequent checks", () => {
     it("aborts generation when check fails", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       await handlePackAdd(
@@ -220,13 +220,13 @@ describe("Generate with Quality Checks", () => {
             dryRun: false,
             data: { projectName: "TestProject" },
           },
-          { registryFile, packsDir }
+          { registryFile, packsDir, storeDir }
         )
       ).rejects.toThrow(/check/i);
     });
 
     it("does not write state.json when checks fail", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       await handlePackAdd(
@@ -242,7 +242,7 @@ describe("Generate with Quality Checks", () => {
             dryRun: false,
             data: { projectName: "TestProject" },
           },
-          { registryFile, packsDir }
+          { registryFile, packsDir, storeDir }
         );
       } catch {
         // Expected to throw
@@ -254,7 +254,7 @@ describe("Generate with Quality Checks", () => {
     });
 
     it("error includes command string and exit code", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       await handlePackAdd(
@@ -270,7 +270,7 @@ describe("Generate with Quality Checks", () => {
             dryRun: false,
             data: { projectName: "TestProject" },
           },
-          { registryFile, packsDir }
+          { registryFile, packsDir, storeDir }
         );
         expect.fail("Should have thrown");
       } catch (error) {
@@ -282,7 +282,7 @@ describe("Generate with Quality Checks", () => {
     });
 
     it("captured output includes stderr content", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       await handlePackAdd(
@@ -298,7 +298,7 @@ describe("Generate with Quality Checks", () => {
             dryRun: false,
             data: { projectName: "TestProject" },
           },
-          { registryFile, packsDir }
+          { registryFile, packsDir, storeDir }
         );
         expect.fail("Should have thrown");
       } catch (error) {
@@ -315,7 +315,7 @@ describe("Generate with Quality Checks", () => {
 
   describe("checks run after postGenerate", () => {
     it("checks can verify files created by postGenerate hooks", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       await handlePackAdd(
@@ -331,7 +331,7 @@ describe("Generate with Quality Checks", () => {
           dryRun: false,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       // Assert: both hooks and checks ran successfully
@@ -352,7 +352,7 @@ describe("Generate with Quality Checks", () => {
 
   describe("dry-run behavior", () => {
     it("does not execute checks in dry-run mode", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       await handlePackAdd(
@@ -368,7 +368,7 @@ describe("Generate with Quality Checks", () => {
           dryRun: true,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       // Assert: no check report (checks not executed)
@@ -377,7 +377,7 @@ describe("Generate with Quality Checks", () => {
     });
 
     it("indicates checks were skipped in formatted output", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       await handlePackAdd(
@@ -392,7 +392,7 @@ describe("Generate with Quality Checks", () => {
           dryRun: true,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       const output = formatGenerateOutput(result);
@@ -408,7 +408,7 @@ describe("Generate with Quality Checks", () => {
 
   describe("archetype without checks", () => {
     it("succeeds when archetype has no checks", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       await handlePackAdd(
@@ -423,7 +423,7 @@ describe("Generate with Quality Checks", () => {
           dryRun: false,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       // Assert: no check report when no checks
@@ -436,7 +436,7 @@ describe("Generate with Quality Checks", () => {
     });
 
     it("includes check report in formatted output when checks exist", async () => {
-      const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+      const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const checkPackPath = getCheckPackPath();
 
       await handlePackAdd(
@@ -451,7 +451,7 @@ describe("Generate with Quality Checks", () => {
           dryRun: false,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir }
+        { registryFile, packsDir, storeDir }
       );
 
       const output = formatGenerateOutput(result);

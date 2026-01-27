@@ -153,7 +153,7 @@ describe("MVP v0.1 Smoke Test", () => {
   });
 
   it("smoke: mvp golden path pack add -> list -> generate", async () => {
-    const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+    const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
     const examplePackPath = getExamplePackPath();
 
     // =========================================================================
@@ -262,6 +262,7 @@ describe("MVP v0.1 Smoke Test", () => {
     const generateDeps: GenerateDependencies = {
       registryFile,
       packsDir,
+      storeDir,
     };
 
     const genResult = await handleGenerate(generateInput, generateDeps);
@@ -349,7 +350,7 @@ describe("MVP v0.1 Smoke Test", () => {
   });
 
   it("smoke: pack add -> generate without rename rules uses raw filenames", async () => {
-    const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+    const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
     const examplePackPath = getExamplePackPath();
 
     // Add the pack
@@ -367,7 +368,7 @@ describe("MVP v0.1 Smoke Test", () => {
         data: { name: "Test", entity: "Item" },
         // No renameRules provided
       },
-      { registryFile, packsDir }
+      { registryFile, packsDir, storeDir }
     );
 
     expect(genResult.filesWritten.length).toBeGreaterThan(0);
@@ -386,7 +387,7 @@ describe("MVP v0.1 Smoke Test", () => {
   });
 
   it("smoke: dry-run does not write files or state", async () => {
-    const { packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
+    const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
     const examplePackPath = getExamplePackPath();
 
     // Add the pack
@@ -403,7 +404,7 @@ describe("MVP v0.1 Smoke Test", () => {
         dryRun: true,
         data: { name: "DryRun" },
       },
-      { registryFile, packsDir }
+      { registryFile, packsDir, storeDir }
     );
 
     // Assert: dry-run results

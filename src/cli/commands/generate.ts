@@ -56,6 +56,7 @@ export function buildGenerateCommand(_logger: Logger): Command {
           {
             registryFile: storePaths.registryFile,
             packsDir: storePaths.packsDir,
+            storeDir: storePaths.storeDir,
           }
         );
 

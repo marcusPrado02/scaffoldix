@@ -25,6 +25,7 @@ import { PatchEngine, type PatchApplySummary } from "../../core/patch/PatchEngin
 import { PatchResolver } from "../../core/patch/PatchResolver.js";
 import { HookRunner, type HookRunSummary, type HookLogger } from "../../core/hooks/HookRunner.js";
 import { CheckRunner, type CheckRunSummary, type CheckLogger } from "../../core/checks/CheckRunner.js";
+import { StagingManager } from "../../core/staging/StagingManager.js";
 
 // =============================================================================
 // Types
@@ -67,6 +68,9 @@ export interface GenerateDependencies {
 
   /** Absolute path to the packs directory */
   readonly packsDir: string;
+
+  /** Absolute path to the store directory (for staging) */
+  readonly storeDir: string;
 }
 
 /**
@@ -395,21 +399,26 @@ export function parseArchetypeRef(ref: string): ArchetypeRef {
 /**
  * Handles the `generate` command.
  *
- * ## Process
+ * ## Process (Transactional)
  *
  * 1. Parse archetype reference
  * 2. Load registry and find pack
  * 3. Validate pack store path exists
  * 4. Load manifest and find archetype
  * 5. Validate template directory exists
- * 6. Render templates to target directory
+ * 6. For non-dry-run: create staging directory
+ * 7. Render templates to staging (or dry-run plan)
+ * 8. Apply patches in staging
+ * 9. Run postGenerate hooks in staging
+ * 10. Run checks in staging
+ * 11. Write state.json in staging
+ * 12. Commit staging to target (atomic move)
  *
- * ## Error Handling
+ * ## Transactional Semantics
  *
- * - Pack not found: Actionable error with pack list suggestion
- * - Archetype not found: Actionable error with pack info suggestion
- * - Store path missing: Actionable error suggesting reinstall
- * - Template dir missing: Actionable error pointing to templateRoot
+ * - All operations happen in staging directory first
+ * - Target is only modified on complete success (commit)
+ * - On failure at any stage: staging cleaned, target untouched
  *
  * @param input - User input (ref, targetDir, dryRun, data)
  * @param deps - Injected dependencies
@@ -421,7 +430,7 @@ export async function handleGenerate(
   deps: GenerateDependencies
 ): Promise<GenerateResult> {
   const { ref, targetDir, dryRun, data, renameRules } = input;
-  const { registryFile, packsDir } = deps;
+  const { registryFile, packsDir, storeDir } = deps;
 
   // 1. Parse archetype reference
   const { packId, archetypeId } = parseArchetypeRef(ref);
@@ -516,153 +525,194 @@ export async function handleGenerate(
     );
   }
 
-  // 6. Render templates to target directory
-  const renderResult = await renderArchetype({
-    templateDir,
-    targetDir,
-    data,
-    renameRules,
-    dryRun,
-  });
+  // ===========================================================================
+  // Dry-run path: no staging, just compute plan
+  // ===========================================================================
 
-  // 7. Apply patches (non-dry-run only)
-  let patchReport: PatchReport | undefined;
-  let patchesSkippedForDryRun = false;
-
-  const patches = archetype.patches;
-  const hasPatches = patches && patches.length > 0;
-
-  if (hasPatches && dryRun) {
-    // Dry-run: skip patches, just note they would be applied
-    patchesSkippedForDryRun = true;
-  } else if (hasPatches && !dryRun) {
-    // Apply patches in manifest order
-    patchReport = await applyPatches({
-      patches,
-      data,
-      packStorePath: storePath,
+  if (dryRun) {
+    const renderResult = await renderArchetype({
+      templateDir,
       targetDir,
+      data,
+      renameRules,
+      dryRun: true,
+    });
+
+    const patches = archetype.patches;
+    const hasPatches = patches && patches.length > 0;
+    const postGenerateHooks = archetype.postGenerate;
+    const hasHooks = postGenerateHooks && postGenerateHooks.length > 0;
+    const checks = archetype.checks;
+    const hasChecks = checks && checks.length > 0;
+
+    return {
       packId,
       archetypeId,
-    });
-
-    // Check for failures - abort if any patch failed
-    if (patchReport.failed > 0) {
-      const failedPatches = patchReport.entries.filter((e) => e.status === "failed");
-      const failedSummary = failedPatches
-        .map((p) => `${p.idempotencyKey}: ${p.reason}`)
-        .join("; ");
-
-      throw new ScaffoldError(
-        `Patch application failed`,
-        "PATCH_APPLICATION_FAILED",
-        {
-          packId,
-          archetypeId,
-          patchReport,
-          failedPatches,
-        },
-        undefined,
-        `Generation aborted: ${patchReport.failed} patch(es) failed. ` +
-          `${failedSummary}. ` +
-          `Fix the issues and re-run the generate command.`,
-        undefined,
-        true
-      );
-    }
+      targetDir,
+      dryRun: true,
+      filesWritten: [],
+      filesPlanned: renderResult.filesPlanned,
+      patchesSkippedForDryRun: hasPatches,
+      hooksSkippedForDryRun: hasHooks,
+      checksSkippedForDryRun: hasChecks,
+    };
   }
 
-  // 8. Run postGenerate hooks (non-dry-run only)
+  // ===========================================================================
+  // Real generation: use staging for transactional semantics
+  // ===========================================================================
+
+  const stagingManager = new StagingManager(storeDir, {
+    info: (msg) => console.log(`[staging] ${msg}`),
+    debug: (msg) => console.log(`[staging:debug] ${msg}`),
+  });
+
+  // 6. Create staging directory
+  const stagingDir = await stagingManager.createStagingDir();
+  console.log(`[staging] Created staging directory: ${stagingDir}`);
+
+  // Initialize reports
+  let patchReport: PatchReport | undefined;
   let hookReport: HookReport | undefined;
-  let hooksSkippedForDryRun = false;
-
-  const postGenerateHooks = archetype.postGenerate;
-  const hasHooks = postGenerateHooks && postGenerateHooks.length > 0;
-
-  if (hasHooks && dryRun) {
-    // Dry-run: skip hooks
-    hooksSkippedForDryRun = true;
-  } else if (hasHooks && !dryRun) {
-    // Execute hooks in manifest order
-    const hookRunner = new HookRunner();
-    const hookLogger = createHookLogger();
-
-    const summary = await hookRunner.runPostGenerate({
-      commands: postGenerateHooks,
-      cwd: targetDir,
-      logger: hookLogger,
-    });
-
-    hookReport = {
-      total: summary.total,
-      succeeded: summary.succeeded,
-      failed: summary.failed,
-      totalDurationMs: summary.totalDurationMs,
-      success: summary.success,
-    };
-
-    // Note: HookRunner throws on failure, so if we get here, all hooks succeeded
-  }
-
-  // 9. Run checks (non-dry-run only, mandatory quality gates)
   let checkReport: CheckReport | undefined;
-  let checksSkippedForDryRun = false;
+  let renderResult: { filesWritten: FileEntry[]; filesPlanned: FileEntry[] };
 
-  const checks = archetype.checks;
-  const hasChecks = checks && checks.length > 0;
-
-  if (hasChecks && dryRun) {
-    // Dry-run: skip checks
-    checksSkippedForDryRun = true;
-  } else if (hasChecks && !dryRun) {
-    // Execute checks in manifest order - these are mandatory gates
-    const checkRunner = new CheckRunner();
-    const checkLogger = createCheckLogger();
-
-    const summary = await checkRunner.runChecks({
-      commands: checks,
-      cwd: targetDir,
-      logger: checkLogger,
+  try {
+    // 7. Render templates to STAGING directory
+    console.log(`[staging] Rendering templates...`);
+    renderResult = await renderArchetype({
+      templateDir,
+      targetDir: stagingDir, // Render to staging, not target
+      data,
+      renameRules,
+      dryRun: false,
     });
 
-    checkReport = {
-      total: summary.total,
-      passed: summary.passed,
-      failed: summary.failed,
-      totalDurationMs: summary.totalDurationMs,
-      success: summary.success,
-    };
+    // 8. Apply patches in STAGING
+    const patches = archetype.patches;
+    const hasPatches = patches && patches.length > 0;
 
-    // Note: CheckRunner throws on failure, so if we get here, all checks passed
-  }
+    if (hasPatches) {
+      console.log(`[staging] Applying patches...`);
+      patchReport = await applyPatches({
+        patches,
+        data,
+        packStorePath: storePath,
+        targetDir: stagingDir, // Patches in staging
+        packId,
+        archetypeId,
+      });
 
-  // 10. Write project state (non-dry-run only, after all operations succeed)
-  // State is NOT written on dry-run to avoid misleading state
-  // State is NOT written if any step above failed (they throw)
-  if (!dryRun) {
+      if (patchReport.failed > 0) {
+        const failedPatches = patchReport.entries.filter((e) => e.status === "failed");
+        const failedSummary = failedPatches
+          .map((p) => `${p.idempotencyKey}: ${p.reason}`)
+          .join("; ");
+
+        throw new ScaffoldError(
+          `Patch application failed`,
+          "PATCH_APPLICATION_FAILED",
+          {
+            packId,
+            archetypeId,
+            patchReport,
+            failedPatches,
+          },
+          undefined,
+          `Generation aborted: ${patchReport.failed} patch(es) failed. ` +
+            `${failedSummary}. ` +
+            `Target was not modified. Fix the issues and re-run.`,
+          undefined,
+          true
+        );
+      }
+    }
+
+    // 9. Run postGenerate hooks in STAGING
+    const postGenerateHooks = archetype.postGenerate;
+    const hasHooks = postGenerateHooks && postGenerateHooks.length > 0;
+
+    if (hasHooks) {
+      console.log(`[staging] Running postGenerate hooks...`);
+      const hookRunner = new HookRunner();
+      const hookLogger = createHookLogger();
+
+      const summary = await hookRunner.runPostGenerate({
+        commands: postGenerateHooks,
+        cwd: stagingDir, // Hooks in staging
+        logger: hookLogger,
+      });
+
+      hookReport = {
+        total: summary.total,
+        succeeded: summary.succeeded,
+        failed: summary.failed,
+        totalDurationMs: summary.totalDurationMs,
+        success: summary.success,
+      };
+    }
+
+    // 10. Run checks in STAGING
+    const checks = archetype.checks;
+    const hasChecks = checks && checks.length > 0;
+
+    if (hasChecks) {
+      console.log(`[staging] Running quality checks...`);
+      const checkRunner = new CheckRunner();
+      const checkLogger = createCheckLogger();
+
+      const summary = await checkRunner.runChecks({
+        commands: checks,
+        cwd: stagingDir, // Checks in staging
+        logger: checkLogger,
+      });
+
+      checkReport = {
+        total: summary.total,
+        passed: summary.passed,
+        failed: summary.failed,
+        totalDurationMs: summary.totalDurationMs,
+        success: summary.success,
+      };
+    }
+
+    // 11. Write project state in STAGING
+    console.log(`[staging] Writing project state...`);
     const stateManager = new ProjectStateManager();
-    await stateManager.write(targetDir, {
+    await stateManager.write(stagingDir, {
       packId,
       packVersion: packEntry.version,
       archetypeId,
       inputs: data,
       timestamp: new Date().toISOString(),
     });
+
+    // 12. Commit staging to target (atomic move)
+    // Use force: true to allow overwriting existing target (regeneration use case)
+    console.log(`[staging] Committing to target: ${targetDir}`);
+    await stagingManager.commit(stagingDir, targetDir, { force: true });
+    console.log(`[staging] Successfully committed to target.`);
+
+  } catch (error) {
+    // Failure: cleanup staging, do NOT touch target
+    console.error(`[staging] Aborted; target was not modified.`);
+    await stagingManager.cleanup(stagingDir);
+    throw error;
   }
 
   return {
     packId,
     archetypeId,
     targetDir,
-    dryRun,
+    dryRun: false,
     filesWritten: renderResult.filesWritten,
-    filesPlanned: renderResult.filesPlanned,
+    filesPlanned: [],
     patchReport,
-    patchesSkippedForDryRun,
+    patchesSkippedForDryRun: false,
     hookReport,
-    hooksSkippedForDryRun,
+    hooksSkippedForDryRun: false,
     checkReport,
-    checksSkippedForDryRun,
+    checksSkippedForDryRun: false,
   };
 }
 
