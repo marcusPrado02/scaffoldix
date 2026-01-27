@@ -1,0 +1,6 @@
+pack:
+  name: example-pack
+  version: "1.0.0"
+archetypes:
+  - id: hello
+    templateRoot: templates/hello
