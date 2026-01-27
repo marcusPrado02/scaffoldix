@@ -220,6 +220,21 @@ const ArchetypeSchema = z.object({
    * ```
    */
   postGenerate: z.array(z.string()).optional(),
+
+  /**
+   * Optional list of quality check commands to run as mandatory gates.
+   * Commands are executed sequentially after postGenerate hooks.
+   * If any check fails, generation is not considered successful.
+   *
+   * @example
+   * ```yaml
+   * checks:
+   *   - npm run build
+   *   - npm test
+   *   - npm run lint
+   * ```
+   */
+  checks: z.array(z.string()).optional(),
 });
 
 /**

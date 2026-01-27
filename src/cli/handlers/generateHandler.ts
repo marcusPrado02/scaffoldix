@@ -24,6 +24,7 @@ import { ProjectStateManager } from "../../core/state/ProjectStateManager.js";
 import { PatchEngine, type PatchApplySummary } from "../../core/patch/PatchEngine.js";
 import { PatchResolver } from "../../core/patch/PatchResolver.js";
 import { HookRunner, type HookRunSummary, type HookLogger } from "../../core/hooks/HookRunner.js";
+import { CheckRunner, type CheckRunSummary, type CheckLogger } from "../../core/checks/CheckRunner.js";
 
 // =============================================================================
 // Types
@@ -129,6 +130,26 @@ export interface HookReport {
 }
 
 /**
+ * Check execution report.
+ */
+export interface CheckReport {
+  /** Total number of checks */
+  readonly total: number;
+
+  /** Checks that passed */
+  readonly passed: number;
+
+  /** Checks that failed */
+  readonly failed: number;
+
+  /** Total duration in milliseconds */
+  readonly totalDurationMs: number;
+
+  /** Whether all checks passed */
+  readonly success: boolean;
+}
+
+/**
  * Result of the generate operation.
  */
 export interface GenerateResult {
@@ -161,6 +182,12 @@ export interface GenerateResult {
 
   /** Whether hooks were skipped due to dry-run */
   readonly hooksSkippedForDryRun?: boolean;
+
+  /** Check execution report (non-dry-run only) */
+  readonly checkReport?: CheckReport;
+
+  /** Whether checks were skipped due to dry-run */
+  readonly checksSkippedForDryRun?: boolean;
 }
 
 // =============================================================================
@@ -211,6 +238,29 @@ function createHookLogger(): HookLogger {
     error: (message: string) => console.error(`[hook] ${message}`),
     stdout: (line: string) => console.log(`  ${line}`),
     stderr: (line: string) => console.error(`  ${line}`),
+  };
+}
+
+/**
+ * Creates a logger for check execution.
+ *
+ * This logger outputs check messages to the console during generation.
+ * Includes outputBlock for displaying full command output on failure.
+ *
+ * @returns CheckLogger implementation
+ */
+function createCheckLogger(): CheckLogger {
+  return {
+    info: (message: string) => console.log(`[check] ${message}`),
+    error: (message: string) => console.error(`[check] ${message}`),
+    stdout: (line: string) => console.log(`  ${line}`),
+    stderr: (line: string) => console.error(`  ${line}`),
+    outputBlock: (output: string) => {
+      // Print each line of the output block
+      for (const line of output.split("\n")) {
+        console.log(`  ${line}`);
+      }
+    },
   };
 }
 
@@ -554,8 +604,41 @@ export async function handleGenerate(
     // Note: HookRunner throws on failure, so if we get here, all hooks succeeded
   }
 
-  // 9. Write project state (non-dry-run only, after all operations succeed)
+  // 9. Run checks (non-dry-run only, mandatory quality gates)
+  let checkReport: CheckReport | undefined;
+  let checksSkippedForDryRun = false;
+
+  const checks = archetype.checks;
+  const hasChecks = checks && checks.length > 0;
+
+  if (hasChecks && dryRun) {
+    // Dry-run: skip checks
+    checksSkippedForDryRun = true;
+  } else if (hasChecks && !dryRun) {
+    // Execute checks in manifest order - these are mandatory gates
+    const checkRunner = new CheckRunner();
+    const checkLogger = createCheckLogger();
+
+    const summary = await checkRunner.runChecks({
+      commands: checks,
+      cwd: targetDir,
+      logger: checkLogger,
+    });
+
+    checkReport = {
+      total: summary.total,
+      passed: summary.passed,
+      failed: summary.failed,
+      totalDurationMs: summary.totalDurationMs,
+      success: summary.success,
+    };
+
+    // Note: CheckRunner throws on failure, so if we get here, all checks passed
+  }
+
+  // 10. Write project state (non-dry-run only, after all operations succeed)
   // State is NOT written on dry-run to avoid misleading state
+  // State is NOT written if any step above failed (they throw)
   if (!dryRun) {
     const stateManager = new ProjectStateManager();
     await stateManager.write(targetDir, {
@@ -578,6 +661,8 @@ export async function handleGenerate(
     patchesSkippedForDryRun,
     hookReport,
     hooksSkippedForDryRun,
+    checkReport,
+    checksSkippedForDryRun,
   };
 }
 
@@ -644,6 +729,15 @@ export function formatGenerateOutput(result: GenerateResult): string[] {
     lines.push(formatHookReport(result.hookReport));
   }
 
+  // Check report section
+  if (result.checksSkippedForDryRun) {
+    lines.push("");
+    lines.push("Dry run: checks were not executed.");
+  } else if (result.checkReport) {
+    lines.push("");
+    lines.push(formatCheckReport(result.checkReport));
+  }
+
   return lines;
 }
 
@@ -683,6 +777,18 @@ export function formatPatchReport(report: PatchReport): string {
 export function formatHookReport(report: HookReport): string {
   const durationStr = formatDuration(report.totalDurationMs);
   return `Hooks: total=${report.total} succeeded=${report.succeeded} ` +
+    `failed=${report.failed} duration=${durationStr}`;
+}
+
+/**
+ * Formats a check report for CLI output.
+ *
+ * @param report - The check report
+ * @returns Formatted check report string
+ */
+export function formatCheckReport(report: CheckReport): string {
+  const durationStr = formatDuration(report.totalDurationMs);
+  return `Checks: total=${report.total} passed=${report.passed} ` +
     `failed=${report.failed} duration=${durationStr}`;
 }
 

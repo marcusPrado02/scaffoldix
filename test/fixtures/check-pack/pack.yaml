@@ -1,0 +1,32 @@
+pack:
+  name: check-pack
+  version: "1.0.0"
+archetypes:
+  - id: default
+    templateRoot: templates/default
+    checks:
+      - 'node -e "process.exit(0)"'
+
+  - id: with-multiple-checks
+    templateRoot: templates/default
+    checks:
+      - 'node -e "console.log(''check 1''); process.exit(0)"'
+      - 'node -e "console.log(''check 2''); process.exit(0)"'
+      - 'node -e "console.log(''check 3''); process.exit(0)"'
+
+  - id: with-failing-check
+    templateRoot: templates/default
+    checks:
+      - 'node -e "console.log(''before failure''); process.exit(0)"'
+      - 'node -e "console.error(''Check failed - test error''); process.exit(1)"'
+      - 'node -e "console.log(''after failure''); process.exit(0)"'
+
+  - id: with-hooks-and-checks
+    templateRoot: templates/default
+    postGenerate:
+      - 'node -e "require(''fs'').writeFileSync(''hook_ran.txt'', ''yes'')"'
+    checks:
+      - 'node -e "require(''fs'').accessSync(''hook_ran.txt''); process.exit(0)"'
+
+  - id: no-checks
+    templateRoot: templates/default
