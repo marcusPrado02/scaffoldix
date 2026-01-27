@@ -23,6 +23,7 @@ import {
 import { ProjectStateManager } from "../../core/state/ProjectStateManager.js";
 import { PatchEngine, type PatchApplySummary } from "../../core/patch/PatchEngine.js";
 import { PatchResolver } from "../../core/patch/PatchResolver.js";
+import { HookRunner, type HookRunSummary, type HookLogger } from "../../core/hooks/HookRunner.js";
 
 // =============================================================================
 // Types
@@ -108,6 +109,26 @@ export interface PatchReport {
 }
 
 /**
+ * Hook execution report.
+ */
+export interface HookReport {
+  /** Total number of hooks */
+  readonly total: number;
+
+  /** Hooks that succeeded */
+  readonly succeeded: number;
+
+  /** Hooks that failed */
+  readonly failed: number;
+
+  /** Total duration in milliseconds */
+  readonly totalDurationMs: number;
+
+  /** Whether all hooks completed successfully */
+  readonly success: boolean;
+}
+
+/**
  * Result of the generate operation.
  */
 export interface GenerateResult {
@@ -134,6 +155,12 @@ export interface GenerateResult {
 
   /** Whether patches were skipped due to dry-run */
   readonly patchesSkippedForDryRun?: boolean;
+
+  /** Hook execution report (non-dry-run only) */
+  readonly hookReport?: HookReport;
+
+  /** Whether hooks were skipped due to dry-run */
+  readonly hooksSkippedForDryRun?: boolean;
 }
 
 // =============================================================================
@@ -169,6 +196,22 @@ interface ApplyPatchesInput {
   readonly targetDir: string;
   readonly packId: string;
   readonly archetypeId: string;
+}
+
+/**
+ * Creates a logger for hook execution.
+ *
+ * This logger outputs hook messages to the console during generation.
+ *
+ * @returns HookLogger implementation
+ */
+function createHookLogger(): HookLogger {
+  return {
+    info: (message: string) => console.log(`[hook] ${message}`),
+    error: (message: string) => console.error(`[hook] ${message}`),
+    stdout: (line: string) => console.log(`  ${line}`),
+    stderr: (line: string) => console.error(`  ${line}`),
+  };
 }
 
 /**
@@ -479,7 +522,39 @@ export async function handleGenerate(
     }
   }
 
-  // 8. Write project state (non-dry-run only, after all operations succeed)
+  // 8. Run postGenerate hooks (non-dry-run only)
+  let hookReport: HookReport | undefined;
+  let hooksSkippedForDryRun = false;
+
+  const postGenerateHooks = archetype.postGenerate;
+  const hasHooks = postGenerateHooks && postGenerateHooks.length > 0;
+
+  if (hasHooks && dryRun) {
+    // Dry-run: skip hooks
+    hooksSkippedForDryRun = true;
+  } else if (hasHooks && !dryRun) {
+    // Execute hooks in manifest order
+    const hookRunner = new HookRunner();
+    const hookLogger = createHookLogger();
+
+    const summary = await hookRunner.runPostGenerate({
+      commands: postGenerateHooks,
+      cwd: targetDir,
+      logger: hookLogger,
+    });
+
+    hookReport = {
+      total: summary.total,
+      succeeded: summary.succeeded,
+      failed: summary.failed,
+      totalDurationMs: summary.totalDurationMs,
+      success: summary.success,
+    };
+
+    // Note: HookRunner throws on failure, so if we get here, all hooks succeeded
+  }
+
+  // 9. Write project state (non-dry-run only, after all operations succeed)
   // State is NOT written on dry-run to avoid misleading state
   if (!dryRun) {
     const stateManager = new ProjectStateManager();
@@ -501,6 +576,8 @@ export async function handleGenerate(
     filesPlanned: renderResult.filesPlanned,
     patchReport,
     patchesSkippedForDryRun,
+    hookReport,
+    hooksSkippedForDryRun,
   };
 }
 
@@ -558,6 +635,15 @@ export function formatGenerateOutput(result: GenerateResult): string[] {
     lines.push(formatPatchReport(result.patchReport));
   }
 
+  // Hook report section
+  if (result.hooksSkippedForDryRun) {
+    lines.push("");
+    lines.push("Dry run: postGenerate hooks were not executed.");
+  } else if (result.hookReport) {
+    lines.push("");
+    lines.push(formatHookReport(result.hookReport));
+  }
+
   return lines;
 }
 
@@ -586,4 +672,29 @@ export function formatPatchReport(report: PatchReport): string {
   }
 
   return lines.join("\n");
+}
+
+/**
+ * Formats a hook report for CLI output.
+ *
+ * @param report - The hook report
+ * @returns Formatted hook report string
+ */
+export function formatHookReport(report: HookReport): string {
+  const durationStr = formatDuration(report.totalDurationMs);
+  return `Hooks: total=${report.total} succeeded=${report.succeeded} ` +
+    `failed=${report.failed} duration=${durationStr}`;
+}
+
+/**
+ * Formats duration in human-readable format.
+ *
+ * @param ms - Duration in milliseconds
+ * @returns Formatted string (e.g., "1.23s" or "456ms")
+ */
+function formatDuration(ms: number): string {
+  if (ms >= 1000) {
+    return `${(ms / 1000).toFixed(2)}s`;
+  }
+  return `${ms}ms`;
 }

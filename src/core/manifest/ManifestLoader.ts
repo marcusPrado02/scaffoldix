@@ -206,6 +206,20 @@ const ArchetypeSchema = z.object({
    * Patches modify existing files in the target project.
    */
   patches: z.array(PatchSchema).optional(),
+
+  /**
+   * Optional list of shell commands to run after generation completes.
+   * Commands are executed sequentially in the target directory.
+   * Each entry is a shell command string.
+   *
+   * @example
+   * ```yaml
+   * postGenerate:
+   *   - npm install
+   *   - npm run build
+   * ```
+   */
+  postGenerate: z.array(z.string()).optional(),
 });
 
 /**

@@ -1,0 +1,25 @@
+pack:
+  name: hook-pack
+  version: "1.0.0"
+archetypes:
+  - id: default
+    templateRoot: templates/default
+    postGenerate:
+      - echo "Hook executed successfully"
+
+  - id: with-multiple-hooks
+    templateRoot: templates/default
+    postGenerate:
+      - echo "First hook"
+      - echo "Second hook"
+      - touch hook_marker.txt
+
+  - id: with-failing-hook
+    templateRoot: templates/default
+    postGenerate:
+      - echo "Before failure"
+      - exit 1
+      - echo "After failure"
+
+  - id: no-hooks
+    templateRoot: templates/default
