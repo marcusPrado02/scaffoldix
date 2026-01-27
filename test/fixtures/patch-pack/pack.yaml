@@ -1,0 +1,35 @@
+pack:
+  name: patch-pack
+  version: "1.0.0"
+archetypes:
+  - id: with-patches
+    templateRoot: templates/with-patches
+    patches:
+      # Insert import using inline contentTemplate
+      - file: src/app.ts
+        kind: marker_insert
+        markerStart: "// <SCAFFOLDIX:START:imports>"
+        markerEnd: "// <SCAFFOLDIX:END:imports>"
+        contentTemplate: 'import { {{moduleName}} } from "./{{moduleName}}";'
+        idempotencyKey: add-module-import
+        description: Adds the module import
+
+      # Insert export using path-based template
+      - file: src/app.ts
+        kind: marker_replace
+        markerStart: "// <SCAFFOLDIX:START:exports>"
+        markerEnd: "// <SCAFFOLDIX:END:exports>"
+        path: patches/export-module.hbs
+        idempotencyKey: add-module-export
+        description: Adds the module export
+
+  - id: missing-marker-patch
+    templateRoot: templates/with-patches
+    patches:
+      # This patch targets markers that don't exist in utils.ts
+      - file: src/utils.ts
+        kind: marker_insert
+        markerStart: "// <NONEXISTENT:START>"
+        markerEnd: "// <NONEXISTENT:END>"
+        contentTemplate: "// This should fail"
+        idempotencyKey: fail-missing-marker

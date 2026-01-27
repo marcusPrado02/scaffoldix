@@ -21,6 +21,8 @@ import {
   type RenameRules,
 } from "../../core/render/Renderer.js";
 import { ProjectStateManager } from "../../core/state/ProjectStateManager.js";
+import { PatchEngine, type PatchApplySummary } from "../../core/patch/PatchEngine.js";
+import { PatchResolver } from "../../core/patch/PatchResolver.js";
 
 // =============================================================================
 // Types
@@ -66,6 +68,46 @@ export interface GenerateDependencies {
 }
 
 /**
+ * Individual patch result for reporting.
+ */
+export interface PatchReportEntry {
+  /** Patch operation kind */
+  readonly kind: string;
+
+  /** Target file path */
+  readonly file: string;
+
+  /** Idempotency key */
+  readonly idempotencyKey: string;
+
+  /** Result status */
+  readonly status: "applied" | "skipped" | "failed";
+
+  /** Reason for skip or failure */
+  readonly reason?: string;
+}
+
+/**
+ * Patch application summary.
+ */
+export interface PatchReport {
+  /** Total patches in manifest */
+  readonly total: number;
+
+  /** Patches successfully applied */
+  readonly applied: number;
+
+  /** Patches skipped (already applied) */
+  readonly skipped: number;
+
+  /** Patches that failed */
+  readonly failed: number;
+
+  /** Individual patch results */
+  readonly entries: PatchReportEntry[];
+}
+
+/**
  * Result of the generate operation.
  */
 export interface GenerateResult {
@@ -86,6 +128,12 @@ export interface GenerateResult {
 
   /** Files that would be written (dry-run) */
   readonly filesPlanned: FileEntry[];
+
+  /** Patch application report (non-dry-run only) */
+  readonly patchReport?: PatchReport;
+
+  /** Whether patches were skipped due to dry-run */
+  readonly patchesSkippedForDryRun?: boolean;
 }
 
 // =============================================================================
@@ -109,6 +157,79 @@ function sanitizePackId(packId: string): string {
 function deriveStorePath(packsDir: string, packId: string, hash: string): string {
   const sanitizedId = sanitizePackId(packId);
   return path.join(packsDir, sanitizedId, hash);
+}
+
+/**
+ * Input for applying patches.
+ */
+interface ApplyPatchesInput {
+  readonly patches: NonNullable<import("../../core/manifest/ManifestLoader.js").Archetype["patches"]>;
+  readonly data: Record<string, unknown>;
+  readonly packStorePath: string;
+  readonly targetDir: string;
+  readonly packId: string;
+  readonly archetypeId: string;
+}
+
+/**
+ * Applies patches from manifest to target directory.
+ *
+ * @param input - Patches and context
+ * @returns Patch application report
+ */
+async function applyPatches(input: ApplyPatchesInput): Promise<PatchReport> {
+  const { patches, data, packStorePath, targetDir, packId, archetypeId } = input;
+
+  // 1. Resolve patch content (template rendering)
+  const resolver = new PatchResolver();
+  const resolved = await resolver.resolveAll({
+    patches,
+    data,
+    packStorePath,
+  });
+
+  // 2. Apply patches using PatchEngine
+  const engine = new PatchEngine();
+  let summary: PatchApplySummary;
+
+  try {
+    summary = await engine.applyAll(resolved.operations, {
+      rootDir: targetDir,
+      strict: true,
+    });
+  } catch (error) {
+    // If PatchEngine throws (vs returning failed status), wrap it
+    const cause = error instanceof Error ? error : new Error(String(error));
+    if (error instanceof ScaffoldError) {
+      throw error;
+    }
+    throw new ScaffoldError(
+      `Unexpected error applying patches`,
+      "PATCH_ENGINE_ERROR",
+      { packId, archetypeId },
+      undefined,
+      `An unexpected error occurred while applying patches: ${cause.message}`,
+      cause,
+      true
+    );
+  }
+
+  // 3. Convert to PatchReport format
+  const entries: PatchReportEntry[] = summary.results.map((r) => ({
+    kind: r.kind,
+    file: r.file,
+    idempotencyKey: r.idempotencyKey,
+    status: r.status,
+    reason: r.reason,
+  }));
+
+  return {
+    total: patches.length,
+    applied: summary.applied,
+    skipped: summary.skipped,
+    failed: summary.failed,
+    entries,
+  };
 }
 
 // =============================================================================
@@ -311,7 +432,54 @@ export async function handleGenerate(
     dryRun,
   });
 
-  // 7. Write project state (non-dry-run only)
+  // 7. Apply patches (non-dry-run only)
+  let patchReport: PatchReport | undefined;
+  let patchesSkippedForDryRun = false;
+
+  const patches = archetype.patches;
+  const hasPatches = patches && patches.length > 0;
+
+  if (hasPatches && dryRun) {
+    // Dry-run: skip patches, just note they would be applied
+    patchesSkippedForDryRun = true;
+  } else if (hasPatches && !dryRun) {
+    // Apply patches in manifest order
+    patchReport = await applyPatches({
+      patches,
+      data,
+      packStorePath: storePath,
+      targetDir,
+      packId,
+      archetypeId,
+    });
+
+    // Check for failures - abort if any patch failed
+    if (patchReport.failed > 0) {
+      const failedPatches = patchReport.entries.filter((e) => e.status === "failed");
+      const failedSummary = failedPatches
+        .map((p) => `${p.idempotencyKey}: ${p.reason}`)
+        .join("; ");
+
+      throw new ScaffoldError(
+        `Patch application failed`,
+        "PATCH_APPLICATION_FAILED",
+        {
+          packId,
+          archetypeId,
+          patchReport,
+          failedPatches,
+        },
+        undefined,
+        `Generation aborted: ${patchReport.failed} patch(es) failed. ` +
+          `${failedSummary}. ` +
+          `Fix the issues and re-run the generate command.`,
+        undefined,
+        true
+      );
+    }
+  }
+
+  // 8. Write project state (non-dry-run only, after all operations succeed)
   // State is NOT written on dry-run to avoid misleading state
   if (!dryRun) {
     const stateManager = new ProjectStateManager();
@@ -331,6 +499,8 @@ export async function handleGenerate(
     dryRun,
     filesWritten: renderResult.filesWritten,
     filesPlanned: renderResult.filesPlanned,
+    patchReport,
+    patchesSkippedForDryRun,
   };
 }
 
@@ -379,5 +549,41 @@ export function formatGenerateOutput(result: GenerateResult): string[] {
     }
   }
 
+  // Patch report section
+  if (result.patchesSkippedForDryRun) {
+    lines.push("");
+    lines.push("Dry run: patches were not applied.");
+  } else if (result.patchReport) {
+    lines.push("");
+    lines.push(formatPatchReport(result.patchReport));
+  }
+
   return lines;
+}
+
+/**
+ * Formats a patch report for CLI output.
+ *
+ * @param report - The patch report
+ * @returns Formatted patch report string
+ */
+export function formatPatchReport(report: PatchReport): string {
+  const lines: string[] = [];
+
+  // Summary line
+  lines.push(
+    `Patches: total=${report.total} applied=${report.applied} ` +
+    `skipped=${report.skipped} failed=${report.failed}`
+  );
+
+  // Individual patch results
+  if (report.entries.length > 0) {
+    for (const entry of report.entries) {
+      const status = entry.status.toUpperCase();
+      const reason = entry.reason ? ` (${entry.reason})` : "";
+      lines.push(`  [${status}] ${entry.kind} ${entry.file} (${entry.idempotencyKey})${reason}`);
+    }
+  }
+
+  return lines.join("\n");
 }
