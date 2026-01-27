@@ -20,6 +20,7 @@ import {
   type FileEntry,
   type RenameRules,
 } from "../../core/render/Renderer.js";
+import { ProjectStateManager } from "../../core/state/ProjectStateManager.js";
 
 // =============================================================================
 // Types
@@ -309,6 +310,19 @@ export async function handleGenerate(
     renameRules,
     dryRun,
   });
+
+  // 7. Write project state (non-dry-run only)
+  // State is NOT written on dry-run to avoid misleading state
+  if (!dryRun) {
+    const stateManager = new ProjectStateManager();
+    await stateManager.write(targetDir, {
+      packId,
+      packVersion: packEntry.version,
+      archetypeId,
+      inputs: data,
+      timestamp: new Date().toISOString(),
+    });
+  }
 
   return {
     packId,

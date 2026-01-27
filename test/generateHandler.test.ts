@@ -684,8 +684,9 @@ archetypes:
 
       expect(result.filesWritten.length).toBe(1);
       // Note: filename vars need rename rules, but content should be rendered
+      // Target dir will have the template file + .scaffoldix directory
       const files = await fs.readdir(targetDir);
-      expect(files.length).toBe(1);
+      expect(files.filter((f) => f !== ".scaffoldix").length).toBe(1);
     });
 
     it("preserves directory structure", async () => {
@@ -792,6 +793,175 @@ archetypes:
       const lines = formatGenerateOutput(result);
 
       expect(lines.some((l) => l.includes("/custom/target/path"))).toBe(true);
+    });
+  });
+
+  // ===========================================================================
+  // State File Integration
+  // ===========================================================================
+
+  describe("state file integration", () => {
+    it("creates .scaffoldix/state.json after successful generation", async () => {
+      const { storeDir, packsDir, deps, registryFile } = await createTestDependencies();
+      trackDir(storeDir);
+
+      const targetDir = trackDir(await createTestDir("target"));
+      const hash = "5".repeat(64);
+
+      const registry = createRegistry([
+        {
+          id: "state-pack",
+          version: "1.2.3",
+          origin: { type: "local", localPath: "/state" },
+          hash,
+        },
+      ]);
+      await writeRegistry(registryFile, registry);
+
+      await createTestPack(packsDir, "state-pack", hash, {
+        archetypes: [
+          {
+            id: "entity",
+            templateRoot: "templates",
+            files: [{ name: "file.ts", content: "// content" }],
+          },
+        ],
+      });
+
+      await handleGenerate(
+        {
+          ref: "state-pack:entity",
+          targetDir,
+          dryRun: false,
+          data: { name: "TestEntity" },
+        },
+        deps
+      );
+
+      // Verify state file was created
+      const stateFile = path.join(targetDir, ".scaffoldix", "state.json");
+      expect(await fileExists(stateFile)).toBe(true);
+
+      // Verify state content
+      const stateContent = await readFile(stateFile);
+      const state = JSON.parse(stateContent);
+
+      expect(state.schemaVersion).toBe(1);
+      expect(state.lastGeneration.packId).toBe("state-pack");
+      expect(state.lastGeneration.packVersion).toBe("1.2.3");
+      expect(state.lastGeneration.archetypeId).toBe("entity");
+      expect(state.lastGeneration.inputs).toEqual({ name: "TestEntity" });
+      expect(state.lastGeneration.timestamp).toBeDefined();
+    });
+
+    it("does NOT create state file on dry-run", async () => {
+      const { storeDir, packsDir, deps, registryFile } = await createTestDependencies();
+      trackDir(storeDir);
+
+      const targetDir = trackDir(await createTestDir("target"));
+      const hash = "6".repeat(64);
+
+      const registry = createRegistry([
+        {
+          id: "dry-state-pack",
+          version: "1.0.0",
+          origin: { type: "local", localPath: "/dry-state" },
+          hash,
+        },
+      ]);
+      await writeRegistry(registryFile, registry);
+
+      await createTestPack(packsDir, "dry-state-pack", hash, {
+        archetypes: [
+          {
+            id: "default",
+            templateRoot: "templates",
+            files: [{ name: "file.ts", content: "" }],
+          },
+        ],
+      });
+
+      await handleGenerate(
+        {
+          ref: "dry-state-pack:default",
+          targetDir,
+          dryRun: true, // Dry run!
+          data: {},
+        },
+        deps
+      );
+
+      // Verify state file was NOT created
+      const stateFile = path.join(targetDir, ".scaffoldix", "state.json");
+      expect(await fileExists(stateFile)).toBe(false);
+    });
+
+    it("updates state file on re-generation", async () => {
+      const { storeDir, packsDir, deps, registryFile } = await createTestDependencies();
+      trackDir(storeDir);
+
+      const targetDir = trackDir(await createTestDir("target"));
+      const hash = "7".repeat(64);
+
+      const registry = createRegistry([
+        {
+          id: "regen-pack",
+          version: "2.0.0",
+          origin: { type: "local", localPath: "/regen" },
+          hash,
+        },
+      ]);
+      await writeRegistry(registryFile, registry);
+
+      await createTestPack(packsDir, "regen-pack", hash, {
+        archetypes: [
+          {
+            id: "first",
+            templateRoot: "templates",
+            files: [{ name: "file.ts", content: "" }],
+          },
+          {
+            id: "second",
+            templateRoot: "templates",
+            files: [{ name: "file.ts", content: "" }],
+          },
+        ],
+      });
+
+      // First generation
+      await handleGenerate(
+        {
+          ref: "regen-pack:first",
+          targetDir,
+          dryRun: false,
+          data: { v: 1 },
+        },
+        deps
+      );
+
+      const stateFile = path.join(targetDir, ".scaffoldix", "state.json");
+      const firstState = JSON.parse(await readFile(stateFile));
+      expect(firstState.lastGeneration.archetypeId).toBe("first");
+
+      // Second generation (overwrites first)
+      await handleGenerate(
+        {
+          ref: "regen-pack:second",
+          targetDir,
+          dryRun: false,
+          data: { v: 2 },
+        },
+        deps
+      );
+
+      const secondState = JSON.parse(await readFile(stateFile));
+      expect(secondState.lastGeneration.archetypeId).toBe("second");
+      expect(secondState.lastGeneration.inputs).toEqual({ v: 2 });
+
+      // Verify updatedAt was updated
+      expect(new Date(secondState.updatedAt).getTime()).toBeGreaterThanOrEqual(
+        new Date(firstState.updatedAt).getTime()
+      );
     });
   });
 
