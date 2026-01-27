@@ -653,4 +653,579 @@ archetypes:
       expect(manifest.packRootDir).toBe(deepDir);
     });
   });
+
+  // ===========================================================================
+  // Patch Schema Validation - Valid Cases
+  // ===========================================================================
+
+  describe("patch schema validation - valid cases", () => {
+    it("accepts marker_insert patch with file + markers + contentTemplate + idempotencyKey", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: src/index.ts
+        kind: marker_insert
+        markerStart: "// <SCAFFOLDIX:START:imports>"
+        markerEnd: "// <SCAFFOLDIX:END:imports>"
+        contentTemplate: 'import { User } from "./models/User";'
+        idempotencyKey: add-user-import
+`
+      );
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.archetypes[0].patches).toBeDefined();
+      expect(manifest.archetypes[0].patches).toHaveLength(1);
+      expect(manifest.archetypes[0].patches![0].kind).toBe("marker_insert");
+      expect(manifest.archetypes[0].patches![0].file).toBe("src/index.ts");
+    });
+
+    it("accepts marker_replace patch with file + markers + path + idempotencyKey", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: config.ts
+        kind: marker_replace
+        markerStart: "// <CONFIG:START>"
+        markerEnd: "// <CONFIG:END>"
+        path: patches/config-content.hbs
+        idempotencyKey: replace-config
+`
+      );
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.archetypes[0].patches![0].kind).toBe("marker_replace");
+      expect(manifest.archetypes[0].patches![0].path).toBe("patches/config-content.hbs");
+    });
+
+    it("accepts append_if_missing patch with file + contentTemplate + idempotencyKey", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: exports.ts
+        kind: append_if_missing
+        contentTemplate: 'export * from "./newModule";'
+        idempotencyKey: add-export
+`
+      );
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.archetypes[0].patches![0].kind).toBe("append_if_missing");
+      // append_if_missing should NOT have markers
+      expect((manifest.archetypes[0].patches![0] as any).markerStart).toBeUndefined();
+    });
+
+    it("accepts optional description field on patch", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: index.ts
+        kind: append_if_missing
+        contentTemplate: "// footer"
+        idempotencyKey: add-footer
+        description: Adds a footer comment to the index file
+`
+      );
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.archetypes[0].patches![0].description).toBe(
+        "Adds a footer comment to the index file"
+      );
+    });
+
+    it("accepts optional strict field on patch", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: optional.ts
+        kind: append_if_missing
+        contentTemplate: content
+        idempotencyKey: add-optional
+        strict: false
+`
+      );
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.archetypes[0].patches![0].strict).toBe(false);
+    });
+
+    it("accepts multiple patches on same archetype", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: a.ts
+        kind: append_if_missing
+        contentTemplate: a
+        idempotencyKey: patch-a
+      - file: b.ts
+        kind: append_if_missing
+        contentTemplate: b
+        idempotencyKey: patch-b
+      - file: c.ts
+        kind: marker_insert
+        markerStart: "// START"
+        markerEnd: "// END"
+        contentTemplate: c
+        idempotencyKey: patch-c
+`
+      );
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.archetypes[0].patches).toHaveLength(3);
+    });
+
+    it("accepts archetype without patches (patches is optional)", async () => {
+      await writeManifest(testDir, createValidManifest());
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.archetypes[0].patches).toBeUndefined();
+    });
+  });
+
+  // ===========================================================================
+  // Patch Schema Validation - Invalid Cases
+  // ===========================================================================
+
+  describe("patch schema validation - invalid cases", () => {
+    it("throws when patch is missing file", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - kind: append_if_missing
+        contentTemplate: content
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; details?: { issues?: Array<{ path: string }> } };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.details?.issues?.some((i) => i.path.includes("file"))).toBe(true);
+      }
+    });
+
+    it("throws when patch is missing kind", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        contentTemplate: content
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; details?: { issues?: Array<{ path: string }> } };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.details?.issues?.some((i) => i.path.includes("kind"))).toBe(true);
+      }
+    });
+
+    it("throws when patch is missing idempotencyKey", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        kind: append_if_missing
+        contentTemplate: content
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; details?: { issues?: Array<{ path: string }> } };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.details?.issues?.some((i) => i.path.includes("idempotencyKey"))).toBe(true);
+      }
+    });
+
+    it("throws when marker_insert is missing markerStart", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        kind: marker_insert
+        markerEnd: "// END"
+        contentTemplate: content
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; details?: { issues?: Array<{ path: string }> } };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.details?.issues?.some((i) => i.path.includes("markerStart"))).toBe(true);
+      }
+    });
+
+    it("throws when marker_insert is missing markerEnd", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        kind: marker_insert
+        markerStart: "// START"
+        contentTemplate: content
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; details?: { issues?: Array<{ path: string }> } };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.details?.issues?.some((i) => i.path.includes("markerEnd"))).toBe(true);
+      }
+    });
+
+    it("throws when marker_replace is missing markers", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        kind: marker_replace
+        contentTemplate: content
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+      }
+    });
+
+    it("throws when append_if_missing includes markerStart", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        kind: append_if_missing
+        markerStart: "// START"
+        contentTemplate: content
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; hint?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.hint).toMatch(/marker/i);
+      }
+    });
+
+    it("throws when append_if_missing includes markerEnd", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        kind: append_if_missing
+        markerEnd: "// END"
+        contentTemplate: content
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+      }
+    });
+
+    it("throws when neither contentTemplate nor path is provided", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        kind: append_if_missing
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; hint?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.hint).toMatch(/contentTemplate.*path|exactly one/i);
+      }
+    });
+
+    it("throws when both contentTemplate and path are provided", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        kind: append_if_missing
+        contentTemplate: inline content
+        path: patches/content.hbs
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; hint?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.hint).toMatch(/contentTemplate.*path|exactly one/i);
+      }
+    });
+
+    it("throws when file is empty string", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: ""
+        kind: append_if_missing
+        contentTemplate: content
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+      }
+    });
+
+    it("throws when idempotencyKey is empty string", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        kind: append_if_missing
+        contentTemplate: content
+        idempotencyKey: ""
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+      }
+    });
+
+    it("throws when kind is invalid value", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        kind: invalid_kind
+        contentTemplate: content
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; details?: { issues?: Array<{ path: string }> } };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.details?.issues?.some((i) => i.path.includes("kind"))).toBe(true);
+      }
+    });
+
+    it("error message includes field path for nested patch errors", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: first
+    templateRoot: templates
+  - id: second
+    templateRoot: templates
+    patches:
+      - file: test.ts
+        kind: append_if_missing
+        idempotencyKey: test
+`
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { details?: { issues?: Array<{ path: string }> } };
+        // Should include path like "archetypes.1.patches.0"
+        const hasNestedPath = err.details?.issues?.some(
+          (i) => i.path.includes("archetypes") && i.path.includes("patches")
+        );
+        expect(hasNestedPath).toBe(true);
+      }
+    });
+  });
 });

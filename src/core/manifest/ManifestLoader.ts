@@ -44,6 +44,145 @@ const MANIFEST_FILENAMES = ["archetype.yaml", "pack.yaml"] as const;
 // Zod Schemas (v0.1 - Minimal)
 // =============================================================================
 
+// =============================================================================
+// Patch Operation Schemas
+// =============================================================================
+
+/**
+ * Non-empty string schema (trims and validates non-empty).
+ */
+const nonEmptyString = (fieldName: string) =>
+  z
+    .string()
+    .transform((s) => s.trim())
+    .refine((s) => s.length > 0, { message: `${fieldName} cannot be empty` });
+
+/**
+ * Validates exactly one of contentTemplate or path is provided.
+ */
+function validateContentSource(data: { contentTemplate?: string; path?: string }): boolean {
+  const hasContentTemplate = data.contentTemplate !== undefined && data.contentTemplate !== "";
+  const hasPath = data.path !== undefined && data.path !== "";
+  return (hasContentTemplate && !hasPath) || (!hasContentTemplate && hasPath);
+}
+
+/**
+ * Schema for marker_insert operation.
+ *
+ * Inserts content immediately after markerStart, before existing content.
+ *
+ * Required fields:
+ * - file: Target file path relative to project root
+ * - idempotencyKey: Unique key for idempotency
+ * - markerStart: Start marker string to find
+ * - markerEnd: End marker string to find
+ * - contentTemplate OR path: Exactly one must be provided
+ *
+ * Optional fields:
+ * - description: Human-readable description
+ * - strict: Strictness flag (default true at runtime)
+ * - when: Reserved for future conditional execution
+ */
+const MarkerInsertSchema = z.object({
+  kind: z.literal("marker_insert"),
+  file: nonEmptyString("Patch file"),
+  idempotencyKey: nonEmptyString("Patch idempotencyKey"),
+  markerStart: nonEmptyString("markerStart"),
+  markerEnd: nonEmptyString("markerEnd"),
+  /**
+   * Inline template content (Handlebars).
+   * Will be rendered with generation inputs at execution time.
+   */
+  contentTemplate: z.string().optional(),
+  /**
+   * Path to a template file within the pack.
+   * Relative to pack root. Will be read and rendered with generation inputs.
+   */
+  path: z.string().optional(),
+  description: z.string().optional(),
+  strict: z.boolean().optional(),
+  when: z.string().optional(),
+}).refine(validateContentSource, {
+  message: "Provide exactly one of contentTemplate or path",
+});
+
+/**
+ * Schema for marker_replace operation.
+ *
+ * Replaces everything between markerStart and markerEnd with new content.
+ */
+const MarkerReplaceSchema = z.object({
+  kind: z.literal("marker_replace"),
+  file: nonEmptyString("Patch file"),
+  idempotencyKey: nonEmptyString("Patch idempotencyKey"),
+  markerStart: nonEmptyString("markerStart"),
+  markerEnd: nonEmptyString("markerEnd"),
+  contentTemplate: z.string().optional(),
+  path: z.string().optional(),
+  description: z.string().optional(),
+  strict: z.boolean().optional(),
+  when: z.string().optional(),
+}).refine(validateContentSource, {
+  message: "Provide exactly one of contentTemplate or path",
+});
+
+/**
+ * Schema for append_if_missing operation.
+ *
+ * Appends content to end of file if not already present.
+ * Does NOT use markers - markerStart/markerEnd are forbidden.
+ */
+const AppendIfMissingSchema = z.object({
+  kind: z.literal("append_if_missing"),
+  file: nonEmptyString("Patch file"),
+  idempotencyKey: nonEmptyString("Patch idempotencyKey"),
+  contentTemplate: z.string().optional(),
+  path: z.string().optional(),
+  description: z.string().optional(),
+  strict: z.boolean().optional(),
+  when: z.string().optional(),
+}).refine(validateContentSource, {
+  message: "Provide exactly one of contentTemplate or path",
+});
+
+/**
+ * Raw patch schema without marker validation for append_if_missing.
+ */
+const RawPatchSchema = z.discriminatedUnion("kind", [
+  MarkerInsertSchema,
+  MarkerReplaceSchema,
+  AppendIfMissingSchema,
+]);
+
+/**
+ * Custom patch schema with validation for forbidden marker fields on append_if_missing.
+ *
+ * Uses superRefine to validate that append_if_missing does not include markers,
+ * providing actionable error messages.
+ */
+const PatchSchema = z.object({
+  kind: z.enum(["marker_insert", "marker_replace", "append_if_missing"]),
+  markerStart: z.string().optional(),
+  markerEnd: z.string().optional(),
+}).passthrough().superRefine((data, ctx) => {
+  if (data.kind === "append_if_missing") {
+    if (data.markerStart !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "append_if_missing does not use markers. Remove markerStart.",
+        path: ["markerStart"],
+      });
+    }
+    if (data.markerEnd !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "append_if_missing does not use markers. Remove markerEnd.",
+        path: ["markerEnd"],
+      });
+    }
+  }
+}).pipe(RawPatchSchema);
+
 /**
  * Schema for a single archetype definition.
  *
@@ -61,6 +200,12 @@ const ArchetypeSchema = z.object({
     .string()
     .transform((s) => s.trim())
     .refine((s) => s.length > 0, { message: "Archetype templateRoot cannot be empty" }),
+
+  /**
+   * Optional list of patch operations to apply after template rendering.
+   * Patches modify existing files in the target project.
+   */
+  patches: z.array(PatchSchema).optional(),
 });
 
 /**
@@ -99,6 +244,30 @@ const ManifestSchema = z.object({
 // =============================================================================
 // Types (derived from Zod schemas)
 // =============================================================================
+
+/**
+ * Patch operation for marker_insert.
+ * Inserts content immediately after markerStart.
+ */
+export type MarkerInsertPatch = z.infer<typeof MarkerInsertSchema>;
+
+/**
+ * Patch operation for marker_replace.
+ * Replaces content between markers.
+ */
+export type MarkerReplacePatch = z.infer<typeof MarkerReplaceSchema>;
+
+/**
+ * Patch operation for append_if_missing.
+ * Appends content to end of file.
+ */
+export type AppendIfMissingPatch = z.infer<typeof AppendIfMissingSchema>;
+
+/**
+ * Union type of all patch operations.
+ * Discriminated on the `kind` field.
+ */
+export type PatchOperation = MarkerInsertPatch | MarkerReplacePatch | AppendIfMissingPatch;
 
 /** A single archetype definition */
 export type Archetype = z.infer<typeof ArchetypeSchema>;
