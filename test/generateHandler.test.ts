@@ -847,7 +847,7 @@ archetypes:
       const stateContent = await readFile(stateFile);
       const state = JSON.parse(stateContent);
 
-      expect(state.schemaVersion).toBe(1);
+      expect(state.schemaVersion).toBe(2);
       expect(state.lastGeneration.packId).toBe("state-pack");
       expect(state.lastGeneration.packVersion).toBe("1.2.3");
       expect(state.lastGeneration.archetypeId).toBe("entity");

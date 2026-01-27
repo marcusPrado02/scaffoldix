@@ -10,6 +10,13 @@
  * State is stored per-project, NOT in the global store:
  * - `<targetDir>/.scaffoldix/state.json`
  *
+ * ## Schema Versioning
+ *
+ * - v1: Original schema with `lastGeneration` only
+ * - v2: Extended schema with `generations` array for history
+ *
+ * The manager reads both v1 and v2, and always writes v2.
+ *
  * ## Atomic Writes
  *
  * All writes are atomic to prevent corruption:
@@ -30,7 +37,7 @@ import { ScaffoldError } from "../errors/errors.js";
 // =============================================================================
 
 /** Current schema version for state files. */
-const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 /** Directory name for Scaffoldix metadata. */
 const SCAFFOLDIX_DIR = ".scaffoldix";
@@ -38,16 +45,112 @@ const SCAFFOLDIX_DIR = ".scaffoldix";
 /** State file name. */
 const STATE_FILE = "state.json";
 
+/** Maximum number of generations to keep in history. */
+const MAX_GENERATIONS = 50;
+
 // =============================================================================
-// Zod Schemas
+// Zod Schemas - v1 (legacy)
 // =============================================================================
 
 /**
- * Schema for a generation record.
- *
- * Captures all inputs used during a single generation run.
+ * Schema for a v1 generation record.
+ * Used for backward compatibility when reading old state files.
  */
-export const GenerationRecordSchema = z.object({
+export const GenerationRecordV1Schema = z.object({
+  packId: z.string().min(1),
+  packVersion: z.string().min(1),
+  archetypeId: z.string().min(1),
+  inputs: z.record(z.string(), z.unknown()),
+  timestamp: z.string(),
+});
+
+/**
+ * Schema for v1 project state.
+ */
+export const ProjectStateV1Schema = z.object({
+  schemaVersion: z.literal(1),
+  updatedAt: z.string(),
+  lastGeneration: GenerationRecordV1Schema,
+});
+
+// =============================================================================
+// Zod Schemas - v2 (current)
+// =============================================================================
+
+/**
+ * Schema for a patch item in a generation report.
+ */
+export const PatchItemSchema = z.object({
+  kind: z.string(),
+  file: z.string(),
+  idempotencyKey: z.string(),
+  status: z.enum(["applied", "skipped", "failed"]),
+  reason: z.string().optional(),
+  durationMs: z.number().optional(),
+});
+
+/**
+ * Schema for patches summary in a generation report.
+ */
+export const PatchesSummarySchema = z.object({
+  total: z.number(),
+  applied: z.number(),
+  skipped: z.number(),
+  failed: z.number(),
+  items: z.array(PatchItemSchema),
+});
+
+/**
+ * Schema for a hook/check item in a generation report.
+ */
+export const CommandItemSchema = z.object({
+  command: z.string(),
+  status: z.enum(["success", "failure"]),
+  exitCode: z.number(),
+  durationMs: z.number().optional(),
+});
+
+/**
+ * Schema for hooks summary in a generation report.
+ */
+export const HooksSummarySchema = z.object({
+  items: z.array(CommandItemSchema),
+});
+
+/**
+ * Schema for checks summary in a generation report.
+ */
+export const ChecksSummarySchema = z.object({
+  items: z.array(CommandItemSchema),
+});
+
+/**
+ * Schema for error details in a generation report.
+ */
+export const GenerationErrorSchema = z.object({
+  stage: z.enum(["render", "patches", "postGenerate", "checks", "commit"]),
+  message: z.string(),
+  details: z.string().optional(),
+});
+
+/**
+ * Schema for staging info in a generation report.
+ */
+export const StagingInfoSchema = z.object({
+  used: z.boolean(),
+  committedTo: z.string().optional(),
+});
+
+/**
+ * Schema for a full generation report (v2).
+ */
+export const GenerationReportSchema = z.object({
+  /** Unique ID for this generation run. */
+  id: z.string(),
+
+  /** ISO 8601 timestamp of this generation. */
+  timestamp: z.string(),
+
   /** Pack identifier (may be scoped, e.g., @org/pack). */
   packId: z.string().min(1),
 
@@ -60,39 +163,104 @@ export const GenerationRecordSchema = z.object({
   /** Inputs provided to templates. Stored exactly as used. */
   inputs: z.record(z.string(), z.unknown()),
 
-  /** ISO 8601 timestamp of this generation. */
-  timestamp: z.string(),
+  /** Final status of the generation. */
+  status: z.enum(["success", "failure"]),
+
+  /** Staging info (optional). */
+  staging: StagingInfoSchema.optional(),
+
+  /** Patches summary (optional, present if patches were run). */
+  patches: PatchesSummarySchema.optional(),
+
+  /** Hooks summary (optional, present if hooks were run). */
+  hooks: HooksSummarySchema.optional(),
+
+  /** Checks summary (optional, present if checks were run). */
+  checks: ChecksSummarySchema.optional(),
+
+  /** Error details (present on failure). */
+  error: GenerationErrorSchema.optional(),
 });
 
 /**
- * Schema for the project state file.
- *
- * Uses explicit schema versioning for future compatibility.
+ * Schema for v2 project state with generation history.
  */
-export const ProjectStateSchema = z.object({
-  /** Schema version number. Must be a number, not a string. */
-  schemaVersion: z.number().int().positive(),
-
-  /** ISO 8601 timestamp of last update to this file. */
+export const ProjectStateV2Schema = z.object({
+  schemaVersion: z.literal(2),
   updatedAt: z.string(),
-
-  /** Most recent generation record. */
-  lastGeneration: GenerationRecordSchema,
+  generations: z.array(GenerationReportSchema),
+  /** Computed field for backward compatibility. */
+  lastGeneration: GenerationRecordV1Schema,
 });
+
+/**
+ * Combined schema that accepts either v1 or v2.
+ */
+export const ProjectStateAnySchema = z.union([ProjectStateV1Schema, ProjectStateV2Schema]);
 
 // =============================================================================
 // Types
 // =============================================================================
 
 /**
- * A record of a single generation run.
+ * A v1 generation record (legacy).
  */
-export type GenerationRecord = z.infer<typeof GenerationRecordSchema>;
+export type GenerationRecord = z.infer<typeof GenerationRecordV1Schema>;
 
 /**
- * The complete project state.
+ * A patch item in a generation report.
  */
-export type ProjectState = z.infer<typeof ProjectStateSchema>;
+export type PatchItem = z.infer<typeof PatchItemSchema>;
+
+/**
+ * Patches summary in a generation report.
+ */
+export type PatchesSummary = z.infer<typeof PatchesSummarySchema>;
+
+/**
+ * A command item (hook or check) in a generation report.
+ */
+export type CommandItem = z.infer<typeof CommandItemSchema>;
+
+/**
+ * Hooks summary in a generation report.
+ */
+export type HooksSummary = z.infer<typeof HooksSummarySchema>;
+
+/**
+ * Checks summary in a generation report.
+ */
+export type ChecksSummary = z.infer<typeof ChecksSummarySchema>;
+
+/**
+ * Error details in a generation report.
+ */
+export type GenerationError = z.infer<typeof GenerationErrorSchema>;
+
+/**
+ * Staging info in a generation report.
+ */
+export type StagingInfo = z.infer<typeof StagingInfoSchema>;
+
+/**
+ * A full generation report.
+ */
+export type GenerationReport = z.infer<typeof GenerationReportSchema>;
+
+/**
+ * v1 project state (legacy).
+ */
+export type ProjectStateV1 = z.infer<typeof ProjectStateV1Schema>;
+
+/**
+ * v2 project state with generation history.
+ */
+export type ProjectStateV2 = z.infer<typeof ProjectStateV2Schema>;
+
+/**
+ * Project state (either v1 or v2).
+ */
+export type ProjectState = ProjectStateV1 | ProjectStateV2;
 
 // =============================================================================
 // ProjectStateManager
@@ -106,13 +274,16 @@ export type ProjectState = z.infer<typeof ProjectStateSchema>;
  * ```typescript
  * const manager = new ProjectStateManager();
  *
- * // Write state after generation
- * await manager.write(targetDir, {
+ * // Record a generation with full report
+ * await manager.recordGeneration(targetDir, {
+ *   id: "gen-123",
+ *   timestamp: new Date().toISOString(),
  *   packId: "my-pack",
  *   packVersion: "1.0.0",
  *   archetypeId: "default",
  *   inputs: { name: "MyEntity" },
- *   timestamp: new Date().toISOString(),
+ *   status: "success",
+ *   patches: { total: 2, applied: 2, skipped: 0, failed: 0, items: [...] },
  * });
  *
  * // Read existing state
@@ -130,13 +301,14 @@ export class ProjectStateManager {
    * @returns Absolute path to the state file
    */
   getStatePath(targetDir: string): string {
-    // Normalize path to handle trailing slashes
     const normalized = path.resolve(targetDir);
     return path.join(normalized, SCAFFOLDIX_DIR, STATE_FILE);
   }
 
   /**
    * Reads the project state from disk.
+   *
+   * Handles both v1 and v2 schemas transparently.
    *
    * @param targetDir - The project's target directory
    * @returns The parsed state, or null if no state file exists
@@ -149,7 +321,6 @@ export class ProjectStateManager {
     try {
       await fs.access(statePath);
     } catch {
-      // File doesn't exist - this is normal
       return null;
     }
 
@@ -186,8 +357,8 @@ export class ProjectStateManager {
       );
     }
 
-    // Validate schema
-    const result = ProjectStateSchema.safeParse(parsed);
+    // Validate schema (accepts both v1 and v2)
+    const result = ProjectStateAnySchema.safeParse(parsed);
     if (!result.success) {
       const issues = result.error.issues
         .map((i) => `${i.path.join(".")}: ${i.message}`)
@@ -212,43 +383,124 @@ export class ProjectStateManager {
   }
 
   /**
-   * Writes a generation record to the project state.
+   * Writes a v1 generation record to the project state (legacy method).
+   *
+   * @deprecated Use recordGeneration() for full report persistence.
+   */
+  async write(targetDir: string, generation: GenerationRecord): Promise<ProjectState> {
+    // Convert to a GenerationReport and use recordGeneration
+    const report: GenerationReport = {
+      id: crypto.randomUUID(),
+      timestamp: generation.timestamp,
+      packId: generation.packId,
+      packVersion: generation.packVersion,
+      archetypeId: generation.archetypeId,
+      inputs: generation.inputs,
+      status: "success",
+    };
+
+    return this.recordGeneration(targetDir, report);
+  }
+
+  /**
+   * Records a full generation report to the project state.
    *
    * This method:
    * - Creates the `.scaffoldix/` directory if needed
+   * - Appends the report to the generations history
+   * - Migrates v1 state to v2 if needed
+   * - Bounds history to MAX_GENERATIONS entries
    * - Updates `updatedAt` to current time
-   * - Replaces `lastGeneration` with the new record
    * - Uses atomic writes to prevent corruption
    *
    * @param targetDir - The project's target directory
-   * @param generation - The generation record to store
+   * @param report - The generation report to store
    * @returns The complete updated state
    */
-  async write(targetDir: string, generation: GenerationRecord): Promise<ProjectState> {
+  async recordGeneration(targetDir: string, report: GenerationReport): Promise<ProjectStateV2> {
     const statePath = this.getStatePath(targetDir);
     const stateDir = path.dirname(statePath);
 
     // Ensure directory exists
     await fs.mkdir(stateDir, { recursive: true });
 
-    // Build state object
-    const state: ProjectState = {
+    // Read existing state (if any)
+    const existingState = await this.read(targetDir);
+
+    // Build generations array
+    let generations: GenerationReport[];
+
+    if (existingState === null) {
+      // No existing state - start fresh
+      generations = [report];
+    } else if (existingState.schemaVersion === 1) {
+      // Migrate v1 to v2: convert lastGeneration to a report
+      const migratedReport = this.migrateV1Record(existingState.lastGeneration);
+      generations = [migratedReport, report];
+    } else {
+      // v2 state - append to existing generations
+      generations = [...existingState.generations, report];
+    }
+
+    // Bound history to MAX_GENERATIONS
+    if (generations.length > MAX_GENERATIONS) {
+      generations = generations.slice(generations.length - MAX_GENERATIONS);
+    }
+
+    // Compute lastGeneration for backward compatibility
+    const lastReport = generations[generations.length - 1];
+    const lastGeneration: GenerationRecord = {
+      packId: lastReport.packId,
+      packVersion: lastReport.packVersion,
+      archetypeId: lastReport.archetypeId,
+      inputs: lastReport.inputs,
+      timestamp: lastReport.timestamp,
+    };
+
+    // Build v2 state object
+    const state: ProjectStateV2 = {
       schemaVersion: CURRENT_SCHEMA_VERSION,
       updatedAt: new Date().toISOString(),
-      lastGeneration: generation,
+      generations,
+      lastGeneration,
     };
 
     // Serialize with stable 2-space indentation
     const content = JSON.stringify(state, null, 2) + "\n";
 
-    // Atomic write: write to temp file, then rename
+    // Atomic write
+    await this.atomicWrite(stateDir, statePath, content);
+
+    return state;
+  }
+
+  // ===========================================================================
+  // Private Methods
+  // ===========================================================================
+
+  /**
+   * Migrates a v1 GenerationRecord to a v2 GenerationReport.
+   */
+  private migrateV1Record(record: GenerationRecord): GenerationReport {
+    return {
+      id: `migrated-${crypto.randomUUID()}`,
+      timestamp: record.timestamp,
+      packId: record.packId,
+      packVersion: record.packVersion,
+      archetypeId: record.archetypeId,
+      inputs: record.inputs,
+      status: "success", // Assume success for migrated records
+    };
+  }
+
+  /**
+   * Performs an atomic write using temp file + rename.
+   */
+  private async atomicWrite(stateDir: string, statePath: string, content: string): Promise<void> {
     const tempPath = this.getTempPath(stateDir);
 
     try {
-      // Write to temp file
       await fs.writeFile(tempPath, content, "utf-8");
-
-      // Atomic rename (on POSIX, this is atomic; on Windows, it replaces)
       await fs.rename(tempPath, statePath);
     } catch (err) {
       // Clean up temp file on failure (best effort)
@@ -259,8 +511,6 @@ export class ProjectStateManager {
       }
       throw err;
     }
-
-    return state;
   }
 
   /**

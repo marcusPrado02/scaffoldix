@@ -12,6 +12,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import * as crypto from "node:crypto";
 import { ScaffoldError } from "../../core/errors/errors.js";
 import { RegistryService } from "../../core/registry/RegistryService.js";
 import { ManifestLoader } from "../../core/manifest/ManifestLoader.js";
@@ -20,11 +21,16 @@ import {
   type FileEntry,
   type RenameRules,
 } from "../../core/render/Renderer.js";
-import { ProjectStateManager } from "../../core/state/ProjectStateManager.js";
+import {
+  ProjectStateManager,
+  type GenerationReport,
+  type PatchItem,
+  type CommandItem,
+} from "../../core/state/ProjectStateManager.js";
 import { PatchEngine, type PatchApplySummary } from "../../core/patch/PatchEngine.js";
 import { PatchResolver } from "../../core/patch/PatchResolver.js";
-import { HookRunner, type HookRunSummary, type HookLogger } from "../../core/hooks/HookRunner.js";
-import { CheckRunner, type CheckRunSummary, type CheckLogger } from "../../core/checks/CheckRunner.js";
+import { HookRunner, type HookRunSummary, type HookResult, type HookLogger } from "../../core/hooks/HookRunner.js";
+import { CheckRunner, type CheckRunSummary, type CheckResult, type CheckLogger } from "../../core/checks/CheckRunner.js";
 import { StagingManager } from "../../core/staging/StagingManager.js";
 
 // =============================================================================
@@ -573,8 +579,8 @@ export async function handleGenerate(
 
   // Initialize reports
   let patchReport: PatchReport | undefined;
-  let hookReport: HookReport | undefined;
-  let checkReport: CheckReport | undefined;
+  let hookSummary: HookRunSummary | undefined;
+  let checkSummary: CheckRunSummary | undefined;
   let renderResult: { filesWritten: FileEntry[]; filesPlanned: FileEntry[] };
 
   try {
@@ -637,19 +643,11 @@ export async function handleGenerate(
       const hookRunner = new HookRunner();
       const hookLogger = createHookLogger();
 
-      const summary = await hookRunner.runPostGenerate({
+      hookSummary = await hookRunner.runPostGenerate({
         commands: postGenerateHooks,
         cwd: stagingDir, // Hooks in staging
         logger: hookLogger,
       });
-
-      hookReport = {
-        total: summary.total,
-        succeeded: summary.succeeded,
-        failed: summary.failed,
-        totalDurationMs: summary.totalDurationMs,
-        success: summary.success,
-      };
     }
 
     // 10. Run checks in STAGING
@@ -661,33 +659,87 @@ export async function handleGenerate(
       const checkRunner = new CheckRunner();
       const checkLogger = createCheckLogger();
 
-      const summary = await checkRunner.runChecks({
+      checkSummary = await checkRunner.runChecks({
         commands: checks,
         cwd: stagingDir, // Checks in staging
         logger: checkLogger,
       });
-
-      checkReport = {
-        total: summary.total,
-        passed: summary.passed,
-        failed: summary.failed,
-        totalDurationMs: summary.totalDurationMs,
-        success: summary.success,
-      };
     }
 
-    // 11. Write project state in STAGING
-    console.log(`[staging] Writing project state...`);
+    // 11. Copy existing state from target to staging (for history preservation)
+    // This allows recordGeneration to read existing history and append to it
     const stateManager = new ProjectStateManager();
-    await stateManager.write(stagingDir, {
+    const existingStatePath = stateManager.getStatePath(targetDir);
+    const stagingStatePath = stateManager.getStatePath(stagingDir);
+
+    try {
+      await fs.access(existingStatePath);
+      // Create .scaffoldix directory in staging if needed
+      await fs.mkdir(path.dirname(stagingStatePath), { recursive: true });
+      await fs.copyFile(existingStatePath, stagingStatePath);
+      console.log(`[staging] Preserved existing state for history...`);
+    } catch {
+      // No existing state - this is fine, first generation
+    }
+
+    // 12. Build generation report and write project state in STAGING
+    console.log(`[staging] Writing project state...`);
+
+    // Build GenerationReport from collected data
+    const generationReport: GenerationReport = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
       packId,
       packVersion: packEntry.version,
       archetypeId,
       inputs: data,
-      timestamp: new Date().toISOString(),
-    });
+      status: "success",
+    };
 
-    // 12. Commit staging to target (atomic move)
+    // Add patches summary if patches were applied
+    if (patchReport) {
+      generationReport.patches = {
+        total: patchReport.total,
+        applied: patchReport.applied,
+        skipped: patchReport.skipped,
+        failed: patchReport.failed,
+        items: patchReport.entries.map((e): PatchItem => ({
+          kind: e.kind,
+          file: e.file,
+          idempotencyKey: e.idempotencyKey,
+          status: e.status,
+          reason: e.reason,
+        })),
+      };
+    }
+
+    // Add hooks summary if hooks were run
+    if (hookSummary) {
+      generationReport.hooks = {
+        items: hookSummary.results.map((r): CommandItem => ({
+          command: r.command,
+          status: r.success ? "success" : "failure",
+          exitCode: r.exitCode,
+          durationMs: r.durationMs,
+        })),
+      };
+    }
+
+    // Add checks summary if checks were run
+    if (checkSummary) {
+      generationReport.checks = {
+        items: checkSummary.results.map((r): CommandItem => ({
+          command: r.command,
+          status: r.success ? "success" : "failure",
+          exitCode: r.exitCode,
+          durationMs: r.durationMs,
+        })),
+      };
+    }
+
+    await stateManager.recordGeneration(stagingDir, generationReport);
+
+    // 13. Commit staging to target (atomic move)
     // Use force: true to allow overwriting existing target (regeneration use case)
     console.log(`[staging] Committing to target: ${targetDir}`);
     await stagingManager.commit(stagingDir, targetDir, { force: true });
@@ -698,6 +750,36 @@ export async function handleGenerate(
     console.error(`[staging] Aborted; target was not modified.`);
     await stagingManager.cleanup(stagingDir);
     throw error;
+  }
+
+  // Derive HookReport from hookSummary for CLI output
+  let hookReport: HookReport | undefined;
+  if (hookSummary) {
+    const succeeded = hookSummary.results.filter((r) => r.success).length;
+    const failed = hookSummary.results.filter((r) => !r.success).length;
+    const totalDurationMs = hookSummary.results.reduce((sum, r) => sum + r.durationMs, 0);
+    hookReport = {
+      total: hookSummary.results.length,
+      succeeded,
+      failed,
+      totalDurationMs,
+      success: failed === 0,
+    };
+  }
+
+  // Derive CheckReport from checkSummary for CLI output
+  let checkReport: CheckReport | undefined;
+  if (checkSummary) {
+    const passed = checkSummary.results.filter((r) => r.success).length;
+    const failed = checkSummary.results.filter((r) => !r.success).length;
+    const totalDurationMs = checkSummary.results.reduce((sum, r) => sum + r.durationMs, 0);
+    checkReport = {
+      total: checkSummary.results.length,
+      passed,
+      failed,
+      totalDurationMs,
+      success: failed === 0,
+    };
   }
 
   return {

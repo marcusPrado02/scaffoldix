@@ -15,7 +15,7 @@ import {
   ProjectStateManager,
   type GenerationRecord,
   type ProjectState,
-  ProjectStateSchema,
+  ProjectStateV2Schema,
 } from "../src/core/state/ProjectStateManager.js";
 import { ScaffoldError } from "../src/core/errors/errors.js";
 
@@ -81,14 +81,14 @@ describe("ProjectStateManager", () => {
       const content = await fs.readFile(stateFile, "utf-8");
       const parsed = JSON.parse(content);
 
-      expect(parsed.schemaVersion).toBe(1);
+      expect(parsed.schemaVersion).toBe(2);
       expect(parsed.lastGeneration.packId).toBe("test-pack");
       expect(parsed.lastGeneration.packVersion).toBe("1.0.0");
       expect(parsed.lastGeneration.archetypeId).toBe("default");
       expect(parsed.lastGeneration.inputs).toEqual({ name: "MyEntity" });
 
       // Verify returned state
-      expect(result.schemaVersion).toBe(1);
+      expect(result.schemaVersion).toBe(2);
       expect(result.lastGeneration).toEqual(record);
     });
 
@@ -213,7 +213,7 @@ describe("ProjectStateManager", () => {
       const result = await manager.read(tempDir);
 
       expect(result).not.toBeNull();
-      expect(result!.schemaVersion).toBe(1);
+      expect(result!.schemaVersion).toBe(2);
       expect(result!.lastGeneration.packId).toBe("test-pack");
       expect(result!.lastGeneration.archetypeId).toBe("default");
     });
@@ -366,11 +366,22 @@ describe("ProjectStateManager", () => {
   // Tests: Schema validation
   // ===========================================================================
 
-  describe("ProjectStateSchema", () => {
-    it("validates a correct state object", () => {
+  describe("ProjectStateV2Schema", () => {
+    it("validates a correct v2 state object", () => {
       const validState = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         updatedAt: "2026-01-26T12:00:00.000Z",
+        generations: [
+          {
+            id: "gen-123",
+            timestamp: "2026-01-26T12:00:00.000Z",
+            packId: "test-pack",
+            packVersion: "1.0.0",
+            archetypeId: "default",
+            inputs: { name: "Test" },
+            status: "success",
+          },
+        ],
         lastGeneration: {
           packId: "test-pack",
           packVersion: "1.0.0",
@@ -380,42 +391,55 @@ describe("ProjectStateManager", () => {
         },
       };
 
-      const result = ProjectStateSchema.safeParse(validState);
+      const result = ProjectStateV2Schema.safeParse(validState);
       expect(result.success).toBe(true);
     });
 
     it("rejects state with missing schemaVersion", () => {
       const invalidState = {
         updatedAt: "2026-01-26T12:00:00.000Z",
+        generations: [],
         lastGeneration: createSampleRecord(),
       };
 
-      const result = ProjectStateSchema.safeParse(invalidState);
+      const result = ProjectStateV2Schema.safeParse(invalidState);
       expect(result.success).toBe(false);
     });
 
     it("rejects state with wrong schemaVersion type", () => {
       const invalidState = {
-        schemaVersion: "1",
+        schemaVersion: "2",
         updatedAt: "2026-01-26T12:00:00.000Z",
+        generations: [],
         lastGeneration: createSampleRecord(),
       };
 
-      const result = ProjectStateSchema.safeParse(invalidState);
+      const result = ProjectStateV2Schema.safeParse(invalidState);
       expect(result.success).toBe(false);
     });
 
     it("allows empty inputs object", () => {
       const validState = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         updatedAt: "2026-01-26T12:00:00.000Z",
+        generations: [
+          {
+            id: "gen-empty",
+            timestamp: "2026-01-26T12:00:00.000Z",
+            packId: "test-pack",
+            packVersion: "1.0.0",
+            archetypeId: "default",
+            inputs: {},
+            status: "success",
+          },
+        ],
         lastGeneration: {
           ...createSampleRecord(),
           inputs: {},
         },
       };
 
-      const result = ProjectStateSchema.safeParse(validState);
+      const result = ProjectStateV2Schema.safeParse(validState);
       expect(result.success).toBe(true);
     });
   });

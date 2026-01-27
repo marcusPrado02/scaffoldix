@@ -321,7 +321,7 @@ describe("MVP v0.1 Smoke Test", () => {
     const state = await readJson<ProjectState>(stateFilePath);
 
     // Assert: schema version
-    expect(state.schemaVersion, "State should have schemaVersion").toBe(1);
+    expect(state.schemaVersion, "State should have schemaVersion").toBe(2);
 
     // Assert: lastGeneration fields
     expect(state.lastGeneration, "State should have lastGeneration").toBeDefined();
