@@ -5,6 +5,7 @@
  * - `pack add <path>`: Install a local pack into the Store
  * - `pack list`: List installed packs
  * - `pack info <packId>`: Show pack details
+ * - `pack remove <packId>`: Remove a pack from the Store
  *
  * @module
  */
@@ -26,6 +27,11 @@ import {
   handlePackInfo,
   formatPackInfoOutput,
 } from "../handlers/packInfoHandler.js";
+import {
+  handlePackRemove,
+  formatPackRemoveSuccess,
+  type PackRemoveDependencies,
+} from "../handlers/packRemoveHandler.js";
 
 /**
  * Adapter to make Logger compatible with StoreLogger interface.
@@ -173,6 +179,49 @@ export function buildPackCommand(logger: Logger): Command {
 
         // Output formatted info
         const lines = formatPackInfoOutput(result);
+        for (const line of lines) {
+          process.stdout.write(line + "\n");
+        }
+      } catch (err) {
+        // Format error for user
+        const userMessage = toUserMessage(err);
+        const prefix = userMessage.code ? `${userMessage.code}: ` : "";
+
+        // Include hint if available
+        let output = `Error: ${prefix}${userMessage.message}`;
+        if (err instanceof ScaffoldError && err.hint) {
+          output += `\n\nHint: ${err.hint}`;
+        }
+
+        process.stderr.write(output + "\n");
+        process.exitCode = 1;
+      }
+    });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // pack remove <packId>
+  // ─────────────────────────────────────────────────────────────────────────
+  packCommand
+    .command("remove")
+    .argument("<packId>", "Pack ID to remove")
+    .description("Remove a pack from the Store")
+    .action(async (packId: string) => {
+      try {
+        // Initialize store paths (creates directories if needed)
+        const storePaths = initStorePaths();
+
+        // Build dependencies for handler
+        const deps: PackRemoveDependencies = {
+          registryFile: storePaths.registryFile,
+          packsDir: storePaths.packsDir,
+          logger: createStoreLogger(logger),
+        };
+
+        // Execute handler
+        const result = await handlePackRemove({ packId }, deps);
+
+        // Output success message
+        const lines = formatPackRemoveSuccess(result);
         for (const line of lines) {
           process.stdout.write(line + "\n");
         }
