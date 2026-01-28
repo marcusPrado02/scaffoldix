@@ -57,6 +57,13 @@ export interface InstallLocalPackInput {
    * This allows git-cloned packs to be installed with git origin info.
    */
   readonly origin?: PackOrigin;
+
+  /**
+   * If true, skip the registry update step.
+   * Used when the caller will handle registry updates separately
+   * (e.g., pack update with history tracking).
+   */
+  readonly skipRegistryUpdate?: boolean;
 }
 
 /**
@@ -396,15 +403,17 @@ export class StoreService {
     // 6. Perform installation with atomic staging
     await this.performAtomicInstall(sourcePath, destDir, manifest);
 
-    // 7. Update registry
-    const registerInput: RegisterPackInput = {
-      id: packId,
-      version,
-      origin: input.origin ?? { type: "local", localPath: sourcePath },
-      hash,
-    };
+    // 7. Update registry (unless caller will handle it separately)
+    if (!input.skipRegistryUpdate) {
+      const registerInput: RegisterPackInput = {
+        id: packId,
+        version,
+        origin: input.origin ?? { type: "local", localPath: sourcePath },
+        hash,
+      };
 
-    await this.registryService.registerPack(registerInput);
+      await this.registryService.registerPack(registerInput);
+    }
 
     this.logger.info("Pack installed successfully", {
       packId,

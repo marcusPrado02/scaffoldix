@@ -84,7 +84,25 @@ const PackOriginSchema = z.discriminatedUnion("type", [
 ]);
 
 /**
+ * Schema for a single pack install record (current or historical).
+ */
+const PackInstallRecordSchema = z.object({
+  /** Semantic version string (e.g., "1.0.0", "2.3.1-beta.1") */
+  version: z.string().min(1),
+
+  /** Where the pack was installed from */
+  origin: PackOriginSchema,
+
+  /** SHA-256 hash of pack contents for integrity verification */
+  hash: z.string().regex(/^[a-f0-9]{64}$/, "Must be a valid SHA-256 hash"),
+
+  /** ISO 8601 timestamp of when the pack was installed */
+  installedAt: z.iso.datetime(),
+});
+
+/**
  * Schema for a single pack entry in the registry.
+ * Includes optional history for tracking updates.
  */
 const RegistryPackEntrySchema = z.object({
   /** Unique pack identifier (e.g., "react-starter", "@org/pack-name") */
@@ -101,6 +119,9 @@ const RegistryPackEntrySchema = z.object({
 
   /** ISO 8601 timestamp of when the pack was installed */
   installedAt: z.iso.datetime(),
+
+  /** History of previous installations (oldest first). Added in schema v2. */
+  history: z.array(PackInstallRecordSchema).optional(),
 });
 
 /**
@@ -132,6 +153,9 @@ export type PackOriginNpm = z.infer<typeof PackOriginNpmSchema>;
 
 /** Union of all pack origin types */
 export type PackOrigin = z.infer<typeof PackOriginSchema>;
+
+/** A single pack install record (for current or history) */
+export type PackInstallRecord = z.infer<typeof PackInstallRecordSchema>;
 
 /** A single pack entry in the registry */
 export type RegistryPackEntry = z.infer<typeof RegistryPackEntrySchema>;
@@ -508,6 +532,80 @@ export class RegistryService {
   async listPacks(): Promise<RegistryPackEntry[]> {
     const registry = await this.load();
     return Object.values(registry.packs);
+  }
+
+  /**
+   * Updates a pack while preserving the previous version in history.
+   *
+   * This is used by `pack update` to maintain a history of installations.
+   * The previous current entry is moved to history before updating.
+   *
+   * @param packId - The pack ID to update
+   * @param input - New pack data
+   * @returns The updated registry
+   * @throws ScaffoldError if pack doesn't exist or save fails
+   */
+  async updatePackWithHistory(
+    packId: string,
+    input: RegisterPackInput
+  ): Promise<Registry> {
+    const registry = await this.load();
+
+    const existingEntry = registry.packs[packId];
+    if (!existingEntry) {
+      throw new ScaffoldError(
+        `Pack '${packId}' not found for update`,
+        "PACK_NOT_FOUND",
+        { packId },
+        undefined,
+        `Pack '${packId}' is not installed and cannot be updated.`,
+        undefined,
+        true
+      );
+    }
+
+    // Create history record from current entry
+    const historyRecord: PackInstallRecord = {
+      version: existingEntry.version,
+      origin: existingEntry.origin,
+      hash: existingEntry.hash,
+      installedAt: existingEntry.installedAt,
+    };
+
+    // Get existing history or create empty array
+    const existingHistory = existingEntry.history ?? [];
+
+    // Create new entry with updated data and history
+    const updatedEntry: RegistryPackEntry = {
+      id: input.id,
+      version: input.version,
+      origin: input.origin,
+      hash: input.hash,
+      installedAt: new Date().toISOString(),
+      history: [...existingHistory, historyRecord], // Append previous to history
+    };
+
+    registry.packs[packId] = updatedEntry;
+    await this.save(registry);
+
+    return registry;
+  }
+
+  /**
+   * Gets the update history for a pack.
+   *
+   * @param packId - The pack ID to get history for
+   * @returns Array of historical install records (oldest first), or null if pack not found
+   */
+  async getPackHistory(packId: string): Promise<PackInstallRecord[] | null> {
+    const registry = await this.load();
+    const entry = registry.packs[packId];
+
+    if (!entry) {
+      return null;
+    }
+
+    return entry.history ?? [];
   }
 
   /**
