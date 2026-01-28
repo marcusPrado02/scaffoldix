@@ -12,10 +12,8 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { ScaffoldError } from "../../core/errors/errors.js";
-import {
-  RegistryService,
-  type PackOrigin,
-} from "../../core/registry/RegistryService.js";
+import { type PackOrigin } from "../../core/registry/RegistryService.js";
+import { PackResolver } from "../../core/store/PackResolver.js";
 import { ManifestLoader, type PackManifest } from "../../core/manifest/ManifestLoader.js";
 import { formatOrigin } from "./packListHandler.js";
 
@@ -29,6 +27,9 @@ import { formatOrigin } from "./packListHandler.js";
 export interface PackInfoInput {
   /** Pack identifier to look up */
   readonly packId: string;
+
+  /** Optional version to select (for multi-version packs) */
+  readonly version?: string;
 }
 
 /**
@@ -124,27 +125,23 @@ export async function handlePackInfo(
   input: PackInfoInput,
   deps: PackInfoDependencies
 ): Promise<PackInfoResult> {
-  const { packId } = input;
+  const { packId, version } = input;
   const { registryFile, packsDir } = deps;
 
-  // 1. Load registry
-  const registryService = new RegistryService(registryFile);
-  const entry = await registryService.getPack(packId);
+  // 1. Resolve pack version (supports multi-version selection)
+  const resolver = new PackResolver(registryFile);
+  const resolvedPack = await resolver.resolve(packId, version);
 
-  // 2. Check if pack exists
-  if (!entry) {
-    throw new ScaffoldError(
-      `Pack '${packId}' not found`,
-      "PACK_NOT_FOUND",
-      { packId },
-      undefined,
-      `Pack '${packId}' is not installed. Run \`scaffoldix pack list\` to see installed packs.`,
-      undefined,
-      true
-    );
-  }
+  // Build entry object from resolved pack
+  const entry = {
+    id: packId,
+    version: resolvedPack.version,
+    origin: resolvedPack.origin,
+    hash: resolvedPack.hash,
+    installedAt: resolvedPack.installedAt,
+  };
 
-  // 3. Derive and validate store path
+  // 2. Derive and validate store path
   const storePath = deriveStorePath(packsDir, entry.id, entry.hash);
 
   try {

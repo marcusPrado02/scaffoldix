@@ -122,6 +122,14 @@ const RegistryPackEntrySchema = z.object({
 
   /** History of previous installations (oldest first). Added in schema v2. */
   history: z.array(PackInstallRecordSchema).optional(),
+
+  /**
+   * Multiple installed versions of this pack.
+   * When present, version/origin/hash/installedAt above represent the "default" version,
+   * but any version in this array can be selected via --version flag.
+   * Added for multi-version support.
+   */
+  installs: z.array(PackInstallRecordSchema).optional(),
 });
 
 /**
@@ -606,6 +614,182 @@ export class RegistryService {
     }
 
     return entry.history ?? [];
+  }
+
+  /**
+   * Registers a pack version, preserving any existing versions.
+   *
+   * If the pack already exists with a different version, both versions
+   * are stored in the `installs` array. If the same hash already exists
+   * in installs, the operation is a no-op.
+   *
+   * @param input - Pack registration details
+   * @returns The updated registry
+   * @throws ScaffoldError if validation fails
+   */
+  async registerPackVersion(input: RegisterPackInput): Promise<Registry> {
+    const registry = await this.load();
+    const existingEntry = registry.packs[input.id];
+
+    if (!existingEntry) {
+      // First install - create entry with installs array
+      const now = new Date().toISOString();
+      const entry: RegistryPackEntry = {
+        id: input.id,
+        version: input.version,
+        origin: input.origin,
+        hash: input.hash,
+        installedAt: now,
+        installs: [
+          {
+            version: input.version,
+            origin: input.origin,
+            hash: input.hash,
+            installedAt: now,
+          },
+        ],
+      };
+      registry.packs[input.id] = entry;
+      await this.save(registry);
+      return registry;
+    }
+
+    // Pack exists - merge into installs
+    const existingInstalls: PackInstallRecord[] = existingEntry.installs ?? [
+      {
+        version: existingEntry.version,
+        origin: existingEntry.origin,
+        hash: existingEntry.hash,
+        installedAt: existingEntry.installedAt,
+      },
+    ];
+
+    // Check if this exact hash is already in installs (dedup)
+    const alreadyInstalled = existingInstalls.some((i) => i.hash === input.hash);
+    if (alreadyInstalled) {
+      return registry; // No-op
+    }
+
+    // Add new version
+    const now = new Date().toISOString();
+    const newInstall: PackInstallRecord = {
+      version: input.version,
+      origin: input.origin,
+      hash: input.hash,
+      installedAt: now,
+    };
+
+    const mergedInstalls = [...existingInstalls, newInstall];
+
+    // Update top-level entry to latest version (for backward compat)
+    const updatedEntry: RegistryPackEntry = {
+      id: input.id,
+      version: input.version,
+      origin: input.origin,
+      hash: input.hash,
+      installedAt: now,
+      installs: mergedInstalls,
+      history: existingEntry.history, // Preserve update history
+    };
+
+    registry.packs[input.id] = updatedEntry;
+    await this.save(registry);
+    return registry;
+  }
+
+  /**
+   * Registers a pack with multiple installed versions.
+   *
+   * This is used when installing multiple versions of the same pack
+   * so they can be selected via --version flag.
+   *
+   * @param packId - Pack identifier
+   * @param installs - Array of install records (version, origin, hash, installedAt)
+   * @returns The updated registry
+   * @throws ScaffoldError if validation fails
+   */
+  async registerPackWithInstalls(
+    packId: string,
+    installs: PackInstallRecord[]
+  ): Promise<Registry> {
+    if (!packId || typeof packId !== "string") {
+      throw new ScaffoldError(
+        "Pack ID is required",
+        "REGISTRY_INVALID_INPUT",
+        { field: "id", value: packId },
+        undefined,
+        "A valid pack ID string is required.",
+        undefined,
+        true
+      );
+    }
+
+    if (!installs || installs.length === 0) {
+      throw new ScaffoldError(
+        "At least one install record is required",
+        "REGISTRY_INVALID_INPUT",
+        { field: "installs", value: installs },
+        undefined,
+        "At least one install record must be provided.",
+        undefined,
+        true
+      );
+    }
+
+    // Load current registry
+    const registry = await this.load();
+
+    // Use the first install as the "default" entry (for backward compatibility)
+    // Sort by installedAt to find most recent as the "current" version
+    const sortedByDate = [...installs].sort(
+      (a, b) => new Date(b.installedAt).getTime() - new Date(a.installedAt).getTime()
+    );
+    const mostRecent = sortedByDate[0];
+
+    // Create pack entry with all installs
+    const entry: RegistryPackEntry = {
+      id: packId,
+      version: mostRecent.version,
+      origin: mostRecent.origin,
+      hash: mostRecent.hash,
+      installedAt: mostRecent.installedAt,
+      installs: installs, // Store all versions for selection
+    };
+
+    registry.packs[packId] = entry;
+    await this.save(registry);
+
+    return registry;
+  }
+
+  /**
+   * Gets all installed versions for a pack.
+   *
+   * @param packId - The pack ID to get versions for
+   * @returns Array of install records, or null if pack not found
+   */
+  async getPackInstalls(packId: string): Promise<PackInstallRecord[] | null> {
+    const registry = await this.load();
+    const entry = registry.packs[packId];
+
+    if (!entry) {
+      return null;
+    }
+
+    // If installs array exists, return it
+    if (entry.installs && entry.installs.length > 0) {
+      return entry.installs;
+    }
+
+    // Otherwise, construct single install from entry (backward compatibility)
+    return [
+      {
+        version: entry.version,
+        origin: entry.origin,
+        hash: entry.hash,
+        installedAt: entry.installedAt,
+      },
+    ];
   }
 
   /**

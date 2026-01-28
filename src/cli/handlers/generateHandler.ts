@@ -14,7 +14,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
 import { ScaffoldError } from "../../core/errors/errors.js";
-import { RegistryService } from "../../core/registry/RegistryService.js";
+import { PackResolver } from "../../core/store/PackResolver.js";
 import { ManifestLoader } from "../../core/manifest/ManifestLoader.js";
 import {
   renderArchetype,
@@ -63,6 +63,9 @@ export interface GenerateInput {
 
   /** Optional rename rules for filename placeholders */
   readonly renameRules?: RenameRules;
+
+  /** Optional version to select (for multi-version packs) */
+  readonly version?: string;
 }
 
 /**
@@ -435,27 +438,24 @@ export async function handleGenerate(
   input: GenerateInput,
   deps: GenerateDependencies
 ): Promise<GenerateResult> {
-  const { ref, targetDir, dryRun, data, renameRules } = input;
+  const { ref, targetDir, dryRun, data, renameRules, version } = input;
   const { registryFile, packsDir, storeDir } = deps;
 
   // 1. Parse archetype reference
   const { packId, archetypeId } = parseArchetypeRef(ref);
 
-  // 2. Load registry and find pack
-  const registryService = new RegistryService(registryFile);
-  const packEntry = await registryService.getPack(packId);
+  // 2. Resolve pack version (supports multi-version selection)
+  const resolver = new PackResolver(registryFile);
+  const resolvedPack = await resolver.resolve(packId, version);
 
-  if (!packEntry) {
-    throw new ScaffoldError(
-      `Pack '${packId}' not found`,
-      "PACK_NOT_FOUND",
-      { packId },
-      undefined,
-      `Pack '${packId}' is not installed. Run \`scaffoldix pack list\` to see installed packs.`,
-      undefined,
-      true
-    );
-  }
+  // Get full entry for pack version/origin metadata
+  const packEntry = {
+    id: packId,
+    version: resolvedPack.version,
+    hash: resolvedPack.hash,
+    origin: resolvedPack.origin,
+    installedAt: resolvedPack.installedAt,
+  };
 
   // 3. Validate pack store path exists
   const storePath = deriveStorePath(packsDir, packEntry.id, packEntry.hash);

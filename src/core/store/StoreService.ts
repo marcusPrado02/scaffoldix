@@ -378,26 +378,33 @@ export class StoreService {
       destDir,
     });
 
-    // 5. Check registry for existing installation
+    // 5. Check registry for existing installation (including multi-version installs)
     const existingEntry = await this.registryService.getPack(packId);
 
-    if (existingEntry && existingEntry.hash === hash) {
-      // Same pack with same content - already installed
-      this.logger.info("Pack already installed (skipped)", {
-        packId,
-        version,
-        hash,
-        destDir,
-        sourcePath,
-      });
+    if (existingEntry) {
+      // Check top-level hash and installs array for matching hash
+      const existingInstalls = existingEntry.installs ?? [];
+      const hashExists =
+        existingEntry.hash === hash ||
+        existingInstalls.some((i) => i.hash === hash);
 
-      return {
-        packId,
-        version,
-        hash,
-        destDir,
-        status: "already_installed",
-      };
+      if (hashExists) {
+        this.logger.info("Pack already installed (skipped)", {
+          packId,
+          version,
+          hash,
+          destDir,
+          sourcePath,
+        });
+
+        return {
+          packId,
+          version,
+          hash,
+          destDir,
+          status: "already_installed",
+        };
+      }
     }
 
     // 6. Perform installation with atomic staging
@@ -412,7 +419,8 @@ export class StoreService {
         hash,
       };
 
-      await this.registryService.registerPack(registerInput);
+      // Use registerPackVersion to preserve existing versions
+      await this.registryService.registerPackVersion(registerInput);
     }
 
     this.logger.info("Pack installed successfully", {
