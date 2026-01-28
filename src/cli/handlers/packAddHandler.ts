@@ -21,6 +21,7 @@ import {
   type StoreServiceConfig,
   type StoreLogger,
 } from "../../core/store/StoreService.js";
+import { GitPackFetcher } from "../../core/store/GitPackFetcher.js";
 
 // =============================================================================
 // Types
@@ -30,11 +31,24 @@ import {
  * Input for the pack add handler.
  */
 export interface PackAddInput {
-  /** Path to the pack directory (can be relative or absolute) */
+  /** Path to the pack directory or git URL */
   readonly packPath: string;
 
   /** Current working directory for resolving relative paths */
   readonly cwd: string;
+
+  /**
+   * Whether the packPath is a git URL.
+   * If true, the pack will be cloned from the URL.
+   * If not provided, auto-detection is used.
+   */
+  readonly isGitUrl?: boolean;
+
+  /**
+   * Git ref to checkout (branch, tag, or commit hash).
+   * Only used when installing from a git URL.
+   */
+  readonly ref?: string;
 }
 
 /**
@@ -84,11 +98,19 @@ export interface PackAddDependencies {
  *
  * ## Process
  *
+ * For local paths:
  * 1. Resolve the provided path to an absolute path
  * 2. Validate the path exists and is a directory
  * 3. Load and validate the pack manifest
  * 4. Install the pack into the Store
  * 5. Return the result (installed vs already_installed)
+ *
+ * For git URLs:
+ * 1. Clone repository to temp directory
+ * 2. Optionally checkout specific ref
+ * 3. Load and validate the pack manifest
+ * 4. Install with git origin metadata
+ * 5. Clean up temp directory
  *
  * ## Error Handling
  *
@@ -106,9 +128,81 @@ export async function handlePackAdd(
   input: PackAddInput,
   deps: PackAddDependencies
 ): Promise<PackAddResult> {
-  const { packPath, cwd } = input;
+  const { packPath, cwd, ref } = input;
   const { storeConfig, logger } = deps;
 
+  // Determine if this is a git URL
+  const isGitUrl = input.isGitUrl ?? GitPackFetcher.isGitUrl(packPath);
+
+  if (isGitUrl) {
+    return handleGitPackAdd(packPath, ref, storeConfig, logger);
+  }
+
+  return handleLocalPackAdd(packPath, cwd, storeConfig, logger);
+}
+
+/**
+ * Handles adding a pack from a git URL.
+ */
+async function handleGitPackAdd(
+  url: string,
+  ref: string | undefined,
+  storeConfig: StoreServiceConfig,
+  logger: StoreLogger
+): Promise<PackAddResult> {
+  const fetcher = new GitPackFetcher(storeConfig.storeDir);
+
+  logger.debug("Cloning git repository", { url, ref });
+
+  // Clone the repository
+  const fetchResult = await fetcher.fetch(url, { ref });
+
+  try {
+    // Load and validate manifest from cloned directory
+    const manifestLoader = new ManifestLoader();
+    const manifest = await manifestLoader.loadFromDir(fetchResult.packDir);
+
+    logger.debug("Manifest loaded from git clone", {
+      packName: manifest.pack.name,
+      packVersion: manifest.pack.version,
+      commit: fetchResult.commit,
+    });
+
+    // Install pack with git origin metadata
+    const storeService = new StoreService(storeConfig, logger);
+    const installResult = await storeService.installLocalPack({
+      sourcePath: fetchResult.packDir,
+      origin: {
+        type: "git",
+        gitUrl: url,
+        commit: fetchResult.commit,
+        ref: fetchResult.ref,
+      },
+    });
+
+    return {
+      packId: installResult.packId,
+      version: installResult.version,
+      hash: installResult.hash,
+      destDir: installResult.destDir,
+      sourcePath: url,
+      status: installResult.status,
+    };
+  } finally {
+    // Always clean up the temp directory
+    await fetcher.cleanup(fetchResult);
+  }
+}
+
+/**
+ * Handles adding a pack from a local filesystem path.
+ */
+async function handleLocalPackAdd(
+  packPath: string,
+  cwd: string,
+  storeConfig: StoreServiceConfig,
+  logger: StoreLogger
+): Promise<PackAddResult> {
   // 1. Resolve to absolute path
   const resolvedPath = path.isAbsolute(packPath)
     ? path.normalize(packPath)

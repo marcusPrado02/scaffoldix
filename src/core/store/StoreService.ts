@@ -37,6 +37,7 @@ import { ScaffoldError } from "../errors/errors.js";
 import {
   RegistryService,
   type RegisterPackInput,
+  type PackOrigin,
 } from "../registry/RegistryService.js";
 import { ManifestLoader, type PackManifest } from "../manifest/ManifestLoader.js";
 
@@ -50,6 +51,12 @@ import { ManifestLoader, type PackManifest } from "../manifest/ManifestLoader.js
 export interface InstallLocalPackInput {
   /** Absolute path to the pack source directory */
   readonly sourcePath: string;
+
+  /**
+   * Optional origin metadata to use instead of defaulting to "local".
+   * This allows git-cloned packs to be installed with git origin info.
+   */
+  readonly origin?: PackOrigin;
 }
 
 /**
@@ -393,7 +400,7 @@ export class StoreService {
     const registerInput: RegisterPackInput = {
       id: packId,
       version,
-      origin: { type: "local", localPath: sourcePath },
+      origin: input.origin ?? { type: "local", localPath: sourcePath },
       hash,
     };
 

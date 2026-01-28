@@ -60,7 +60,7 @@ const PackOriginLocalSchema = z.object({
 
 const PackOriginGitSchema = z.object({
   type: z.literal("git"),
-  gitUrl: z.url(),
+  gitUrl: z.string().min(1), // URL or local path (for testing)
   ref: z.string().optional(), // branch, tag, or commit
   commit: z.string().optional(), // resolved commit SHA
 });
