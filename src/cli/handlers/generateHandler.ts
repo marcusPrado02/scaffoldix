@@ -32,6 +32,10 @@ import { PatchResolver } from "../../core/patch/PatchResolver.js";
 import { HookRunner, type HookRunSummary, type HookResult, type HookLogger } from "../../core/hooks/HookRunner.js";
 import { CheckRunner, type CheckRunSummary, type CheckResult, type CheckLogger } from "../../core/checks/CheckRunner.js";
 import { StagingManager } from "../../core/staging/StagingManager.js";
+import {
+  resolveInputs,
+  type InputDefinition,
+} from "../../core/generate/InputResolver.js";
 
 // =============================================================================
 // Types
@@ -66,6 +70,12 @@ export interface GenerateInput {
 
   /** Optional version to select (for multi-version packs) */
   readonly version?: string;
+
+  /** Whether running in non-interactive mode (--yes) */
+  readonly nonInteractive?: boolean;
+
+  /** Optional prompt adapter for interactive mode */
+  readonly prompt?: import("../../core/generate/InputResolver.js").PromptAdapter;
 }
 
 /**
@@ -504,6 +514,24 @@ export async function handleGenerate(
     );
   }
 
+  // 4b. Resolve inputs from archetype schema
+  const inputsSchema: InputDefinition[] | undefined = archetype.inputs?.map((inp) => ({
+    name: inp.name,
+    type: inp.type ?? "string",
+    required: inp.required,
+    default: inp.default,
+    prompt: inp.prompt,
+    options: inp.options,
+  }));
+
+  const resolvedData = await resolveInputs({
+    inputsSchema,
+    nonInteractive: input.nonInteractive ?? false,
+    prompt: input.prompt,
+    provided: data,
+    archetypeRef: ref,
+  });
+
   // 5. Validate template directory exists
   const templateDir = path.join(storePath, archetype.templateRoot);
 
@@ -539,7 +567,7 @@ export async function handleGenerate(
     const renderResult = await renderArchetype({
       templateDir,
       targetDir,
-      data,
+      data: resolvedData,
       renameRules,
       dryRun: true,
     });
@@ -589,7 +617,7 @@ export async function handleGenerate(
     renderResult = await renderArchetype({
       templateDir,
       targetDir: stagingDir, // Render to staging, not target
-      data,
+      data: resolvedData,
       renameRules,
       dryRun: false,
     });
@@ -602,7 +630,7 @@ export async function handleGenerate(
       console.log(`[staging] Applying patches...`);
       patchReport = await applyPatches({
         patches,
-        data,
+        data: resolvedData,
         packStorePath: storePath,
         targetDir: stagingDir, // Patches in staging
         packId,
@@ -692,7 +720,7 @@ export async function handleGenerate(
       packId,
       packVersion: packEntry.version,
       archetypeId,
-      inputs: data,
+      inputs: resolvedData,
       status: "success",
     };
 

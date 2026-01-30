@@ -37,7 +37,8 @@ export function buildGenerateCommand(_logger: Logger): Command {
     .argument("<ref>", "Pack and archetype reference (e.g., java-spring:base-entity)")
     .option("--target <dir>", "Target directory for generated files", ".")
     .option("--dry-run", "Preview what would be generated without writing files", false)
-    .action(async (ref: string, options: { target: string; dryRun: boolean }) => {
+    .option("--yes", "Non-interactive mode: use defaults without prompting", false)
+    .action(async (ref: string, options: { target: string; dryRun: boolean; yes: boolean }) => {
       try {
         // Initialize store paths
         const storePaths = initStorePaths();
@@ -51,7 +52,8 @@ export function buildGenerateCommand(_logger: Logger): Command {
             ref,
             targetDir,
             dryRun: options.dryRun,
-            data: {}, // For v0.1, no input collection - just empty data
+            data: {}, // Provided values (from future --set flags)
+            nonInteractive: options.yes,
           },
           {
             registryFile: storePaths.registryFile,

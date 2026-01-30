@@ -184,6 +184,34 @@ const PatchSchema = z.object({
 }).pipe(RawPatchSchema);
 
 /**
+ * Schema for input definition in archetype.
+ *
+ * Defines inputs that can be collected from users or provided via CLI flags.
+ */
+const InputDefinitionSchema = z.object({
+  /** Unique name of the input (used as template variable) */
+  name: z
+    .string()
+    .transform((s) => s.trim())
+    .refine((s) => s.length > 0, { message: "Input name cannot be empty" }),
+
+  /** Type of the input value */
+  type: z.enum(["string", "number", "boolean", "enum"]).default("string"),
+
+  /** Whether this input is required */
+  required: z.boolean().optional(),
+
+  /** Default value if not provided */
+  default: z.unknown().optional(),
+
+  /** Prompt text for interactive mode */
+  prompt: z.string().optional(),
+
+  /** Valid options for enum type */
+  options: z.array(z.string()).optional(),
+});
+
+/**
  * Schema for a single archetype definition.
  *
  * An archetype is a template configuration that can be applied to projects.
@@ -235,6 +263,24 @@ const ArchetypeSchema = z.object({
    * ```
    */
   checks: z.array(z.string()).optional(),
+
+  /**
+   * Optional list of input definitions for the archetype.
+   * Inputs are collected from users during generation (or from defaults in --yes mode).
+   *
+   * @example
+   * ```yaml
+   * inputs:
+   *   - name: projectName
+   *     type: string
+   *     required: true
+   *     prompt: "What is your project name?"
+   *   - name: port
+   *     type: number
+   *     default: 3000
+   * ```
+   */
+  inputs: z.array(InputDefinitionSchema).optional(),
 });
 
 /**
@@ -300,6 +346,9 @@ export type PatchOperation = MarkerInsertPatch | MarkerReplacePatch | AppendIfMi
 
 /** A single archetype definition */
 export type Archetype = z.infer<typeof ArchetypeSchema>;
+
+/** Input definition for archetype inputs */
+export type ManifestInputDefinition = z.infer<typeof InputDefinitionSchema>;
 
 /** Pack identity metadata */
 export type PackInfo = z.infer<typeof PackInfoSchema>;
