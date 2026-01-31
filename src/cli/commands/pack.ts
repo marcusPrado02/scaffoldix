@@ -22,10 +22,13 @@ import {
 import {
   handlePackList,
   formatPackListOutput,
+  formatPackListJson,
 } from "../handlers/packListHandler.js";
+import { formatJsonError } from "../ux/CliJson.js";
 import {
   handlePackInfo,
   formatPackInfoOutput,
+  formatPackInfoJson,
 } from "../handlers/packInfoHandler.js";
 import {
   handlePackRemove,
@@ -125,7 +128,8 @@ export function buildPackCommand(logger: Logger): Command {
   packCommand
     .command("list")
     .description("List installed packs")
-    .action(async () => {
+    .option("--json", "Output as JSON for scripting", false)
+    .action(async (options: { json: boolean }) => {
       try {
         // Initialize store paths (creates directories if needed)
         const storePaths = initStorePaths();
@@ -135,23 +139,38 @@ export function buildPackCommand(logger: Logger): Command {
           registryFile: storePaths.registryFile,
         });
 
-        // Output formatted list
-        const lines = formatPackListOutput(result);
-        for (const line of lines) {
-          process.stdout.write(line + "\n");
+        // Output result
+        if (options.json) {
+          // JSON mode: clean JSON to stdout only
+          process.stdout.write(formatPackListJson(result) + "\n");
+        } else {
+          // Human mode: formatted table
+          const lines = formatPackListOutput(result);
+          for (const line of lines) {
+            process.stdout.write(line + "\n");
+          }
         }
       } catch (err) {
-        // Format error for user
         const userMessage = toUserMessage(err);
-        const prefix = userMessage.code ? `${userMessage.code}: ` : "";
 
-        // Include hint if available
-        let output = `Error: ${prefix}${userMessage.message}`;
-        if (err instanceof ScaffoldError && err.hint) {
-          output += `\n\nHint: ${err.hint}`;
+        if (options.json) {
+          // JSON mode: error as JSON
+          const jsonErr = formatJsonError({
+            message: userMessage.message,
+            code: userMessage.code,
+            context: { command: "pack list" },
+          });
+          process.stdout.write(jsonErr + "\n");
+        } else {
+          // Human mode: formatted error
+          const prefix = userMessage.code ? `${userMessage.code}: ` : "";
+          let output = `Error: ${prefix}${userMessage.message}`;
+          if (err instanceof ScaffoldError && err.hint) {
+            output += `\n\nHint: ${err.hint}`;
+          }
+          process.stderr.write(output + "\n");
         }
 
-        process.stderr.write(output + "\n");
         process.exitCode = 1;
       }
     });
@@ -163,7 +182,8 @@ export function buildPackCommand(logger: Logger): Command {
     .command("info")
     .argument("<packId>", "Pack ID to show information for")
     .description("Show information about a specific pack")
-    .action(async (packId: string) => {
+    .option("--json", "Output as JSON for scripting", false)
+    .action(async (packId: string, options: { json: boolean }) => {
       try {
         // Initialize store paths (creates directories if needed)
         const storePaths = initStorePaths();
@@ -177,23 +197,38 @@ export function buildPackCommand(logger: Logger): Command {
           }
         );
 
-        // Output formatted info
-        const lines = formatPackInfoOutput(result);
-        for (const line of lines) {
-          process.stdout.write(line + "\n");
+        // Output result
+        if (options.json) {
+          // JSON mode: clean JSON to stdout only
+          process.stdout.write(formatPackInfoJson(result) + "\n");
+        } else {
+          // Human mode: formatted output
+          const lines = formatPackInfoOutput(result);
+          for (const line of lines) {
+            process.stdout.write(line + "\n");
+          }
         }
       } catch (err) {
-        // Format error for user
         const userMessage = toUserMessage(err);
-        const prefix = userMessage.code ? `${userMessage.code}: ` : "";
 
-        // Include hint if available
-        let output = `Error: ${prefix}${userMessage.message}`;
-        if (err instanceof ScaffoldError && err.hint) {
-          output += `\n\nHint: ${err.hint}`;
+        if (options.json) {
+          // JSON mode: error as JSON
+          const jsonErr = formatJsonError({
+            message: userMessage.message,
+            code: userMessage.code,
+            context: { command: "pack info", packId },
+          });
+          process.stdout.write(jsonErr + "\n");
+        } else {
+          // Human mode: formatted error
+          const prefix = userMessage.code ? `${userMessage.code}: ` : "";
+          let output = `Error: ${prefix}${userMessage.message}`;
+          if (err instanceof ScaffoldError && err.hint) {
+            output += `\n\nHint: ${err.hint}`;
+          }
+          process.stderr.write(output + "\n");
         }
 
-        process.stderr.write(output + "\n");
         process.exitCode = 1;
       }
     });

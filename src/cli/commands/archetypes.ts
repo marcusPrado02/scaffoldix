@@ -14,7 +14,9 @@ import { toUserMessage, ScaffoldError } from "../../core/errors/errors.js";
 import {
   handleArchetypesList,
   formatArchetypesListOutput,
+  formatArchetypesListJson,
 } from "../handlers/archetypesListHandler.js";
+import { formatJsonError } from "../ux/CliJson.js";
 
 /**
  * Builds the `archetypes` command with all subcommands.
@@ -33,7 +35,8 @@ export function buildArchetypesCommand(_logger: Logger): Command {
   archetypesCommand
     .command("list")
     .description("List all archetypes across all installed packs")
-    .action(async () => {
+    .option("--json", "Output as JSON for scripting", false)
+    .action(async (options: { json: boolean }) => {
       try {
         // Initialize store paths (creates directories if needed)
         const storePaths = initStorePaths();
@@ -44,30 +47,47 @@ export function buildArchetypesCommand(_logger: Logger): Command {
           packsDir: storePaths.packsDir,
         });
 
-        // Format output
-        const { stdout, stderr } = formatArchetypesListOutput(result);
+        if (options.json) {
+          // JSON mode: warnings go to stderr, JSON to stdout
+          for (const warning of result.warnings) {
+            process.stderr.write(warning + "\n");
+          }
+          process.stdout.write(formatArchetypesListJson(result) + "\n");
+        } else {
+          // Human mode: formatted output
+          const { stdout, stderr } = formatArchetypesListOutput(result);
 
-        // Write warnings to stderr
-        for (const line of stderr) {
-          process.stderr.write(line + "\n");
-        }
+          // Write warnings to stderr
+          for (const line of stderr) {
+            process.stderr.write(line + "\n");
+          }
 
-        // Write list to stdout
-        for (const line of stdout) {
-          process.stdout.write(line + "\n");
+          // Write list to stdout
+          for (const line of stdout) {
+            process.stdout.write(line + "\n");
+          }
         }
       } catch (err) {
-        // Format error for user
         const userMessage = toUserMessage(err);
-        const prefix = userMessage.code ? `${userMessage.code}: ` : "";
 
-        // Include hint if available
-        let output = `Error: ${prefix}${userMessage.message}`;
-        if (err instanceof ScaffoldError && err.hint) {
-          output += `\n\nHint: ${err.hint}`;
+        if (options.json) {
+          // JSON mode: error as JSON
+          const jsonErr = formatJsonError({
+            message: userMessage.message,
+            code: userMessage.code,
+            context: { command: "archetypes list" },
+          });
+          process.stdout.write(jsonErr + "\n");
+        } else {
+          // Human mode: formatted error
+          const prefix = userMessage.code ? `${userMessage.code}: ` : "";
+          let output = `Error: ${prefix}${userMessage.message}`;
+          if (err instanceof ScaffoldError && err.hint) {
+            output += `\n\nHint: ${err.hint}`;
+          }
+          process.stderr.write(output + "\n");
         }
 
-        process.stderr.write(output + "\n");
         process.exitCode = 1;
       }
     });

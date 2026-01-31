@@ -228,3 +228,79 @@ export function formatPackInfoOutput(result: PackInfoResult): string[] {
 
   return lines;
 }
+
+// =============================================================================
+// JSON Output
+// =============================================================================
+
+/**
+ * JSON origin structure for pack info.
+ */
+interface JsonPackOrigin {
+  type: "local" | "git" | "zip" | "npm";
+  path?: string;
+  url?: string;
+  ref?: string;
+  commit?: string;
+}
+
+/**
+ * Converts the raw origin object to a JSON-friendly format.
+ */
+function toJsonOrigin(origin: PackOrigin): JsonPackOrigin {
+  switch (origin.type) {
+    case "local":
+      return {
+        type: "local",
+        path: origin.localPath,
+      };
+
+    case "git":
+      return {
+        type: "git",
+        url: origin.gitUrl,
+        ref: origin.ref,
+        commit: origin.commit,
+      };
+
+    case "zip":
+      return {
+        type: "zip",
+        url: origin.zipUrl,
+      };
+
+    case "npm":
+      return {
+        type: "npm",
+        path: origin.packageName,
+      };
+
+    default:
+      // Future-proof
+      return { type: "local", path: "unknown" };
+  }
+}
+
+/**
+ * Formats the pack info result as JSON.
+ *
+ * @param result - The pack info result
+ * @returns JSON string
+ */
+export function formatPackInfoJson(result: PackInfoResult): string {
+  const archetypes = result.archetypes.map((id) => ({
+    id,
+    templateRoot: `templates/${id}`,
+  }));
+
+  const output = {
+    packId: result.packId,
+    version: result.version,
+    origin: toJsonOrigin(result.originRaw),
+    storePath: result.storePath,
+    installedAt: result.installedAt,
+    archetypes,
+  };
+
+  return JSON.stringify(output, null, 2);
+}

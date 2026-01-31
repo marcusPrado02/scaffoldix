@@ -201,3 +201,32 @@ export function formatArchetypesListOutput(result: ArchetypesListResult): {
 
   return { stdout, stderr };
 }
+
+// =============================================================================
+// JSON Output
+// =============================================================================
+
+/**
+ * Formats the archetypes list result as JSON.
+ *
+ * Parses the "packId:archetypeId" format into structured objects.
+ * Warnings are not included in JSON (they go to stderr).
+ *
+ * @param result - The archetypes list result
+ * @returns JSON string
+ */
+export function formatArchetypesListJson(result: ArchetypesListResult): string {
+  const archetypes = result.archetypes.map((entry) => {
+    const colonIndex = entry.indexOf(":");
+    if (colonIndex === -1) {
+      // Fallback: if no colon, treat whole string as id
+      return { packId: "", id: entry };
+    }
+    return {
+      packId: entry.slice(0, colonIndex),
+      id: entry.slice(colonIndex + 1),
+    };
+  });
+
+  return JSON.stringify({ archetypes }, null, 2);
+}

@@ -196,3 +196,102 @@ export function formatPackListOutput(result: PackListResult): string[] {
 
   return lines;
 }
+
+// =============================================================================
+// JSON Output
+// =============================================================================
+
+/**
+ * JSON origin structure for pack list.
+ */
+interface JsonPackOrigin {
+  type: "local" | "git" | "zip" | "npm";
+  path?: string;
+  url?: string;
+  ref?: string;
+  commit?: string;
+}
+
+/**
+ * Parses the human-readable origin string back to a structured object.
+ *
+ * This reverses the formatOrigin() function for JSON output.
+ */
+function parseOriginString(origin: string): JsonPackOrigin {
+  // local:/path/to/pack
+  if (origin.startsWith("local:")) {
+    return {
+      type: "local",
+      path: origin.slice(6),
+    };
+  }
+
+  // git:https://url@commit or git:https://url#ref
+  if (origin.startsWith("git:")) {
+    const rest = origin.slice(4);
+
+    // Check for commit (@)
+    const commitMatch = rest.match(/^(.+)@([a-f0-9]+)$/i);
+    if (commitMatch) {
+      return {
+        type: "git",
+        url: commitMatch[1],
+        commit: commitMatch[2],
+      };
+    }
+
+    // Check for ref (#)
+    const refMatch = rest.match(/^(.+)#(.+)$/);
+    if (refMatch) {
+      return {
+        type: "git",
+        url: refMatch[1],
+        ref: refMatch[2],
+      };
+    }
+
+    // Just URL
+    return {
+      type: "git",
+      url: rest,
+    };
+  }
+
+  // zip:https://url
+  if (origin.startsWith("zip:")) {
+    return {
+      type: "zip",
+      url: origin.slice(4),
+    };
+  }
+
+  // npm:package-name
+  if (origin.startsWith("npm:")) {
+    return {
+      type: "npm",
+      path: origin.slice(4),
+    };
+  }
+
+  // Unknown - return as local path
+  return {
+    type: "local",
+    path: origin,
+  };
+}
+
+/**
+ * Formats the pack list result as JSON.
+ *
+ * @param result - The pack list result
+ * @returns JSON string
+ */
+export function formatPackListJson(result: PackListResult): string {
+  const packs = result.packs.map((pack) => ({
+    packId: pack.packId,
+    version: pack.version,
+    origin: parseOriginString(pack.origin),
+  }));
+
+  return JSON.stringify({ packs }, null, 2);
+}
