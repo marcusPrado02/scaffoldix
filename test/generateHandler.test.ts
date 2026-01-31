@@ -6,10 +6,12 @@ import {
   handleGenerate,
   parseArchetypeRef,
   formatGenerateOutput,
+  formatTraceOutput,
   type GenerateInput,
   type GenerateDependencies,
   type GenerateResult,
 } from "../src/cli/handlers/generateHandler.js";
+import type { TraceJson } from "../src/core/observability/EngineTrace.js";
 import {
   REGISTRY_SCHEMA_VERSION,
   type Registry,
@@ -798,6 +800,69 @@ archetypes:
   });
 
   // ===========================================================================
+  // formatTraceOutput()
+  // ===========================================================================
+
+  describe("formatTraceOutput()", () => {
+    it("formats trace with phase names and durations", () => {
+      const trace: TraceJson = {
+        trace: [
+          { name: "resolve pack", start: "2024-01-01T10:00:00.000Z", end: "2024-01-01T10:00:00.050Z", durationMs: 50 },
+          { name: "load manifest", start: "2024-01-01T10:00:00.050Z", end: "2024-01-01T10:00:00.100Z", durationMs: 50 },
+          { name: "render templates", start: "2024-01-01T10:00:00.100Z", end: "2024-01-01T10:00:00.250Z", durationMs: 150 },
+        ],
+        totalDurationMs: 250,
+      };
+
+      const lines = formatTraceOutput(trace);
+
+      expect(lines.some((l) => l.includes("resolve pack"))).toBe(true);
+      expect(lines.some((l) => l.includes("load manifest"))).toBe(true);
+      expect(lines.some((l) => l.includes("render templates"))).toBe(true);
+      expect(lines.some((l) => l.includes("50ms"))).toBe(true);
+      expect(lines.some((l) => l.includes("150ms"))).toBe(true);
+      expect(lines.some((l) => l.includes("Completed in 250ms"))).toBe(true);
+    });
+
+    it("returns empty array for empty trace", () => {
+      const trace: TraceJson = {
+        trace: [],
+        totalDurationMs: 0,
+      };
+
+      const lines = formatTraceOutput(trace);
+
+      expect(lines).toHaveLength(0);
+    });
+
+    it("formats duration as seconds for long phases", () => {
+      const trace: TraceJson = {
+        trace: [
+          { name: "slow phase", start: "2024-01-01T10:00:00.000Z", end: "2024-01-01T10:00:02.500Z", durationMs: 2500 },
+        ],
+        totalDurationMs: 2500,
+      };
+
+      const lines = formatTraceOutput(trace);
+
+      expect(lines.some((l) => l.includes("2.50s"))).toBe(true);
+    });
+
+    it("shows in progress for phases without end time", () => {
+      const trace: TraceJson = {
+        trace: [
+          { name: "running phase", start: "2024-01-01T10:00:00.000Z" },
+        ],
+        totalDurationMs: 0,
+      };
+
+      const lines = formatTraceOutput(trace);
+
+      expect(lines.some((l) => l.includes("in progress"))).toBe(true);
+    });
+  });
+
+  // ===========================================================================
   // State File Integration
   // ===========================================================================
 
@@ -1030,6 +1095,173 @@ archetypes:
       // Format output
       const lines = formatGenerateOutput(result);
       expect(lines.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ===========================================================================
+  // handleGenerate() - Trace Integration
+  // ===========================================================================
+
+  describe("handleGenerate() - trace", () => {
+    it("returns trace with major phases and durations", async () => {
+      const { storeDir, packsDir, deps, registryFile } = await createTestDependencies();
+      trackDir(storeDir);
+
+      const targetDir = trackDir(await createTestDir("target"));
+      const hash = "a".repeat(64);
+
+      // Create registry
+      const registry = createRegistry([
+        {
+          id: "trace-pack",
+          version: "1.0.0",
+          origin: { type: "local", localPath: "/test" },
+          hash,
+        },
+      ]);
+      await writeRegistry(registryFile, registry);
+
+      // Create pack with simple template
+      await createTestPack(packsDir, "trace-pack", hash, {
+        archetypes: [
+          {
+            id: "default",
+            templateRoot: "templates",
+            files: [{ name: "index.ts", content: 'console.log("hello");' }],
+          },
+        ],
+      });
+
+      const result = await handleGenerate(
+        {
+          ref: "trace-pack:default",
+          targetDir,
+          dryRun: false,
+          data: {},
+        },
+        deps
+      );
+
+      // Trace should be defined
+      expect(result.trace).toBeDefined();
+
+      // Trace should be an object with trace array
+      const trace = result.trace!;
+      expect(trace.trace).toBeInstanceOf(Array);
+      expect(trace.trace.length).toBeGreaterThan(0);
+
+      // Should contain key phases
+      const phaseNames = trace.trace.map((e: { name: string }) => e.name);
+      expect(phaseNames).toContain("resolve pack");
+      expect(phaseNames).toContain("load manifest");
+      expect(phaseNames).toContain("render templates");
+      expect(phaseNames).toContain("commit staging");
+
+      // All completed phases should have durations
+      for (const entry of trace.trace) {
+        if (entry.end) {
+          expect(typeof entry.durationMs).toBe("number");
+          expect(entry.durationMs).toBeGreaterThanOrEqual(0);
+        }
+      }
+
+      // Total duration should be positive
+      expect(trace.totalDurationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it("includes trace context for key phases", async () => {
+      const { storeDir, packsDir, deps, registryFile } = await createTestDependencies();
+      trackDir(storeDir);
+
+      const targetDir = trackDir(await createTestDir("target"));
+      const hash = "a".repeat(64);
+
+      const registry = createRegistry([
+        {
+          id: "context-pack",
+          version: "2.0.0",
+          origin: { type: "local", localPath: "/test" },
+          hash,
+        },
+      ]);
+      await writeRegistry(registryFile, registry);
+
+      await createTestPack(packsDir, "context-pack", hash, {
+        archetypes: [
+          {
+            id: "service",
+            templateRoot: "templates",
+            files: [{ name: "app.ts", content: "export default {};" }],
+          },
+        ],
+      });
+
+      const result = await handleGenerate(
+        {
+          ref: "context-pack:service",
+          targetDir,
+          dryRun: false,
+          data: {},
+        },
+        deps
+      );
+
+      const trace = result.trace!;
+
+      // Find "resolve pack" phase - should have packId context
+      const resolvePack = trace.trace.find((e: { name: string }) => e.name === "resolve pack");
+      expect(resolvePack?.context?.packId).toBe("context-pack");
+
+      // Find "load manifest" phase - should have packId context
+      const loadManifest = trace.trace.find((e: { name: string }) => e.name === "load manifest");
+      expect(loadManifest?.context?.packId).toBe("context-pack");
+    });
+
+    it("includes trace in dry-run mode", async () => {
+      const { storeDir, packsDir, deps, registryFile } = await createTestDependencies();
+      trackDir(storeDir);
+
+      const targetDir = trackDir(await createTestDir("target"));
+      const hash = "a".repeat(64);
+
+      const registry = createRegistry([
+        {
+          id: "dry-trace-pack",
+          version: "1.0.0",
+          origin: { type: "local", localPath: "/test" },
+          hash,
+        },
+      ]);
+      await writeRegistry(registryFile, registry);
+
+      await createTestPack(packsDir, "dry-trace-pack", hash, {
+        archetypes: [
+          {
+            id: "default",
+            templateRoot: "templates",
+            files: [{ name: "main.ts", content: "// main" }],
+          },
+        ],
+      });
+
+      const result = await handleGenerate(
+        {
+          ref: "dry-trace-pack:default",
+          targetDir,
+          dryRun: true,
+          data: {},
+        },
+        deps
+      );
+
+      expect(result.dryRun).toBe(true);
+      expect(result.trace).toBeDefined();
+
+      const phaseNames = result.trace!.trace.map((e: { name: string }) => e.name);
+      expect(phaseNames).toContain("resolve pack");
+      expect(phaseNames).toContain("render templates");
+      // Dry-run should NOT have staging phases
+      expect(phaseNames).not.toContain("commit staging");
     });
   });
 });

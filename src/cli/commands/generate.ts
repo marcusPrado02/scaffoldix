@@ -22,8 +22,9 @@ import { toUserMessage, ScaffoldError } from "../../core/errors/errors.js";
 import {
   handleGenerate,
   formatGenerateOutput,
+  formatTraceOutput,
 } from "../handlers/generateHandler.js";
-import { getCliUx } from "../ux/CliUx.js";
+import { getCliUx, createCliUx, setDefaultCliUx } from "../ux/CliUx.js";
 import { createCliSpinner } from "../ux/CliSpinner.js";
 
 /**
@@ -41,7 +42,12 @@ export function buildGenerateCommand(_logger: Logger): Command {
     .option("--dry-run", "Preview what would be generated without writing files", false)
     .option("--yes", "Non-interactive mode: use defaults without prompting", false)
     .option("--force", "Overwrite existing files without prompting", false)
-    .action(async (ref: string, options: { target: string; dryRun: boolean; yes: boolean; force: boolean }) => {
+    .option("--verbose", "Show detailed timing trace for each phase", false)
+    .action(async (ref: string, options: { target: string; dryRun: boolean; yes: boolean; force: boolean; verbose: boolean }) => {
+      // Set up UX with verbose level if requested
+      if (options.verbose) {
+        setDefaultCliUx(createCliUx({ level: "verbose" }));
+      }
       const ux = getCliUx();
       const spinner = createCliSpinner({ ux });
 
@@ -91,6 +97,16 @@ export function buildGenerateCommand(_logger: Logger): Command {
             ux.detail(line.trim());
           } else if (line.trim()) {
             ux.info(line);
+          }
+        }
+
+        // Display trace output (summary by default, details in verbose)
+        if (result.trace && result.trace.trace.length > 0) {
+          ux.info("");
+          ux.info("Trace:");
+          const traceLines = formatTraceOutput(result.trace);
+          for (const traceLine of traceLines) {
+            ux.info(traceLine);
           }
         }
       } catch (err) {

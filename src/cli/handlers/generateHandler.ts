@@ -38,6 +38,7 @@ import {
   resolveInputs,
   type InputDefinition,
 } from "../../core/generate/InputResolver.js";
+import { EngineTrace, type TraceJson } from "../../core/observability/EngineTrace.js";
 
 // =============================================================================
 // Types
@@ -222,6 +223,9 @@ export interface GenerateResult {
 
   /** Files that would be overwritten (dry-run with force=true) */
   readonly filesWouldOverwrite?: FileEntry[];
+
+  /** Execution trace with timing for each phase */
+  readonly trace?: TraceJson;
 }
 
 // =============================================================================
@@ -491,10 +495,14 @@ export async function handleGenerate(
   const { ref, targetDir, dryRun, data, renameRules, version, force = false } = input;
   const { registryFile, packsDir, storeDir } = deps;
 
+  // Initialize trace for observability
+  const trace = new EngineTrace();
+
   // 1. Parse archetype reference
   const { packId, archetypeId } = parseArchetypeRef(ref);
 
   // 2. Resolve pack version (supports multi-version selection)
+  trace.start("resolve pack", { packId });
   const resolver = new PackResolver(registryFile);
   const resolvedPack = await resolver.resolve(packId, version);
 
@@ -506,13 +514,16 @@ export async function handleGenerate(
     origin: resolvedPack.origin,
     installedAt: resolvedPack.installedAt,
   };
+  trace.end("resolve pack");
 
   // 3. Validate pack store path exists
+  trace.start("validate store path", { packId });
   const storePath = deriveStorePath(packsDir, packEntry.id, packEntry.hash);
 
   try {
     await fs.access(storePath);
   } catch {
+    trace.end("validate store path");
     throw new ScaffoldError(
       `Pack is registered but missing from store`,
       "PACK_STORE_MISSING",
@@ -528,17 +539,22 @@ export async function handleGenerate(
       true
     );
   }
+  trace.end("validate store path");
 
   // 4. Load manifest and find archetype
+  trace.start("load manifest", { packId });
   const manifestLoader = new ManifestLoader();
   const manifest = await manifestLoader.loadFromDir(storePath);
 
   // Check pack compatibility with current CLI version
   validateCompatibility(manifest);
+  trace.end("load manifest");
 
+  trace.start("find archetype", { packId, archetypeId });
   const archetype = manifest.archetypes.find((a) => a.id === archetypeId);
 
   if (!archetype) {
+    trace.end("find archetype");
     const availableArchetypes = manifest.archetypes.map((a) => a.id).join(", ");
     throw new ScaffoldError(
       `Archetype '${archetypeId}' not found in pack '${packId}'`,
@@ -556,8 +572,10 @@ export async function handleGenerate(
       true
     );
   }
+  trace.end("find archetype");
 
   // 4b. Resolve inputs from archetype schema
+  trace.start("resolve inputs", { archetypeId });
   const inputsSchema: InputDefinition[] | undefined = archetype.inputs?.map((inp) => ({
     name: inp.name,
     type: inp.type ?? "string",
@@ -574,8 +592,10 @@ export async function handleGenerate(
     provided: data,
     archetypeRef: ref,
   });
+  trace.end("resolve inputs");
 
   // 5. Validate template directory exists
+  trace.start("validate template dir", { archetypeId });
   const templateDir = path.join(storePath, archetype.templateRoot);
 
   try {
@@ -584,6 +604,7 @@ export async function handleGenerate(
       throw new Error("Not a directory");
     }
   } catch {
+    trace.end("validate template dir");
     throw new ScaffoldError(
       `Template directory not found`,
       "TEMPLATE_DIR_NOT_FOUND",
@@ -601,12 +622,14 @@ export async function handleGenerate(
       true
     );
   }
+  trace.end("validate template dir");
 
   // ===========================================================================
   // Dry-run path: no staging, just compute plan
   // ===========================================================================
 
   if (dryRun) {
+    trace.start("render templates", { dryRun: true });
     const renderResult = await renderArchetype({
       templateDir,
       targetDir,
@@ -615,6 +638,7 @@ export async function handleGenerate(
       dryRun: true,
       force,
     });
+    trace.end("render templates");
 
     const patches = archetype.patches;
     const hasPatches = patches && patches.length > 0;
@@ -635,6 +659,7 @@ export async function handleGenerate(
       checksSkippedForDryRun: hasChecks,
       filesOverwritten: [],
       filesWouldOverwrite: renderResult.filesWouldOverwrite,
+      trace: trace.toJSON(),
     };
   }
 
@@ -648,8 +673,10 @@ export async function handleGenerate(
   });
 
   // 6. Create staging directory
+  trace.start("create staging");
   const stagingDir = await stagingManager.createStagingDir();
   console.log(`[staging] Created staging directory: ${stagingDir}`);
+  trace.end("create staging");
 
   // Initialize reports
   let patchReport: PatchReport | undefined;
@@ -664,6 +691,7 @@ export async function handleGenerate(
 
   try {
     // 7. Render templates to STAGING directory
+    trace.start("render templates");
     console.log(`[staging] Rendering templates...`);
     renderResult = await renderArchetype({
       templateDir,
@@ -673,12 +701,14 @@ export async function handleGenerate(
       dryRun: false,
       force,
     });
+    trace.end("render templates");
 
     // 8. Apply patches in STAGING
     const patches = archetype.patches;
     const hasPatches = patches && patches.length > 0;
 
     if (hasPatches) {
+      trace.start("apply patches", { count: patches.length });
       console.log(`[staging] Applying patches...`);
       patchReport = await applyPatches({
         patches,
@@ -688,6 +718,7 @@ export async function handleGenerate(
         packId,
         archetypeId,
       });
+      trace.end("apply patches");
 
       if (patchReport.failed > 0) {
         const failedPatches = patchReport.entries.filter((e) => e.status === "failed");
@@ -719,6 +750,7 @@ export async function handleGenerate(
     const hasHooks = postGenerateHooks && postGenerateHooks.length > 0;
 
     if (hasHooks) {
+      trace.start("run hooks", { count: postGenerateHooks.length });
       console.log(`[staging] Running postGenerate hooks...`);
       const hookRunner = new HookRunner();
       const hookLogger = createHookLogger();
@@ -728,6 +760,7 @@ export async function handleGenerate(
         cwd: stagingDir, // Hooks in staging
         logger: hookLogger,
       });
+      trace.end("run hooks");
     }
 
     // 10. Run checks in STAGING
@@ -735,6 +768,7 @@ export async function handleGenerate(
     const hasChecks = checks && checks.length > 0;
 
     if (hasChecks) {
+      trace.start("run checks", { count: checks.length });
       console.log(`[staging] Running quality checks...`);
       const checkRunner = new CheckRunner();
       const checkLogger = createCheckLogger();
@@ -744,10 +778,12 @@ export async function handleGenerate(
         cwd: stagingDir, // Checks in staging
         logger: checkLogger,
       });
+      trace.end("run checks");
     }
 
     // 11. Copy existing state from target to staging (for history preservation)
     // This allows recordGeneration to read existing history and append to it
+    trace.start("write state");
     const stateManager = new ProjectStateManager();
     const existingStatePath = stateManager.getStatePath(targetDir);
     const stagingStatePath = stateManager.getStatePath(stagingDir);
@@ -818,12 +854,15 @@ export async function handleGenerate(
     }
 
     await stateManager.recordGeneration(stagingDir, generationReport);
+    trace.end("write state");
 
     // 13. Commit staging to target (atomic move)
     // Use force: true to allow overwriting existing target (regeneration use case)
+    trace.start("commit staging");
     console.log(`[staging] Committing to target: ${targetDir}`);
     await stagingManager.commit(stagingDir, targetDir, { force: true });
     console.log(`[staging] Successfully committed to target.`);
+    trace.end("commit staging");
 
   } catch (error) {
     // Failure: cleanup staging, do NOT touch target
@@ -877,6 +916,7 @@ export async function handleGenerate(
     checksSkippedForDryRun: false,
     filesOverwritten: renderResult.filesOverwritten,
     filesWouldOverwrite: [],
+    trace: trace.toJSON(),
   };
 }
 
@@ -1034,4 +1074,34 @@ function formatDuration(ms: number): string {
     return `${(ms / 1000).toFixed(2)}s`;
   }
   return `${ms}ms`;
+}
+
+/**
+ * Formats trace output for CLI display.
+ *
+ * @param trace - Trace JSON from generation result
+ * @returns Array of formatted lines
+ */
+export function formatTraceOutput(trace: TraceJson): string[] {
+  const lines: string[] = [];
+
+  if (trace.trace.length === 0) {
+    return lines;
+  }
+
+  const maxNameLen = Math.max(...trace.trace.map((e) => e.name.length));
+
+  for (const entry of trace.trace) {
+    const name = entry.name.padEnd(maxNameLen);
+    if (entry.durationMs !== undefined) {
+      lines.push(`  ${name}  ${formatDuration(entry.durationMs)}`);
+    } else {
+      lines.push(`  ${name}  (in progress)`);
+    }
+  }
+
+  lines.push(`  ${"─".repeat(maxNameLen + 12)}`);
+  lines.push(`  Completed in ${formatDuration(trace.totalDurationMs)}`);
+
+  return lines;
 }
