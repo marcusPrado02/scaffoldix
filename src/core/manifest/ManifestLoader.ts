@@ -304,11 +304,37 @@ const PackInfoSchema = z.object({
 });
 
 /**
+ * Schema for compatibility constraints.
+ * Allows pack authors to declare Scaffoldix version requirements.
+ */
+const CompatibilitySchema = z.object({
+  /** Minimum Scaffoldix version supported (semver) */
+  minVersion: z.string().optional(),
+
+  /** Maximum Scaffoldix version supported (semver) */
+  maxVersion: z.string().optional(),
+
+  /** Explicit list of incompatible Scaffoldix versions */
+  incompatible: z.array(z.string()).optional(),
+});
+
+/**
+ * Schema for Scaffoldix-specific configuration in the manifest.
+ */
+const ScaffoldixConfigSchema = z.object({
+  /** Version compatibility constraints */
+  compatibility: CompatibilitySchema.optional(),
+});
+
+/**
  * Schema for the full manifest file (v0.1).
  */
 const ManifestSchema = z.object({
   /** Pack identity and metadata */
   pack: PackInfoSchema,
+
+  /** Scaffoldix-specific configuration (optional) */
+  scaffoldix: ScaffoldixConfigSchema.optional(),
 
   /** List of archetypes provided by this pack */
   archetypes: z
@@ -352,6 +378,12 @@ export type ManifestInputDefinition = z.infer<typeof InputDefinitionSchema>;
 
 /** Pack identity metadata */
 export type PackInfo = z.infer<typeof PackInfoSchema>;
+
+/** Compatibility constraints for Scaffoldix version requirements */
+export type CompatibilityConfig = z.infer<typeof CompatibilitySchema>;
+
+/** Scaffoldix-specific configuration section */
+export type ScaffoldixConfig = z.infer<typeof ScaffoldixConfigSchema>;
 
 /** The raw manifest structure (what's in the YAML) */
 export type ManifestData = z.infer<typeof ManifestSchema>;

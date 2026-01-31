@@ -831,6 +831,139 @@ archetypes:
   });
 
   // ===========================================================================
+  // Scaffoldix Compatibility Schema
+  // ===========================================================================
+
+  describe("scaffoldix compatibility schema", () => {
+    it("accepts manifest without scaffoldix section (backward compatible)", async () => {
+      await writeManifest(testDir, createValidManifest());
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.scaffoldix).toBeUndefined();
+    });
+
+    it("accepts scaffoldix section with minVersion only", async () => {
+      const yaml = `pack:
+  name: test-pack
+  version: 1.0.0
+scaffoldix:
+  compatibility:
+    minVersion: "0.2.0"
+archetypes:
+  - id: default
+    templateRoot: templates
+`;
+      await writeManifest(testDir, yaml);
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.scaffoldix?.compatibility?.minVersion).toBe("0.2.0");
+    });
+
+    it("accepts scaffoldix section with maxVersion only", async () => {
+      const yaml = `pack:
+  name: test-pack
+  version: 1.0.0
+scaffoldix:
+  compatibility:
+    maxVersion: "2.5.0"
+archetypes:
+  - id: default
+    templateRoot: templates
+`;
+      await writeManifest(testDir, yaml);
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.scaffoldix?.compatibility?.maxVersion).toBe("2.5.0");
+    });
+
+    it("accepts scaffoldix section with both minVersion and maxVersion", async () => {
+      const yaml = `pack:
+  name: test-pack
+  version: 1.0.0
+scaffoldix:
+  compatibility:
+    minVersion: "0.2.0"
+    maxVersion: "2.5.0"
+archetypes:
+  - id: default
+    templateRoot: templates
+`;
+      await writeManifest(testDir, yaml);
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.scaffoldix?.compatibility?.minVersion).toBe("0.2.0");
+      expect(manifest.scaffoldix?.compatibility?.maxVersion).toBe("2.5.0");
+    });
+
+    it("accepts scaffoldix section with incompatible versions list", async () => {
+      const yaml = `pack:
+  name: test-pack
+  version: 1.0.0
+scaffoldix:
+  compatibility:
+    minVersion: "0.2.0"
+    incompatible:
+      - "0.3.4"
+      - "1.0.0-beta"
+archetypes:
+  - id: default
+    templateRoot: templates
+`;
+      await writeManifest(testDir, yaml);
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.scaffoldix?.compatibility?.incompatible).toEqual(["0.3.4", "1.0.0-beta"]);
+    });
+
+    it("accepts empty compatibility object", async () => {
+      const yaml = `pack:
+  name: test-pack
+  version: 1.0.0
+scaffoldix:
+  compatibility: {}
+archetypes:
+  - id: default
+    templateRoot: templates
+`;
+      await writeManifest(testDir, yaml);
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.scaffoldix?.compatibility).toBeDefined();
+      expect(manifest.scaffoldix?.compatibility?.minVersion).toBeUndefined();
+    });
+
+    it("accepts full compatibility section with all fields", async () => {
+      const yaml = `pack:
+  name: test-pack
+  version: 1.0.0
+scaffoldix:
+  compatibility:
+    minVersion: "0.2.0"
+    maxVersion: "2.5.0"
+    incompatible:
+      - "0.3.4"
+      - "1.0.0-beta"
+archetypes:
+  - id: default
+    templateRoot: templates
+`;
+      await writeManifest(testDir, yaml);
+
+      const manifest = await loader.loadFromDir(testDir);
+
+      expect(manifest.scaffoldix?.compatibility?.minVersion).toBe("0.2.0");
+      expect(manifest.scaffoldix?.compatibility?.maxVersion).toBe("2.5.0");
+      expect(manifest.scaffoldix?.compatibility?.incompatible).toEqual(["0.3.4", "1.0.0-beta"]);
+    });
+  });
+
+  // ===========================================================================
   // Patch Schema Validation - Invalid Cases
   // ===========================================================================
 

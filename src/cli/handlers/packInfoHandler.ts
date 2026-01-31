@@ -16,6 +16,8 @@ import { type PackOrigin } from "../../core/registry/RegistryService.js";
 import { PackResolver } from "../../core/store/PackResolver.js";
 import { ManifestLoader, type PackManifest } from "../../core/manifest/ManifestLoader.js";
 import { formatOrigin } from "./packListHandler.js";
+import { CompatibilityChecker } from "../../core/compatibility/CompatibilityChecker.js";
+import { CLI_VERSION } from "../version.js";
 
 // =============================================================================
 // Types
@@ -75,6 +77,35 @@ export interface PackInfoResult {
 // =============================================================================
 // Helper Functions
 // =============================================================================
+
+/**
+ * Validates pack compatibility with current CLI version.
+ * Throws ScaffoldError if pack is incompatible.
+ */
+function validateCompatibility(manifest: PackManifest): void {
+  const compatibility = manifest.scaffoldix?.compatibility;
+  const result = CompatibilityChecker.check(CLI_VERSION, compatibility);
+
+  if (!result.compatible) {
+    const constraints = CompatibilityChecker.formatConstraints(compatibility);
+    throw new ScaffoldError(
+      `Pack incompatible with current Scaffoldix version`,
+      "PACK_INCOMPATIBLE",
+      {
+        packId: manifest.pack.name,
+        packVersion: manifest.pack.version,
+        cliVersion: CLI_VERSION,
+        constraints,
+      },
+      undefined,
+      `Pack "${manifest.pack.name}@${manifest.pack.version}" requires Scaffoldix ${constraints}. ` +
+        `You are using Scaffoldix v${CLI_VERSION}. ` +
+        `Please upgrade Scaffoldix or use a compatible pack version.`,
+      undefined,
+      true
+    );
+  }
+}
 
 /**
  * Sanitizes a pack ID for use in filesystem paths.
@@ -186,6 +217,9 @@ export async function handlePackInfo(
       true
     );
   }
+
+  // Check pack compatibility with current CLI version
+  validateCompatibility(manifest);
 
   // 5. Extract and sort archetypes
   const archetypes = manifest.archetypes

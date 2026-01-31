@@ -15,13 +15,15 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { ScaffoldError } from "../../core/errors/errors.js";
-import { ManifestLoader } from "../../core/manifest/ManifestLoader.js";
+import { ManifestLoader, type PackManifest } from "../../core/manifest/ManifestLoader.js";
 import {
   StoreService,
   type StoreServiceConfig,
   type StoreLogger,
 } from "../../core/store/StoreService.js";
 import { GitPackFetcher } from "../../core/store/GitPackFetcher.js";
+import { CompatibilityChecker } from "../../core/compatibility/CompatibilityChecker.js";
+import { CLI_VERSION } from "../version.js";
 
 // =============================================================================
 // Types
@@ -168,6 +170,9 @@ async function handleGitPackAdd(
       commit: fetchResult.commit,
     });
 
+    // Check pack compatibility with current CLI version
+    validateCompatibility(manifest);
+
     // Install pack with git origin metadata
     const storeService = new StoreService(storeConfig, logger);
     const installResult = await storeService.installLocalPack({
@@ -269,6 +274,9 @@ async function handleLocalPackAdd(
     manifestPath: manifest.manifestPath,
   });
 
+  // Check pack compatibility with current CLI version
+  validateCompatibility(manifest);
+
   // 5. Install pack into Store (StoreService handles registry update)
   const storeService = new StoreService(storeConfig, logger);
   const installResult = await storeService.installLocalPack({
@@ -283,6 +291,35 @@ async function handleLocalPackAdd(
     sourcePath: resolvedPath,
     status: installResult.status,
   };
+}
+
+/**
+ * Validates pack compatibility with current CLI version.
+ * Throws ScaffoldError if pack is incompatible.
+ */
+function validateCompatibility(manifest: PackManifest): void {
+  const compatibility = manifest.scaffoldix?.compatibility;
+  const result = CompatibilityChecker.check(CLI_VERSION, compatibility);
+
+  if (!result.compatible) {
+    const constraints = CompatibilityChecker.formatConstraints(compatibility);
+    throw new ScaffoldError(
+      `Pack incompatible with current Scaffoldix version`,
+      "PACK_INCOMPATIBLE",
+      {
+        packId: manifest.pack.name,
+        packVersion: manifest.pack.version,
+        cliVersion: CLI_VERSION,
+        constraints,
+      },
+      undefined,
+      `Pack "${manifest.pack.name}@${manifest.pack.version}" requires Scaffoldix ${constraints}. ` +
+        `You are using Scaffoldix v${CLI_VERSION}. ` +
+        `Please upgrade Scaffoldix or use a compatible pack version.`,
+      undefined,
+      true
+    );
+  }
 }
 
 /**

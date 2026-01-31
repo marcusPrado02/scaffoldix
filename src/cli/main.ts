@@ -6,12 +6,13 @@ import { buildGenerateCommand } from "./commands/generate.js";
 import { buildArchetypesCommand } from "./commands/archetypes.js";
 import { buildDoctorCommand } from "./commands/doctor.js";
 import { createCliUx, setDefaultCliUx, parseLogLevel, getCliUx } from "./ux/CliUx.js";
+import { CLI_VERSION } from "./version.js";
 
 async function main() {
   const program = new Command()
     .name("scaffoldix")
     .description("Scaffoldix - Professional scaffolding CLI via deterministic packs")
-    .version("0.1.0")
+    .version(CLI_VERSION)
     .option("--verbose", "Show additional context and details", false)
     .option("--debug", "Show all output including debug traces", false)
     .option("--silent", "Suppress all output except errors", false);

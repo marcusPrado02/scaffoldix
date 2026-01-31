@@ -15,7 +15,9 @@ import * as path from "node:path";
 import * as crypto from "node:crypto";
 import { ScaffoldError } from "../../core/errors/errors.js";
 import { PackResolver } from "../../core/store/PackResolver.js";
-import { ManifestLoader } from "../../core/manifest/ManifestLoader.js";
+import { ManifestLoader, type PackManifest } from "../../core/manifest/ManifestLoader.js";
+import { CompatibilityChecker } from "../../core/compatibility/CompatibilityChecker.js";
+import { CLI_VERSION } from "../version.js";
 import {
   renderArchetype,
   type FileEntry,
@@ -225,6 +227,35 @@ export interface GenerateResult {
 // =============================================================================
 // Helper Functions
 // =============================================================================
+
+/**
+ * Validates pack compatibility with current CLI version.
+ * Throws ScaffoldError if pack is incompatible.
+ */
+function validateCompatibility(manifest: PackManifest): void {
+  const compatibility = manifest.scaffoldix?.compatibility;
+  const result = CompatibilityChecker.check(CLI_VERSION, compatibility);
+
+  if (!result.compatible) {
+    const constraints = CompatibilityChecker.formatConstraints(compatibility);
+    throw new ScaffoldError(
+      `Pack incompatible with current Scaffoldix version`,
+      "PACK_INCOMPATIBLE",
+      {
+        packId: manifest.pack.name,
+        packVersion: manifest.pack.version,
+        cliVersion: CLI_VERSION,
+        constraints,
+      },
+      undefined,
+      `Pack "${manifest.pack.name}@${manifest.pack.version}" requires Scaffoldix ${constraints}. ` +
+        `You are using Scaffoldix v${CLI_VERSION}. ` +
+        `Please upgrade Scaffoldix or use a compatible pack version.`,
+      undefined,
+      true
+    );
+  }
+}
 
 /**
  * Sanitizes a pack ID for use in filesystem paths.
@@ -501,6 +532,9 @@ export async function handleGenerate(
   // 4. Load manifest and find archetype
   const manifestLoader = new ManifestLoader();
   const manifest = await manifestLoader.loadFromDir(storePath);
+
+  // Check pack compatibility with current CLI version
+  validateCompatibility(manifest);
 
   const archetype = manifest.archetypes.find((a) => a.id === archetypeId);
 
