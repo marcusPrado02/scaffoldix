@@ -76,6 +76,9 @@ export interface GenerateInput {
 
   /** Optional prompt adapter for interactive mode */
   readonly prompt?: import("../../core/generate/InputResolver.js").PromptAdapter;
+
+  /** Whether to overwrite existing files (--force) */
+  readonly force?: boolean;
 }
 
 /**
@@ -211,6 +214,12 @@ export interface GenerateResult {
 
   /** Whether checks were skipped due to dry-run */
   readonly checksSkippedForDryRun?: boolean;
+
+  /** Files that were overwritten (only when force=true, non-dry-run) */
+  readonly filesOverwritten?: FileEntry[];
+
+  /** Files that would be overwritten (dry-run with force=true) */
+  readonly filesWouldOverwrite?: FileEntry[];
 }
 
 // =============================================================================
@@ -448,7 +457,7 @@ export async function handleGenerate(
   input: GenerateInput,
   deps: GenerateDependencies
 ): Promise<GenerateResult> {
-  const { ref, targetDir, dryRun, data, renameRules, version } = input;
+  const { ref, targetDir, dryRun, data, renameRules, version, force = false } = input;
   const { registryFile, packsDir, storeDir } = deps;
 
   // 1. Parse archetype reference
@@ -570,6 +579,7 @@ export async function handleGenerate(
       data: resolvedData,
       renameRules,
       dryRun: true,
+      force,
     });
 
     const patches = archetype.patches;
@@ -589,6 +599,8 @@ export async function handleGenerate(
       patchesSkippedForDryRun: hasPatches,
       hooksSkippedForDryRun: hasHooks,
       checksSkippedForDryRun: hasChecks,
+      filesOverwritten: [],
+      filesWouldOverwrite: renderResult.filesWouldOverwrite,
     };
   }
 
@@ -609,7 +621,12 @@ export async function handleGenerate(
   let patchReport: PatchReport | undefined;
   let hookSummary: HookRunSummary | undefined;
   let checkSummary: CheckRunSummary | undefined;
-  let renderResult: { filesWritten: FileEntry[]; filesPlanned: FileEntry[] };
+  let renderResult: {
+    filesWritten: FileEntry[];
+    filesPlanned: FileEntry[];
+    filesOverwritten: FileEntry[];
+    filesWouldOverwrite: FileEntry[];
+  };
 
   try {
     // 7. Render templates to STAGING directory
@@ -620,6 +637,7 @@ export async function handleGenerate(
       data: resolvedData,
       renameRules,
       dryRun: false,
+      force,
     });
 
     // 8. Apply patches in STAGING
@@ -823,6 +841,8 @@ export async function handleGenerate(
     hooksSkippedForDryRun: false,
     checkReport,
     checksSkippedForDryRun: false,
+    filesOverwritten: renderResult.filesOverwritten,
+    filesWouldOverwrite: [],
   };
 }
 
@@ -849,6 +869,23 @@ export function formatGenerateOutput(result: GenerateResult): string[] {
   const action = result.dryRun ? "would be created" : "created";
 
   lines.push(`${fileCount} ${fileWord} ${action}`);
+
+  // Report overwritten files
+  const overwrittenFiles = result.dryRun
+    ? result.filesWouldOverwrite ?? []
+    : result.filesOverwritten ?? [];
+
+  if (overwrittenFiles.length > 0) {
+    lines.push("");
+    if (result.dryRun) {
+      lines.push("Files that would be overwritten:");
+    } else {
+      lines.push("Force mode active — overwriting existing files:");
+    }
+    for (const file of overwrittenFiles) {
+      lines.push(`  Overwriting: ${file.destRelativePath}`);
+    }
+  }
 
   // List files (up to a reasonable limit)
   if (files.length > 0 && files.length <= 20) {

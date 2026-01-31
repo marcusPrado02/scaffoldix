@@ -67,6 +67,12 @@ export interface RenderResult {
 
   /** Files that would be written (dry-run) */
   readonly filesPlanned: FileEntry[];
+
+  /** Files that were overwritten (only when force=true) */
+  readonly filesOverwritten: FileEntry[];
+
+  /** Files that would be overwritten in dry-run mode (only when force=true) */
+  readonly filesWouldOverwrite: FileEntry[];
 }
 
 /**
@@ -87,6 +93,12 @@ export interface RenderParams {
 
   /** If true, don't write files - just return what would be done */
   readonly dryRun?: boolean;
+
+  /**
+   * If true, overwrite existing files. If false (default), throw error
+   * when a target file already exists.
+   */
+  readonly force?: boolean;
 }
 
 // =============================================================================
@@ -269,6 +281,7 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
     data,
     renameRules,
     dryRun = false,
+    force = false,
   } = params;
 
   // Validate template directory exists
@@ -296,6 +309,8 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
 
   const filesPlanned: FileEntry[] = [];
   const filesWritten: FileEntry[] = [];
+  const filesOverwritten: FileEntry[] = [];
+  const filesWouldOverwrite: FileEntry[] = [];
 
   // Process each file
   for (const srcRelativePath of files) {
@@ -308,6 +323,26 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
     validateSafePath(destRelativePath, targetDir, srcRelativePath);
 
     const destAbsolutePath = path.join(targetDir, destRelativePath);
+
+    // Check if destination file already exists
+    let fileExists = false;
+    try {
+      await fs.access(destAbsolutePath);
+      fileExists = true;
+    } catch {
+      // File does not exist - this is fine
+    }
+
+    // If file exists and force is false, throw error
+    if (fileExists && !force) {
+      throw new ScaffoldError(
+        `Cannot overwrite existing file: ${destRelativePath}`,
+        "RENDER_FILE_EXISTS",
+        { srcRelativePath, destRelativePath, destAbsolutePath }, // details
+        undefined, // data
+        `Use --force to overwrite existing files.` // hint
+      );
+    }
 
     // Detect if file is binary
     const binary = await isBinaryFile(srcAbsolutePath);
@@ -324,9 +359,21 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
 
     filesPlanned.push(entry);
 
+    // Track files that would be overwritten (for dry-run reporting)
+    if (fileExists) {
+      if (dryRun) {
+        filesWouldOverwrite.push(entry);
+      }
+    }
+
     // If dry run, don't write anything
     if (dryRun) {
       continue;
+    }
+
+    // Track overwritten files
+    if (fileExists) {
+      filesOverwritten.push(entry);
     }
 
     // Ensure destination directory exists
@@ -351,5 +398,7 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
   return {
     filesWritten: dryRun ? [] : filesWritten,
     filesPlanned: dryRun ? filesPlanned : [],
+    filesOverwritten: dryRun ? [] : filesOverwritten,
+    filesWouldOverwrite: dryRun ? filesWouldOverwrite : [],
   };
 }

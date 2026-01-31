@@ -38,7 +38,8 @@ export function buildGenerateCommand(_logger: Logger): Command {
     .option("--target <dir>", "Target directory for generated files", ".")
     .option("--dry-run", "Preview what would be generated without writing files", false)
     .option("--yes", "Non-interactive mode: use defaults without prompting", false)
-    .action(async (ref: string, options: { target: string; dryRun: boolean; yes: boolean }) => {
+    .option("--force", "Overwrite existing files without prompting", false)
+    .action(async (ref: string, options: { target: string; dryRun: boolean; yes: boolean; force: boolean }) => {
       try {
         // Initialize store paths
         const storePaths = initStorePaths();
@@ -54,6 +55,7 @@ export function buildGenerateCommand(_logger: Logger): Command {
             dryRun: options.dryRun,
             data: {}, // Provided values (from future --set flags)
             nonInteractive: options.yes,
+            force: options.force,
           },
           {
             registryFile: storePaths.registryFile,
