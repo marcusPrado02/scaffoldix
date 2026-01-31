@@ -23,6 +23,8 @@ import {
   handleGenerate,
   formatGenerateOutput,
 } from "../handlers/generateHandler.js";
+import { getCliUx } from "../ux/CliUx.js";
+import { createCliSpinner } from "../ux/CliSpinner.js";
 
 /**
  * Builds the `generate` command.
@@ -40,12 +42,22 @@ export function buildGenerateCommand(_logger: Logger): Command {
     .option("--yes", "Non-interactive mode: use defaults without prompting", false)
     .option("--force", "Overwrite existing files without prompting", false)
     .action(async (ref: string, options: { target: string; dryRun: boolean; yes: boolean; force: boolean }) => {
+      const ux = getCliUx();
+      const spinner = createCliSpinner({ ux });
+
       try {
         // Initialize store paths
         const storePaths = initStorePaths();
 
         // Resolve target directory to absolute path
         const targetDir = path.resolve(process.cwd(), options.target);
+
+        // Show what we're doing
+        if (options.dryRun) {
+          ux.info(`Dry run: ${ref}`);
+        } else {
+          spinner.start(`Generating from ${ref}`);
+        }
 
         // Execute handler
         const result = await handleGenerate(
@@ -64,23 +76,35 @@ export function buildGenerateCommand(_logger: Logger): Command {
           }
         );
 
-        // Output formatted result
+        // Stop spinner before output
+        if (!options.dryRun) {
+          spinner.stop();
+        }
+
+        // Output formatted result using CliUx
         const lines = formatGenerateOutput(result);
         for (const line of lines) {
-          process.stdout.write(line + "\n");
+          // Parse line to determine type
+          if (line.startsWith("✓") || line.startsWith("Generated")) {
+            ux.success(line.replace(/^✓\s*/, ""));
+          } else if (line.startsWith("  ")) {
+            ux.detail(line.trim());
+          } else if (line.trim()) {
+            ux.info(line);
+          }
         }
       } catch (err) {
-        // Format error for user
+        // Stop spinner on error
+        spinner.stop();
+
+        // Format error for user using CliUx
         const userMessage = toUserMessage(err);
-        const prefix = userMessage.code ? `${userMessage.code}: ` : "";
 
-        // Include hint if available
-        let output = `Error: ${prefix}${userMessage.message}`;
-        if (err instanceof ScaffoldError && err.hint) {
-          output += `\n\nHint: ${err.hint}`;
-        }
+        ux.error(userMessage.message, {
+          code: userMessage.code,
+          hint: err instanceof ScaffoldError ? err.hint : undefined,
+        });
 
-        process.stderr.write(output + "\n");
         process.exitCode = 1;
       }
     });
