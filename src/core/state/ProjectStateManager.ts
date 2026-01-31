@@ -31,6 +31,7 @@ import * as path from "node:path";
 import * as crypto from "node:crypto";
 import { z } from "zod";
 import { ScaffoldError } from "../errors/errors.js";
+import { runMigrations, CURRENT_STATE_VERSION } from "./migrations.js";
 
 // =============================================================================
 // Constants
@@ -309,10 +310,12 @@ export class ProjectStateManager {
    * Reads the project state from disk.
    *
    * Handles both v1 and v2 schemas transparently.
+   * Automatically migrates older state files to the current version.
    *
    * @param targetDir - The project's target directory
    * @returns The parsed state, or null if no state file exists
    * @throws ScaffoldError if the file exists but contains invalid JSON or schema
+   * @throws ScaffoldError if the state version is unsupported (future version)
    */
   async read(targetDir: string): Promise<ProjectState | null> {
     const statePath = this.getStatePath(targetDir);
@@ -341,9 +344,9 @@ export class ProjectStateManager {
     }
 
     // Parse JSON
-    let parsed: unknown;
+    let parsed: Record<string, unknown>;
     try {
-      parsed = JSON.parse(content);
+      parsed = JSON.parse(content) as Record<string, unknown>;
     } catch (err) {
       throw new ScaffoldError(
         `Invalid JSON in project state file`,
@@ -357,8 +360,55 @@ export class ProjectStateManager {
       );
     }
 
-    // Validate schema (accepts both v1 and v2)
-    const result = ProjectStateAnySchema.safeParse(parsed);
+    // Check for unsupported future version BEFORE schema validation
+    const stateVersion = typeof parsed.schemaVersion === "number" ? parsed.schemaVersion : 1;
+    if (stateVersion > CURRENT_STATE_VERSION) {
+      throw new ScaffoldError(
+        `Unsupported state version "${stateVersion}"`,
+        "STATE_VERSION_UNSUPPORTED",
+        {
+          path: statePath,
+          stateVersion,
+          maxSupportedVersion: CURRENT_STATE_VERSION,
+        },
+        undefined,
+        `This state file was created by a newer version of Scaffoldix. ` +
+          `Please update Scaffoldix to the latest version, or regenerate this project.`,
+        undefined,
+        true
+      );
+    }
+
+    // Run migrations if needed (wrap errors to include file path)
+    let migrationResult;
+    try {
+      migrationResult = runMigrations(parsed);
+    } catch (err) {
+      // Re-throw migration errors with file path context
+      if (err instanceof ScaffoldError && err.code === "STATE_INVALID_SCHEMA") {
+        throw new ScaffoldError(
+          err.message,
+          "STATE_INVALID_SCHEMA",
+          { path: statePath, ...err.details },
+          undefined,
+          `The state file at ${statePath} has an invalid structure. ` +
+            `Delete the file to reset state, or fix it manually.`,
+          err,
+          true
+        );
+      }
+      throw err;
+    }
+
+    // If migrations were applied, write the migrated state back to disk
+    if (migrationResult.migrated) {
+      const stateDir = path.dirname(statePath);
+      const migratedContent = JSON.stringify(migrationResult.state, null, 2) + "\n";
+      await this.atomicWrite(stateDir, statePath, migratedContent);
+    }
+
+    // Validate schema (accepts both v1 and v2, but after migration should be v2)
+    const result = ProjectStateAnySchema.safeParse(migrationResult.state);
     if (!result.success) {
       const issues = result.error.issues
         .map((i) => `${i.path.join(".")}: ${i.message}`)
