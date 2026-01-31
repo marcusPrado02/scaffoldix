@@ -1,0 +1,5 @@
+pack:
+  version: "1.0.0"
+archetypes:
+  - id: default
+    templateRoot: templates

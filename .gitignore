@@ -16,4 +16,7 @@ dist/
 .env
 .env.*
 
-docs/
+docs/tasks/
+docs/context.md
+docs/architecture.md
+coverage/

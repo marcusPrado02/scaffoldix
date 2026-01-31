@@ -1,0 +1,9 @@
+pack:
+  name: test-pack
+  version: "1.0.0"
+archetypes:
+  - id: default
+    templateRoot: templates
+    # Invalid YAML - unclosed bracket
+    inputs: [
+      name: "foo"

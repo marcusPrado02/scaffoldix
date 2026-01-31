@@ -1,0 +1,6 @@
+pack:
+  name: test-pack
+  version: "1.0.0"
+archetypes:
+  - id: ""
+    templateRoot: templates
