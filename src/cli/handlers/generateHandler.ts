@@ -20,9 +20,14 @@ import { CompatibilityChecker } from "../../core/compatibility/CompatibilityChec
 import { CLI_VERSION } from "../version.js";
 import {
   renderArchetype,
+  computeRenderPlan,
   type FileEntry,
   type RenameRules,
 } from "../../core/render/Renderer.js";
+import {
+  ConflictDetector,
+  GenerateConflictError,
+} from "../../core/conflicts/ConflictDetector.js";
 import {
   ProjectStateManager,
   type GenerationReport,
@@ -623,6 +628,38 @@ export async function handleGenerate(
     );
   }
   trace.end("validate template dir");
+
+  // ===========================================================================
+  // Conflict Detection - Check against ACTUAL target before staging
+  // ===========================================================================
+
+  trace.start("detect conflicts");
+  const renderPlan = await computeRenderPlan({
+    templateDir,
+    renameRules,
+  });
+
+  const conflictDetector = new ConflictDetector();
+  const conflictReport = await conflictDetector.detectConflicts({
+    plannedFiles: renderPlan.outputPaths,
+    targetDir,
+  });
+
+  if (conflictReport.hasConflicts && !force) {
+    trace.end("detect conflicts");
+    throw new GenerateConflictError(conflictReport);
+  }
+
+  if (conflictReport.hasConflicts && force) {
+    console.log(`[generate] Force mode: will overwrite ${conflictReport.count} existing file(s)`);
+    for (const conflict of conflictReport.conflicts.slice(0, 5)) {
+      console.log(`  - ${conflict.relativePath}`);
+    }
+    if (conflictReport.count > 5) {
+      console.log(`  ... and ${conflictReport.count - 5} more`);
+    }
+  }
+  trace.end("detect conflicts");
 
   // ===========================================================================
   // Dry-run path: no staging, just compute plan

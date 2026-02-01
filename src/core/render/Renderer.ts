@@ -402,3 +402,81 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
     filesWouldOverwrite: dryRun ? filesWouldOverwrite : [],
   };
 }
+
+// =============================================================================
+// Render Plan Computation
+// =============================================================================
+
+/**
+ * Parameters for computing a render plan.
+ */
+export interface ComputeRenderPlanParams {
+  /** Absolute path to the template directory */
+  readonly templateDir: string;
+
+  /** Optional rename rules for file/directory names */
+  readonly renameRules?: RenameRules;
+}
+
+/**
+ * Result of render plan computation.
+ */
+export interface RenderPlan {
+  /** List of relative paths that would be written to target */
+  readonly outputPaths: string[];
+}
+
+/**
+ * Computes the render plan (list of output paths) without rendering.
+ *
+ * This function determines which files would be created by rendering,
+ * allowing for conflict detection against the target directory before
+ * any files are written.
+ *
+ * ## Use Case
+ *
+ * Call this before starting staged generation to check for conflicts
+ * against the actual target directory (not the staging directory).
+ *
+ * @param params - Template directory and rename rules
+ * @returns Render plan with list of output paths
+ * @throws ScaffoldError if template directory doesn't exist
+ */
+export async function computeRenderPlan(
+  params: ComputeRenderPlanParams
+): Promise<RenderPlan> {
+  const { templateDir, renameRules } = params;
+
+  // Validate template directory exists
+  try {
+    await fs.access(templateDir);
+  } catch {
+    throw new ScaffoldError(
+      `Template directory does not exist: ${templateDir}`,
+      "RENDER_TEMPLATE_DIR_NOT_FOUND",
+      { templateDir },
+      undefined,
+      `The template directory "${templateDir}" does not exist or is not accessible.`,
+      undefined,
+      true
+    );
+  }
+
+  // Enumerate all files in template directory
+  const files = await fg("**/*", {
+    cwd: templateDir,
+    dot: true,
+    onlyFiles: true,
+    followSymbolicLinks: false,
+  });
+
+  // Apply rename rules to get destination paths
+  const outputPaths: string[] = [];
+
+  for (const srcRelativePath of files) {
+    const destRelativePath = applyRenameRules(srcRelativePath, renameRules);
+    outputPaths.push(destRelativePath);
+  }
+
+  return { outputPaths };
+}

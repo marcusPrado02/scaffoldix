@@ -651,3 +651,129 @@ describe("Renderer", () => {
     });
   });
 });
+
+// =============================================================================
+// computeRenderPlan Tests
+// =============================================================================
+
+import { computeRenderPlan } from "../src/core/render/Renderer.js";
+
+describe("computeRenderPlan", () => {
+  const testDirs: string[] = [];
+
+  afterEach(async () => {
+    for (const dir of testDirs) {
+      await cleanupTestDir(dir);
+    }
+    testDirs.length = 0;
+  });
+
+  function trackDir(dir: string): string {
+    testDirs.push(dir);
+    return dir;
+  }
+
+  it("returns list of output paths from template directory", async () => {
+    const templateDir = trackDir(await createTestDir("plan-basic"));
+
+    // Create template files
+    await fs.mkdir(path.join(templateDir, "src"), { recursive: true });
+    await fs.writeFile(path.join(templateDir, "package.json"), "{}");
+    await fs.writeFile(path.join(templateDir, "src", "index.ts"), "");
+    await fs.writeFile(path.join(templateDir, "README.md"), "");
+
+    const plan = await computeRenderPlan({ templateDir });
+
+    expect(plan.outputPaths).toHaveLength(3);
+    expect(plan.outputPaths).toContain("package.json");
+    expect(plan.outputPaths).toContain("src/index.ts");
+    expect(plan.outputPaths).toContain("README.md");
+  });
+
+  it("applies rename rules to output paths", async () => {
+    const templateDir = trackDir(await createTestDir("plan-rename"));
+
+    await fs.mkdir(path.join(templateDir, "__moduleName__"), { recursive: true });
+    await fs.writeFile(path.join(templateDir, "__moduleName__", "__moduleName__.ts"), "");
+
+    const plan = await computeRenderPlan({
+      templateDir,
+      renameRules: {
+        replacements: {
+          __moduleName__: "customer",
+        },
+      },
+    });
+
+    expect(plan.outputPaths).toHaveLength(1);
+    expect(plan.outputPaths[0]).toBe("customer/customer.ts");
+  });
+
+  it("handles multiple rename rules", async () => {
+    const templateDir = trackDir(await createTestDir("plan-multi-rename"));
+
+    await fs.mkdir(path.join(templateDir, "src", "__Entity__"), { recursive: true });
+    await fs.writeFile(
+      path.join(templateDir, "src", "__Entity__", "__entity__Repository.ts"),
+      ""
+    );
+
+    const plan = await computeRenderPlan({
+      templateDir,
+      renameRules: {
+        replacements: {
+          __Entity__: "Customer",
+          __entity__: "customer",
+        },
+      },
+    });
+
+    expect(plan.outputPaths).toHaveLength(1);
+    expect(plan.outputPaths[0]).toBe("src/Customer/customerRepository.ts");
+  });
+
+  it("throws if template directory does not exist", async () => {
+    const nonExistentDir = "/nonexistent/template/dir";
+
+    await expect(computeRenderPlan({ templateDir: nonExistentDir })).rejects.toThrow(
+      /does not exist/
+    );
+  });
+
+  it("returns empty list for empty template directory", async () => {
+    const templateDir = trackDir(await createTestDir("plan-empty"));
+    // Directory exists but is empty
+
+    const plan = await computeRenderPlan({ templateDir });
+
+    expect(plan.outputPaths).toHaveLength(0);
+  });
+
+  it("includes dotfiles in output paths", async () => {
+    const templateDir = trackDir(await createTestDir("plan-dotfiles"));
+
+    await fs.writeFile(path.join(templateDir, ".gitignore"), "");
+    await fs.writeFile(path.join(templateDir, ".env.example"), "");
+    await fs.writeFile(path.join(templateDir, "normal.txt"), "");
+
+    const plan = await computeRenderPlan({ templateDir });
+
+    expect(plan.outputPaths).toHaveLength(3);
+    expect(plan.outputPaths).toContain(".gitignore");
+    expect(plan.outputPaths).toContain(".env.example");
+    expect(plan.outputPaths).toContain("normal.txt");
+  });
+
+  it("handles deeply nested directories", async () => {
+    const templateDir = trackDir(await createTestDir("plan-deep"));
+
+    const deepPath = path.join(templateDir, "a", "b", "c", "d");
+    await fs.mkdir(deepPath, { recursive: true });
+    await fs.writeFile(path.join(deepPath, "deep.txt"), "");
+
+    const plan = await computeRenderPlan({ templateDir });
+
+    expect(plan.outputPaths).toHaveLength(1);
+    expect(plan.outputPaths[0]).toBe("a/b/c/d/deep.txt");
+  });
+});

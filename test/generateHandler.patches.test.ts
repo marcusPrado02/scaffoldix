@@ -188,12 +188,14 @@ describe("Generate with Patches", () => {
 
       // Second generation will re-render templates (overwriting), so patches re-apply
       // This is expected behavior for "regenerate from scratch"
+      // Requires force since files already exist
       const secondResult = await handleGenerate(
         {
           ref: "patch-pack:with-patches",
           targetDir,
           dryRun: false,
           data: { appName: "MyApp", moduleName: "User" },
+          force: true,
         },
         { registryFile, packsDir, storeDir }
       );

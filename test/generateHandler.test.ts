@@ -1009,13 +1009,14 @@ archetypes:
       const firstState = JSON.parse(await readFile(stateFile));
       expect(firstState.lastGeneration.archetypeId).toBe("first");
 
-      // Second generation (overwrites first)
+      // Second generation (overwrites first - needs force)
       await handleGenerate(
         {
           ref: "regen-pack:second",
           targetDir,
           dryRun: false,
           data: { v: 2 },
+          force: true,
         },
         deps
       );

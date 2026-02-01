@@ -439,7 +439,7 @@ describe("generateHandler - generation report persistence", () => {
       ]);
       await writeRegistry(workspace.registryFile, registry);
 
-      // Run generation three times
+      // Run generation three times (force needed for re-generation)
       for (let i = 0; i < 3; i++) {
         await handleGenerate(
           {
@@ -447,6 +447,7 @@ describe("generateHandler - generation report persistence", () => {
             targetDir: workspace.targetDir,
             dryRun: false,
             data: { run: i },
+            force: i > 0, // Force for subsequent runs to handle conflicts
           },
           workspace.deps
         );
