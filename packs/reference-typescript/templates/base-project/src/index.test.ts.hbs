@@ -1,0 +1,10 @@
+{{#if includeTests}}
+import { describe, it, expect } from "vitest";
+import { main } from "./index.js";
+
+describe("{{projectName}}", () => {
+  it("main function exists", () => {
+    expect(typeof main).toBe("function");
+  });
+});
+{{/if}}
