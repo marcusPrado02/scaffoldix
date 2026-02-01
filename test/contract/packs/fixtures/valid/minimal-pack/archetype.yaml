@@ -1,0 +1,7 @@
+pack:
+  name: minimal-pack
+  version: "1.0.0"
+
+archetypes:
+  - id: default
+    templateRoot: templates/example

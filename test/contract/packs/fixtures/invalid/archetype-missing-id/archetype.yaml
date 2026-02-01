@@ -1,0 +1,7 @@
+pack:
+  name: archetype-missing-id
+  version: "1.0.0"
+
+archetypes:
+  - templateRoot: templates
+    # Missing: id

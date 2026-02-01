@@ -1,0 +1,6 @@
+# Missing pack.name and pack.version
+pack: {}
+
+archetypes:
+  - id: default
+    templateRoot: templates

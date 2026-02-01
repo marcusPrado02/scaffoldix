@@ -1,0 +1,6 @@
+pack:
+  name: missing-archetypes
+  version: "1.0.0"
+
+# No archetypes defined
+archetypes: []

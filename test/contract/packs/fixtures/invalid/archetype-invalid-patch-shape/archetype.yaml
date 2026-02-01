@@ -1,0 +1,11 @@
+pack:
+  name: archetype-invalid-patch
+  version: "1.0.0"
+
+archetypes:
+  - id: default
+    templateRoot: templates
+    patches:
+      - kind: marker_insert
+        file: some-file.ts
+        # Missing: idempotencyKey, markerStart, markerEnd, contentTemplate/path

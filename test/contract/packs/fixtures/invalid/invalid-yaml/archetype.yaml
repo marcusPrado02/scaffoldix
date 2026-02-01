@@ -1,0 +1,8 @@
+pack:
+  name: invalid-yaml
+  version: "1.0.0"
+archetypes:
+  - id: default
+    # Invalid YAML - unclosed bracket
+    inputs: [
+      name: "foo"

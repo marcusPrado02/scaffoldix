@@ -1,0 +1,11 @@
+pack:
+  name: archetype-invalid-hooks
+  version: "1.0.0"
+
+archetypes:
+  - id: default
+    templateRoot: templates
+    # postGenerate should be array of strings, not object
+    postGenerate:
+      command: npm install
+      timeout: 30

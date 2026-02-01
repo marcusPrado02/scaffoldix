@@ -1,0 +1,7 @@
+pack:
+  name: archetype-missing-templateRoot
+  version: "1.0.0"
+
+archetypes:
+  - id: default
+    # Missing: templateRoot
