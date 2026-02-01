@@ -44,6 +44,11 @@ import {
   type InputDefinition,
 } from "../../core/generate/InputResolver.js";
 import { EngineTrace, type TraceJson } from "../../core/observability/EngineTrace.js";
+import {
+  PreviewPlanner,
+  type PreviewReport,
+} from "../../core/preview/PreviewPlanner.js";
+import { printDryRunPreview } from "../printers/DryRunPreviewPrinter.js";
 
 // =============================================================================
 // Types
@@ -231,6 +236,9 @@ export interface GenerateResult {
 
   /** Execution trace with timing for each phase */
   readonly trace?: TraceJson;
+
+  /** Preview report for dry-run mode (CREATE/MODIFY/NOOP analysis) */
+  readonly previewReport?: PreviewReport;
 }
 
 // =============================================================================
@@ -645,12 +653,14 @@ export async function handleGenerate(
     targetDir,
   });
 
-  if (conflictReport.hasConflicts && !force) {
+  // In dry-run mode, don't fail on conflicts - the preview will show them as MODIFY
+  // In normal mode, fail unless --force is provided
+  if (conflictReport.hasConflicts && !force && !dryRun) {
     trace.end("detect conflicts");
     throw new GenerateConflictError(conflictReport);
   }
 
-  if (conflictReport.hasConflicts && force) {
+  if (conflictReport.hasConflicts && force && !dryRun) {
     console.log(`[generate] Force mode: will overwrite ${conflictReport.count} existing file(s)`);
     for (const conflict of conflictReport.conflicts.slice(0, 5)) {
       console.log(`  - ${conflict.relativePath}`);
@@ -662,20 +672,40 @@ export async function handleGenerate(
   trace.end("detect conflicts");
 
   // ===========================================================================
-  // Dry-run path: no staging, just compute plan
+  // Dry-run path: compute preview, print, and exit without writing
   // ===========================================================================
 
   if (dryRun) {
-    trace.start("render templates", { dryRun: true });
-    const renderResult = await renderArchetype({
+    trace.start("compute preview", { dryRun: true });
+
+    // Compute full preview with CREATE/MODIFY/NOOP analysis
+    const previewPlanner = new PreviewPlanner();
+    const previewReport = await previewPlanner.computePreview({
       templateDir,
       targetDir,
       data: resolvedData,
       renameRules,
-      dryRun: true,
-      force,
     });
-    trace.end("render templates");
+
+    trace.end("compute preview");
+
+    // Print the preview report
+    printDryRunPreview(previewReport);
+
+    // Convert preview files to FileEntry format for backwards compatibility
+    const filesPlanned: FileEntry[] = previewReport.allFiles.map((f) => ({
+      srcRelativePath: f.sourceTemplate,
+      destRelativePath: f.relativePath,
+      destAbsolutePath: f.absolutePath,
+      mode: f.isBinary ? "copied" : "rendered",
+    }));
+
+    const filesWouldOverwrite: FileEntry[] = previewReport.modifies.map((f) => ({
+      srcRelativePath: f.sourceTemplate,
+      destRelativePath: f.relativePath,
+      destAbsolutePath: f.absolutePath,
+      mode: f.isBinary ? "copied" : "rendered",
+    }));
 
     const patches = archetype.patches;
     const hasPatches = patches && patches.length > 0;
@@ -690,12 +720,13 @@ export async function handleGenerate(
       targetDir,
       dryRun: true,
       filesWritten: [],
-      filesPlanned: renderResult.filesPlanned,
+      filesPlanned,
       patchesSkippedForDryRun: hasPatches,
       hooksSkippedForDryRun: hasHooks,
       checksSkippedForDryRun: hasChecks,
       filesOverwritten: [],
-      filesWouldOverwrite: renderResult.filesWouldOverwrite,
+      filesWouldOverwrite,
+      previewReport,
       trace: trace.toJSON(),
     };
   }

@@ -610,7 +610,7 @@ describe("generateHandler conflict detection", () => {
   // ===========================================================================
 
   describe("dry-run with conflicts", () => {
-    it("dry-run still detects conflicts and fails without force", async () => {
+    it("dry-run shows MODIFY in preview instead of throwing", async () => {
       const { storeDir, packsDir, deps, registryFile } = await createTestDependencies();
       trackDir(storeDir);
 
@@ -636,20 +636,30 @@ describe("generateHandler conflict detection", () => {
       ]);
       await writeRegistry(registryFile, registry);
 
-      await writeFile(path.join(targetDir, "README.md"), "Existing");
+      await writeFile(path.join(targetDir, "README.md"), "Existing content");
 
-      await expect(
-        handleGenerate(
-          {
-            ref: "test-pack:default",
-            targetDir,
-            dryRun: true,
-            data: { projectName: "Test" },
-            force: false,
-          },
-          deps
-        )
-      ).rejects.toThrow(GenerateConflictError);
+      // Dry-run should NOT throw - it shows preview instead
+      const result = await handleGenerate(
+        {
+          ref: "test-pack:default",
+          targetDir,
+          dryRun: true,
+          data: { projectName: "Test" },
+          force: false,
+        },
+        deps
+      );
+
+      // Should return preview report with MODIFY operation
+      expect(result.dryRun).toBe(true);
+      expect(result.previewReport).toBeDefined();
+      expect(result.previewReport!.hasModifications).toBe(true);
+      expect(result.previewReport!.modifies.length).toBe(1);
+      expect(result.previewReport!.modifies[0].relativePath).toBe("README.md");
+
+      // File should not be modified
+      const content = await readFile(path.join(targetDir, "README.md"));
+      expect(content).toBe("Existing content");
     });
 
     it("dry-run with force succeeds without modifying disk", async () => {

@@ -1260,7 +1260,7 @@ archetypes:
 
       const phaseNames = result.trace!.trace.map((e: { name: string }) => e.name);
       expect(phaseNames).toContain("resolve pack");
-      expect(phaseNames).toContain("render templates");
+      expect(phaseNames).toContain("compute preview"); // Dry-run uses preview instead of render
       // Dry-run should NOT have staging phases
       expect(phaseNames).not.toContain("commit staging");
     });
