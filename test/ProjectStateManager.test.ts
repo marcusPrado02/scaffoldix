@@ -116,7 +116,7 @@ describe("ProjectStateManager", () => {
 
       // Verify updatedAt was updated (second should be >= first)
       expect(new Date(secondResult.updatedAt).getTime()).toBeGreaterThanOrEqual(
-        new Date(firstResult.updatedAt).getTime()
+        new Date(firstResult.updatedAt).getTime(),
       );
 
       // Verify file on disk
@@ -263,7 +263,7 @@ describe("ProjectStateManager", () => {
           updatedAt: "2026-01-26T12:00:00.000Z",
           lastGeneration: createSampleRecord(),
         }),
-        "utf-8"
+        "utf-8",
       );
 
       await expect(manager.read(tempDir)).rejects.toThrow(ScaffoldError);
@@ -290,7 +290,7 @@ describe("ProjectStateManager", () => {
             // missing packVersion, archetypeId, inputs, timestamp
           },
         }),
-        "utf-8"
+        "utf-8",
       );
 
       await expect(manager.read(tempDir)).rejects.toThrow(ScaffoldError);

@@ -188,7 +188,7 @@ export class GenerateConflictError extends ScaffoldError {
       undefined,
       hint,
       undefined,
-      true // isOperational
+      true, // isOperational
     );
 
     this.conflictReport = report;

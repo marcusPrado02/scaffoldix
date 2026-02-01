@@ -25,9 +25,7 @@ import { formatJsonError } from "../ux/CliJson.js";
  * @returns Configured Commander command
  */
 export function buildArchetypesCommand(_logger: Logger): Command {
-  const archetypesCommand = new Command("archetypes").description(
-    "View available archetypes"
-  );
+  const archetypesCommand = new Command("archetypes").description("View available archetypes");
 
   // ─────────────────────────────────────────────────────────────────────────
   // archetypes list

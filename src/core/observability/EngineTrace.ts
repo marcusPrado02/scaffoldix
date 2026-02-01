@@ -201,7 +201,8 @@ export class EngineTrace {
       const name = entry.name.padEnd(maxNameLen);
       const startTime = formatTime(entry.start);
       const endTime = entry.end ? formatTime(entry.end) : "...";
-      const duration = entry.durationMs !== undefined ? formatDuration(entry.durationMs) : "(running)";
+      const duration =
+        entry.durationMs !== undefined ? formatDuration(entry.durationMs) : "(running)";
 
       lines.push(`  ${name}  start: ${startTime}  end: ${endTime}  duration: ${duration}`);
 

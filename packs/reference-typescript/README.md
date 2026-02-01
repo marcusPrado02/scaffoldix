@@ -5,6 +5,7 @@ This is the **official reference implementation** for Scaffoldix pack authors.
 ## Purpose
 
 This pack serves as:
+
 - **Canonical example** of best practices for pack authoring
 - **Integration test fixture** for Scaffoldix engine testing
 - **Onboarding material** for new pack developers
@@ -25,6 +26,7 @@ Generates a minimal but complete TypeScript project from scratch.
 | `includeTests` | boolean | No | `true` | Include vitest setup |
 
 **Generated structure:**
+
 ```
 <target>/
 ├── package.json
@@ -36,6 +38,7 @@ Generates a minimal but complete TypeScript project from scratch.
 ```
 
 **Usage:**
+
 ```bash
 scaffoldix generate reference-typescript base-project --target ./my-project
 ```
@@ -51,10 +54,12 @@ Generates a new module inside an existing project created by `base-project`.
 | `moduleDescription` | string | No | "A new module" | Brief description |
 
 **What it does:**
+
 1. Creates `src/<moduleName>.ts` with an exported function
 2. Patches `src/index.ts` to export the new module
 
 **Usage:**
+
 ```bash
 scaffoldix generate reference-typescript module --target ./my-project
 ```
@@ -62,6 +67,7 @@ scaffoldix generate reference-typescript module --target ./my-project
 ## Demonstrates
 
 This pack demonstrates:
+
 - **Inputs:** String, boolean types with defaults
 - **Templates:** Handlebars with variable substitution
 - **Filename rules:** Dynamic filenames using `__moduleName__`
@@ -73,6 +79,7 @@ This pack demonstrates:
 ## For Pack Authors
 
 Use this pack as a blueprint when creating your own packs:
+
 1. Study the `archetype.yaml` structure
 2. Follow the template organization pattern
 3. Use markers in templates where patching is expected
@@ -89,6 +96,7 @@ scaffoldix pack add ./packs/reference-typescript
 ## Testing
 
 This pack is designed for automated testing:
+
 - All inputs have sensible defaults
 - Output is deterministic given same inputs
 - No interactive-only behavior

@@ -145,11 +145,7 @@ export class CliSpinner {
    * Returns the result of the operation.
    * Rethrows any errors after showing failure.
    */
-  async wrap<T>(
-    message: string,
-    operation: () => Promise<T>,
-    successMessage?: string
-  ): Promise<T> {
+  async wrap<T>(message: string, operation: () => Promise<T>, successMessage?: string): Promise<T> {
     this.start(message);
 
     try {

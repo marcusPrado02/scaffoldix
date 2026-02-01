@@ -46,13 +46,14 @@ This document explains how and why the Scaffoldix system is structured. It is wr
 
 **Responsibility:** User interaction, command parsing, output formatting.
 
-| Component | Purpose |
-|-----------|---------|
-| `commands/` | Command definitions (Commander.js) |
-| `handlers/` | Business logic orchestration |
-| `ux/` | Output formatting (CliUx, CliJson, CliSpinner) |
+| Component   | Purpose                                        |
+| ----------- | ---------------------------------------------- |
+| `commands/` | Command definitions (Commander.js)             |
+| `handlers/` | Business logic orchestration                   |
+| `ux/`       | Output formatting (CliUx, CliJson, CliSpinner) |
 
 **Rules:**
+
 - Commands MUST NOT contain business logic
 - Handlers orchestrate core services
 - All user output goes through CliUx
@@ -63,22 +64,23 @@ This document explains how and why the Scaffoldix system is structured. It is wr
 
 **Responsibility:** All domain logic, completely independent of CLI.
 
-| Module | Purpose |
-|--------|---------|
-| `manifest/` | Pack manifest loading and validation |
-| `render/` | Template rendering with Handlebars |
-| `patch/` | Idempotent file patching |
-| `hooks/` | Post-generate command execution |
-| `checks/` | Quality gate verification |
-| `store/` | Pack installation and storage |
-| `registry/` | Installed pack tracking |
-| `staging/` | Transactional generation with rollback |
-| `state/` | Per-project generation history |
-| `compatibility/` | Pack/engine version compatibility |
-| `observability/` | Generation tracing and metrics |
-| `errors/` | Structured error types |
+| Module           | Purpose                                |
+| ---------------- | -------------------------------------- |
+| `manifest/`      | Pack manifest loading and validation   |
+| `render/`        | Template rendering with Handlebars     |
+| `patch/`         | Idempotent file patching               |
+| `hooks/`         | Post-generate command execution        |
+| `checks/`        | Quality gate verification              |
+| `store/`         | Pack installation and storage          |
+| `registry/`      | Installed pack tracking                |
+| `staging/`       | Transactional generation with rollback |
+| `state/`         | Per-project generation history         |
+| `compatibility/` | Pack/engine version compatibility      |
+| `observability/` | Generation tracing and metrics         |
+| `errors/`        | Structured error types                 |
 
 **Rules:**
+
 - Core MUST NOT import from CLI
 - Core MUST NOT use console directly
 - Core MUST NOT contain language-specific logic
@@ -100,6 +102,7 @@ CLI → Core → External Systems
 - Core services accept adapters via dependency injection
 
 **Boundary enforcement:**
+
 - No imports from `src/cli/` in `src/core/`
 - Logger interfaces defined in core, implemented in CLI
 
@@ -107,37 +110,38 @@ CLI → Core → External Systems
 
 **Bounded Contexts:**
 
-| Context | Ownership | Key Entities |
-|---------|-----------|--------------|
-| Pack Management | StoreService | Pack, Archetype, Manifest |
-| Generation | Renderer, StagingManager | FileEntry, RenderResult |
-| Patching | PatchEngine | PatchOperation, PatchResult |
-| State Tracking | ProjectStateManager | GenerationRecord |
+| Context         | Ownership                | Key Entities                |
+| --------------- | ------------------------ | --------------------------- |
+| Pack Management | StoreService             | Pack, Archetype, Manifest   |
+| Generation      | Renderer, StagingManager | FileEntry, RenderResult     |
+| Patching        | PatchEngine              | PatchOperation, PatchResult |
+| State Tracking  | ProjectStateManager      | GenerationRecord            |
 
 **Ubiquitous Language:**
+
 - "Pack" not "template" or "scaffold"
 - "Archetype" not "generator" or "preset"
 - "Generation" not "scaffold" or "create"
 
 ### GRASP Principles
 
-| Principle | Application |
-|-----------|-------------|
-| **Information Expert** | ManifestLoader validates manifests (it has the schema knowledge) |
-| **Creator** | StagingManager creates FileEntry objects (it manages file lifecycle) |
-| **Controller** | Handlers coordinate across services without owning domain logic |
-| **Low Coupling** | Services communicate through interfaces, not concrete types |
-| **High Cohesion** | Each module has a single, focused responsibility |
+| Principle              | Application                                                          |
+| ---------------------- | -------------------------------------------------------------------- |
+| **Information Expert** | ManifestLoader validates manifests (it has the schema knowledge)     |
+| **Creator**            | StagingManager creates FileEntry objects (it manages file lifecycle) |
+| **Controller**         | Handlers coordinate across services without owning domain logic      |
+| **Low Coupling**       | Services communicate through interfaces, not concrete types          |
+| **High Cohesion**      | Each module has a single, focused responsibility                     |
 
 ### SOLID Principles
 
-| Principle | Application |
-|-----------|-------------|
-| **SRP** | PatchEngine only patches; HookRunner only runs hooks |
-| **OCP** | New patch types can be added without modifying existing code |
-| **LSP** | All pack origins (local, git, npm) implement the same interface |
-| **ISP** | Small interfaces (PromptAdapter, StoreLogger) instead of large ones |
-| **DIP** | Core depends on abstractions; CLI provides implementations |
+| Principle | Application                                                         |
+| --------- | ------------------------------------------------------------------- |
+| **SRP**   | PatchEngine only patches; HookRunner only runs hooks                |
+| **OCP**   | New patch types can be added without modifying existing code        |
+| **LSP**   | All pack origins (local, git, npm) implement the same interface     |
+| **ISP**   | Small interfaces (PromptAdapter, StoreLogger) instead of large ones |
+| **DIP**   | Core depends on abstractions; CLI provides implementations          |
 
 ---
 
@@ -148,6 +152,7 @@ CLI → Core → External Systems
 **Choice:** All templates live in external packs, never in the engine.
 
 **Alternatives considered:**
+
 - Built-in starter templates (rejected: couples engine to specific tech)
 - Plugin system with code execution (rejected: security concerns)
 
@@ -158,6 +163,7 @@ CLI → Core → External Systems
 **Choice:** Generate to staging directory, then atomically move to target.
 
 **Alternatives considered:**
+
 - Direct write to target (rejected: partial failures corrupt projects)
 - Git-based staging (rejected: adds Git dependency to all projects)
 
@@ -168,6 +174,7 @@ CLI → Core → External Systems
 **Choice:** State stored in `<project>/.scaffoldix/state.json`.
 
 **Alternatives considered:**
+
 - Global database (rejected: projects not portable)
 - Git-based tracking (rejected: not all projects use Git)
 
@@ -178,6 +185,7 @@ CLI → Core → External Systems
 **Choice:** Handlebars for all templating.
 
 **Alternatives considered:**
+
 - EJS (rejected: allows arbitrary JS, breaks determinism)
 - Liquid (rejected: less ecosystem support)
 - Custom DSL (rejected: learning curve)
@@ -189,6 +197,7 @@ CLI → Core → External Systems
 **Choice:** State and registry schemas are versioned with automatic migration.
 
 **Alternatives considered:**
+
 - Breaking changes in minor versions (rejected: poor UX)
 - No schema versioning (rejected: can't evolve format)
 
@@ -203,12 +212,14 @@ CLI → Core → External Systems
 **Responsibility:** Load, validate, and normalize pack manifests.
 
 **Key behaviors:**
+
 - Supports both `archetype.yaml` and `pack.yaml`
 - Validates against Zod schemas
 - Returns typed `PackManifest` objects
 - Provides actionable error messages
 
 **Schema hierarchy:**
+
 ```
 ManifestSchema
 ├── PackInfoSchema (name, version, description)
@@ -221,6 +232,7 @@ ManifestSchema
 **Responsibility:** Transform templates into output files.
 
 **Key behaviors:**
+
 - Handlebars compilation with strict mode
 - Rename rules (e.g., `__name__` → actual name)
 - Binary file detection (skip templating)
@@ -240,6 +252,7 @@ ManifestSchema
 | `append_if_missing` | Add content if not present |
 
 **Idempotency mechanism:**
+
 - Each patch has an `idempotencyKey`
 - Applied patches are stamped: `// SCAFFOLDIX_PATCH:<key>`
 - Re-application checks for existing stamps
@@ -249,6 +262,7 @@ ManifestSchema
 **Responsibility:** Transactional generation with two-phase commit.
 
 **Flow:**
+
 1. Create staging directory
 2. Render all templates to staging
 3. Run patches on staged files
@@ -263,6 +277,7 @@ ManifestSchema
 **Responsibility:** Track generation history per project.
 
 **Schema evolution:**
+
 - v1: Single `lastGeneration` record
 - v2: Array of `generations` with history
 
@@ -274,20 +289,20 @@ ManifestSchema
 
 ### How the System Evolves
 
-| Change Type | Approach |
-|-------------|----------|
-| New patch type | Add to PatchEngine, update schemas |
+| Change Type        | Approach                                 |
+| ------------------ | ---------------------------------------- |
+| New patch type     | Add to PatchEngine, update schemas       |
 | New manifest field | Add with default, maintain compatibility |
-| New state field | Add migration, bump schema version |
-| New CLI command | Add command + handler + tests |
+| New state field    | Add migration, bump schema version       |
+| New CLI command    | Add command + handler + tests            |
 
 ### What Requires Migrations
 
-| Artifact | Migration Trigger |
-|----------|-------------------|
-| `state.json` | Adding required fields, restructuring |
-| `registry.json` | Changing pack metadata structure |
-| Pack manifests | Engine can read old versions indefinitely |
+| Artifact        | Migration Trigger                         |
+| --------------- | ----------------------------------------- |
+| `state.json`    | Adding required fields, restructuring     |
+| `registry.json` | Changing pack metadata structure          |
+| Pack manifests  | Engine can read old versions indefinitely |
 
 ### Version Compatibility Matrix
 
@@ -304,11 +319,11 @@ State v2 ──────────► Engine 0.3+
 
 ### Test Categories
 
-| Category | Location | Purpose |
-|----------|----------|---------|
-| Unit | `test/unit/` | Isolated module testing |
-| Integration | `test/` | Handler-level flows |
-| Regression | `test/regression/` | Known failure scenarios |
+| Category    | Location           | Purpose                 |
+| ----------- | ------------------ | ----------------------- |
+| Unit        | `test/unit/`       | Isolated module testing |
+| Integration | `test/`            | Handler-level flows     |
+| Regression  | `test/regression/` | Known failure scenarios |
 
 ### Test Principles
 
@@ -320,6 +335,7 @@ State v2 ──────────► Engine 0.3+
 ### Coverage Requirements
 
 Enforced thresholds (prevent regression):
+
 - Statements: 80%
 - Branches: 65%
 - Functions: 85%
@@ -331,16 +347,16 @@ Enforced thresholds (prevent regression):
 
 ### Planned Extensions
 
-| Feature | Architectural Impact |
-|---------|---------------------|
-| Pack versioning | Multi-version storage in store |
+| Feature              | Architectural Impact             |
+| -------------------- | -------------------------------- |
+| Pack versioning      | Multi-version storage in store   |
 | Remote pack registry | New fetch adapter, caching layer |
-| Interactive patches | New patch type with user input |
+| Interactive patches  | New patch type with user input   |
 
 ### Intentionally Deferred
 
-| Feature | Reason |
-|---------|--------|
-| Watch mode | Complexity vs. value for scaffolding |
-| GUI | CLI-first philosophy |
+| Feature       | Reason                                |
+| ------------- | ------------------------------------- |
+| Watch mode    | Complexity vs. value for scaffolding  |
+| GUI           | CLI-first philosophy                  |
 | Plugin system | Security concerns with code execution |

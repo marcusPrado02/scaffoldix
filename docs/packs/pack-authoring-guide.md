@@ -25,12 +25,12 @@ my-pack/
 
 ### Naming Conventions
 
-| Element | Convention | Example |
-|---------|------------|---------|
-| Pack name | lowercase, hyphens | `java-microservices`, `react-starter` |
-| Archetype ID | lowercase, hyphens | `service`, `base-entity`, `rest-controller` |
-| Template files | `.hbs` extension | `Main.java.hbs`, `package.json.hbs` |
-| Patch files | `.hbs` extension | `add-import.hbs` |
+| Element        | Convention         | Example                                     |
+| -------------- | ------------------ | ------------------------------------------- |
+| Pack name      | lowercase, hyphens | `java-microservices`, `react-starter`       |
+| Archetype ID   | lowercase, hyphens | `service`, `base-entity`, `rest-controller` |
+| Template files | `.hbs` extension   | `Main.java.hbs`, `package.json.hbs`         |
+| Patch files    | `.hbs` extension   | `add-import.hbs`                            |
 
 ### Versioning
 
@@ -39,7 +39,7 @@ Pack versions MUST follow semantic versioning (semver):
 ```yaml
 pack:
   name: my-pack
-  version: "1.0.0"  # Major.Minor.Patch
+  version: "1.0.0" # Major.Minor.Patch
 ```
 
 - **Major:** Breaking changes to templates or inputs
@@ -66,14 +66,14 @@ archetypes:
 
 ### Archetype Fields
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `id` | Yes | Unique identifier within pack |
-| `templateRoot` | Yes | Path to templates (relative to pack root) |
-| `inputs` | No | Input definitions for user prompts |
-| `patches` | No | Patch operations to apply |
-| `postGenerate` | No | Commands to run after generation |
-| `checks` | Recommended | Quality gate commands |
+| Field          | Required    | Description                               |
+| -------------- | ----------- | ----------------------------------------- |
+| `id`           | Yes         | Unique identifier within pack             |
+| `templateRoot` | Yes         | Path to templates (relative to pack root) |
+| `inputs`       | No          | Input definitions for user prompts        |
+| `patches`      | No          | Patch operations to apply                 |
+| `postGenerate` | No          | Commands to run after generation          |
+| `checks`       | Recommended | Quality gate commands                     |
 
 ### Input Definitions
 
@@ -124,11 +124,11 @@ Templates are Handlebars files that produce output files.
 Scaffoldix uses Handlebars for templating. Templates have access to all input values.
 
 ```handlebars
-// src/{{projectName}}/index.ts
-export const PORT = {{port}};
+// src/{{projectName}}/index.ts export const PORT =
+{{port}};
 
 {{#if useTypeScript}}
-// TypeScript enabled
+  // TypeScript enabled
 {{/if}}
 ```
 
@@ -136,12 +136,12 @@ export const PORT = {{port}};
 
 Use consistent variable names across templates:
 
-| Purpose | Variable | Example Value |
-|---------|----------|---------------|
-| Project name | `projectName` | `my-app` |
-| Entity name | `entityName` | `User` |
-| Package/module | `packageName` | `com.example.app` |
-| Boolean flags | `useX`, `enableX` | `useTypeScript` |
+| Purpose        | Variable          | Example Value     |
+| -------------- | ----------------- | ----------------- |
+| Project name   | `projectName`     | `my-app`          |
+| Entity name    | `entityName`      | `User`            |
+| Package/module | `packageName`     | `com.example.app` |
+| Boolean flags  | `useX`, `enableX` | `useTypeScript`   |
 
 ### Filename Templating
 
@@ -154,6 +154,7 @@ templates/
 ```
 
 With inputs `projectName: "myapp"` and `entityName: "User"`, produces:
+
 ```
 myapp/
   User.java
@@ -165,13 +166,11 @@ Use Handlebars conditionals for optional content:
 
 ```handlebars
 {{#if useDocker}}
-# Docker configuration
-COPY . /app
+  # Docker configuration COPY . /app
 {{/if}}
 
 {{#unless skipTests}}
-test:
-  npm test
+  test: npm test
 {{/unless}}
 ```
 
@@ -190,10 +189,10 @@ Patches modify existing files in the target project. They are useful for increme
 
 ### Patch Types
 
-| Type | Purpose |
-|------|---------|
-| `marker_insert` | Insert content between markers |
-| `marker_replace` | Replace content between markers |
+| Type                | Purpose                              |
+| ------------------- | ------------------------------------ |
+| `marker_insert`     | Insert content between markers       |
+| `marker_replace`    | Replace content between markers      |
 | `append_if_missing` | Append to end of file if not present |
 
 ### Marker-Based Patching
@@ -228,24 +227,28 @@ patches:
 Use consistent marker formats. Recommended conventions:
 
 **Single-line comments (JavaScript, TypeScript, Java, Go):**
+
 ```
 // <scaffoldix:SECTION_NAME>
 // </scaffoldix:SECTION_NAME>
 ```
 
 **Block comments (CSS, SQL):**
+
 ```
 /* <scaffoldix:SECTION_NAME> */
 /* </scaffoldix:SECTION_NAME> */
 ```
 
 **XML/HTML:**
+
 ```
 <!-- scaffoldix:SECTION_NAME -->
 <!-- /scaffoldix:SECTION_NAME -->
 ```
 
 **YAML/Python:**
+
 ```
 # <scaffoldix:SECTION_NAME>
 # </scaffoldix:SECTION_NAME>
@@ -259,7 +262,7 @@ Every patch MUST have a unique `idempotencyKey`. The engine stamps applied patch
 patches:
   - kind: marker_insert
     file: src/index.ts
-    idempotencyKey: import-auth-module  # Unique key
+    idempotencyKey: import-auth-module # Unique key
     markerStart: "// <scaffoldix:imports>"
     markerEnd: "// </scaffoldix:imports>"
     contentTemplate: |
@@ -299,7 +302,7 @@ patches:
     idempotencyKey: add-database-config
     markerStart: "// <scaffoldix:database>"
     markerEnd: "// </scaffoldix:database>"
-    path: patches/database-config.hbs  # External file
+    path: patches/database-config.hbs # External file
 ```
 
 ---
@@ -351,11 +354,11 @@ archetypes:
 
 Avoid platform-specific commands when possible:
 
-| Instead of | Use |
-|------------|-----|
-| `rm -rf node_modules` | `npx rimraf node_modules` |
-| `mkdir -p src/foo` | `npx mkdirp src/foo` |
-| `cp file1 file2` | `npx copyfiles file1 file2` |
+| Instead of            | Use                         |
+| --------------------- | --------------------------- |
+| `rm -rf node_modules` | `npx rimraf node_modules`   |
+| `mkdir -p src/foo`    | `npx mkdirp src/foo`        |
+| `cp file1 file2`      | `npx copyfiles file1 file2` |
 
 If platform-specific commands are required, document clearly:
 
@@ -418,7 +421,7 @@ Packs MUST NOT assume or request changes to engine behavior:
 archetypes:
   - id: service
     engineOptions:
-      skipIdempotency: true  # NOT ALLOWED
+      skipIdempotency: true # NOT ALLOWED
 ```
 
 ### MUST NOT: Destructive Patches
@@ -470,7 +473,8 @@ Templates SHOULD NOT obscure output predictability:
 ```handlebars
 {{! WRONG - Complex logic obscures output }}
 {{#each (computeDependencies projectType framework database)}}
-  {{this.name}}: {{this.version}}
+  {{this.name}}:
+  {{this.version}}
 {{/each}}
 ```
 

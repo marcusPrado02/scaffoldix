@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Template files with Handlebars syntax
+test/fixtures/**/templates/**
+test/regression/**/templates/**
+
+# Intentionally invalid test fixtures
+test/regression/manifest/fixtures/
+
+# Generated files
+coverage/
+*.tgz

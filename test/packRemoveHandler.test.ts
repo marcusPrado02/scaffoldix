@@ -81,7 +81,7 @@ function createRegistry(
     origin: PackOrigin;
     hash?: string;
     installedAt?: string;
-  }>
+  }>,
 ): Registry {
   const packsRecord: Registry["packs"] = {};
 
@@ -115,7 +115,7 @@ async function writeRegistry(registryFile: string, registry: Registry): Promise<
 async function createFakePackStore(
   packsDir: string,
   packId: string,
-  hash: string
+  hash: string,
 ): Promise<string> {
   // Sanitize pack ID same way as StoreService
   const sanitizedId = packId.replace(/\//g, "__").replace(/[<>:"|?*]/g, "_");
@@ -132,7 +132,7 @@ async function createFakePackStore(
 archetypes:
   - id: default
     templateRoot: templates/default
-`
+`,
   );
 
   // Create templates directory
@@ -283,11 +283,9 @@ describe("packRemoveHandler", () => {
 
       // Empty registry (no packs)
 
-      await expect(handlePackRemove({ packId: "nonexistent" }, deps)).rejects.toMatchObject(
-        {
-          code: "PACK_NOT_FOUND",
-        }
-      );
+      await expect(handlePackRemove({ packId: "nonexistent" }, deps)).rejects.toMatchObject({
+        code: "PACK_NOT_FOUND",
+      });
     });
 
     it("error message includes pack ID and suggests pack list", async () => {
@@ -497,8 +495,7 @@ describe("packRemoveHandler", () => {
 
   describe("handles missing store path gracefully", () => {
     it("removes registry entry even if store path does not exist", async () => {
-      const { storeDir, packsDir, deps, registryFile, logger } =
-        await createTestDependencies();
+      const { storeDir, packsDir, deps, registryFile, logger } = await createTestDependencies();
       trackDir(storeDir);
 
       const packId = "orphaned-pack";

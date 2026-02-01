@@ -102,7 +102,7 @@ function validateCompatibility(manifest: PackManifest): void {
         `You are using Scaffoldix v${CLI_VERSION}. ` +
         `Please upgrade Scaffoldix or use a compatible pack version.`,
       undefined,
-      true
+      true,
     );
   }
 }
@@ -154,7 +154,7 @@ function deriveStorePath(packsDir: string, packId: string, hash: string): string
  */
 export async function handlePackInfo(
   input: PackInfoInput,
-  deps: PackInfoDependencies
+  deps: PackInfoDependencies,
 ): Promise<PackInfoResult> {
   const { packId, version } = input;
   const { registryFile, packsDir } = deps;
@@ -190,7 +190,7 @@ export async function handlePackInfo(
       `Pack '${packId}' is registered but its files are missing from the store at ${storePath}. ` +
         `Try reinstalling the pack with \`scaffoldix pack add <path>\`.`,
       undefined,
-      true
+      true,
     );
   }
 
@@ -214,7 +214,7 @@ export async function handlePackInfo(
       `The installed pack at ${storePath} has a corrupted or missing manifest. ` +
         `Try reinstalling with \`scaffoldix pack add <original-source>\`.`,
       cause,
-      true
+      true,
     );
   }
 
@@ -222,9 +222,7 @@ export async function handlePackInfo(
   validateCompatibility(manifest);
 
   // 5. Extract and sort archetypes
-  const archetypes = manifest.archetypes
-    .map((a) => a.id)
-    .sort((a, b) => a.localeCompare(b));
+  const archetypes = manifest.archetypes.map((a) => a.id).sort((a, b) => a.localeCompare(b));
 
   return {
     packId: entry.id,

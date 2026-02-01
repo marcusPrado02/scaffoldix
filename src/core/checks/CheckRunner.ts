@@ -169,13 +169,9 @@ export class CheckRunner {
       totalDurationMs += result.durationMs;
 
       if (result.success) {
-        logger.info(
-          `Check passed in ${this.formatDuration(result.durationMs)}: ${command}`
-        );
+        logger.info(`Check passed in ${this.formatDuration(result.durationMs)}: ${command}`);
       } else {
-        logger.error(
-          `Check FAILED in ${this.formatDuration(result.durationMs)}: ${command}`
-        );
+        logger.error(`Check FAILED in ${this.formatDuration(result.durationMs)}: ${command}`);
         logger.error(`Exit code: ${result.exitCode}`);
 
         // Log full output block for debugging
@@ -206,7 +202,7 @@ export class CheckRunner {
           `Check command failed: "${command}" (exit code ${result.exitCode}). ` +
             `Run the command manually in the target directory to debug: cd "${cwd}" && ${command}`,
           undefined,
-          true
+          true,
         );
       }
     }
@@ -215,7 +211,7 @@ export class CheckRunner {
     const failed = results.filter((r) => !r.success).length;
 
     logger.info(
-      `All ${total} check${total === 1 ? "" : "s"} passed in ${this.formatDuration(totalDurationMs)}`
+      `All ${total} check${total === 1 ? "" : "s"} passed in ${this.formatDuration(totalDurationMs)}`,
     );
 
     return {
@@ -241,7 +237,7 @@ export class CheckRunner {
   private async executeCheck(
     command: string,
     cwd: string,
-    logger: CheckLogger
+    logger: CheckLogger,
   ): Promise<CheckResult> {
     const startTime = Date.now();
 
@@ -262,7 +258,10 @@ export class CheckRunner {
       // Stream stdout for visibility
       if (subprocess.stdout) {
         subprocess.stdout.on("data", (chunk: Buffer) => {
-          const lines = chunk.toString().split("\n").filter((l) => l.trim());
+          const lines = chunk
+            .toString()
+            .split("\n")
+            .filter((l) => l.trim());
           for (const line of lines) {
             if (logger.stdout) {
               logger.stdout(line);
@@ -276,7 +275,10 @@ export class CheckRunner {
       // Stream stderr for visibility
       if (subprocess.stderr) {
         subprocess.stderr.on("data", (chunk: Buffer) => {
-          const lines = chunk.toString().split("\n").filter((l) => l.trim());
+          const lines = chunk
+            .toString()
+            .split("\n")
+            .filter((l) => l.trim());
           for (const line of lines) {
             if (logger.stderr) {
               logger.stderr(line);
@@ -296,11 +298,12 @@ export class CheckRunner {
       // Capture combined output (all = stdout + stderr interleaved)
       let capturedOutput = "";
       if (result.all !== undefined) {
-        capturedOutput = typeof result.all === "string"
-          ? result.all
-          : Array.isArray(result.all)
-            ? result.all.join("\n")
-            : result.all.toString();
+        capturedOutput =
+          typeof result.all === "string"
+            ? result.all
+            : Array.isArray(result.all)
+              ? result.all.join("\n")
+              : result.all.toString();
       } else {
         // Fallback: combine stdout and stderr
         const stdout = this.bufferToString(result.stdout);

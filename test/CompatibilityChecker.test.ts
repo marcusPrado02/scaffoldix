@@ -157,10 +157,10 @@ describe("CompatibilityChecker", () => {
 
       it("matches exact version strings in incompatible list", () => {
         expect(
-          CompatibilityChecker.check("1.0.0-beta", { incompatible: ["1.0.0-beta"] }).compatible
+          CompatibilityChecker.check("1.0.0-beta", { incompatible: ["1.0.0-beta"] }).compatible,
         ).toBe(false);
         expect(
-          CompatibilityChecker.check("1.0.0", { incompatible: ["1.0.0-beta"] }).compatible
+          CompatibilityChecker.check("1.0.0", { incompatible: ["1.0.0-beta"] }).compatible,
         ).toBe(true);
       });
 
@@ -208,20 +208,20 @@ describe("CompatibilityChecker", () => {
 
     describe("prerelease versions", () => {
       it("handles prerelease versions in comparisons", () => {
-        expect(
-          CompatibilityChecker.check("1.0.0-beta", { minVersion: "1.0.0" }).compatible
-        ).toBe(false);
-        expect(
-          CompatibilityChecker.check("1.0.0", { minVersion: "1.0.0-beta" }).compatible
-        ).toBe(true);
+        expect(CompatibilityChecker.check("1.0.0-beta", { minVersion: "1.0.0" }).compatible).toBe(
+          false,
+        );
+        expect(CompatibilityChecker.check("1.0.0", { minVersion: "1.0.0-beta" }).compatible).toBe(
+          true,
+        );
       });
 
       it("handles prerelease versions in maxVersion", () => {
+        expect(CompatibilityChecker.check("1.0.0", { maxVersion: "1.0.0-beta" }).compatible).toBe(
+          false,
+        );
         expect(
-          CompatibilityChecker.check("1.0.0", { maxVersion: "1.0.0-beta" }).compatible
-        ).toBe(false);
-        expect(
-          CompatibilityChecker.check("1.0.0-alpha", { maxVersion: "1.0.0-beta" }).compatible
+          CompatibilityChecker.check("1.0.0-alpha", { maxVersion: "1.0.0-beta" }).compatible,
         ).toBe(true);
       });
     });

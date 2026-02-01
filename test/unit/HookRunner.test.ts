@@ -229,7 +229,7 @@ describe("HookRunner", () => {
           commands: ["exit 1"],
           cwd: tempDir,
           logger,
-        })
+        }),
       ).rejects.toThrow(ScaffoldError);
     });
 
@@ -296,7 +296,7 @@ describe("HookRunner", () => {
           commands: ["nonexistent_command_xyz123"],
           cwd: tempDir,
           logger,
-        })
+        }),
       ).rejects.toThrow(ScaffoldError);
     });
   });

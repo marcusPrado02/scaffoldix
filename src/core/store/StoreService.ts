@@ -193,7 +193,7 @@ function getStagingDirPath(storeDir: string): string {
 async function copyDirectoryFiltered(
   src: string,
   dest: string,
-  excludes: Set<string>
+  excludes: Set<string>,
 ): Promise<void> {
   await fs.mkdir(dest, { recursive: true });
 
@@ -273,7 +273,7 @@ export class StoreService {
    */
   constructor(
     private readonly config: StoreServiceConfig,
-    logger?: StoreLogger
+    logger?: StoreLogger,
   ) {
     // Validate config paths are absolute
     if (!path.isAbsolute(config.storeDir)) {
@@ -284,7 +284,7 @@ export class StoreService {
         undefined,
         "The storeDir provided to StoreService must be an absolute path.",
         undefined,
-        false // programming error
+        false, // programming error
       );
     }
 
@@ -296,7 +296,7 @@ export class StoreService {
         undefined,
         "The packsDir provided to StoreService must be an absolute path.",
         undefined,
-        false // programming error
+        false, // programming error
       );
     }
 
@@ -308,7 +308,7 @@ export class StoreService {
         undefined,
         "The registryFile provided to StoreService must be an absolute path.",
         undefined,
-        false // programming error
+        false, // programming error
       );
     }
 
@@ -352,7 +352,7 @@ export class StoreService {
         undefined,
         `The path "${sourcePath}" is not absolute. Provide a full path to the pack directory.`,
         undefined,
-        true
+        true,
       );
     }
 
@@ -385,8 +385,7 @@ export class StoreService {
       // Check top-level hash and installs array for matching hash
       const existingInstalls = existingEntry.installs ?? [];
       const hashExists =
-        existingEntry.hash === hash ||
-        existingInstalls.some((i) => i.hash === hash);
+        existingEntry.hash === hash || existingInstalls.some((i) => i.hash === hash);
 
       if (hashExists) {
         this.logger.info("Pack already installed (skipped)", {
@@ -456,7 +455,7 @@ export class StoreService {
   private async performAtomicInstall(
     sourcePath: string,
     destDir: string,
-    manifest: PackManifest
+    manifest: PackManifest,
   ): Promise<void> {
     const stagingDir = getStagingDirPath(this.config.storeDir);
 
@@ -509,7 +508,7 @@ export class StoreService {
         undefined,
         `Could not install pack "${manifest.pack.name}" to ${destDir}. ${cause.message}`,
         cause,
-        true
+        true,
       );
     }
   }

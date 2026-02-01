@@ -198,7 +198,7 @@ describe("PreviewPlanner", () => {
     it("applies rename rules to output paths", async () => {
       await writeFile(
         path.join(templateDir, "__moduleName__", "__moduleName__.ts"),
-        "export class {{moduleName}} {}"
+        "export class {{moduleName}} {}",
       );
 
       const planner = new PreviewPlanner();
@@ -271,14 +271,8 @@ describe("PreviewPlanner", () => {
     });
 
     it("detects MODIFY for changed binary files", async () => {
-      await fs.writeFile(
-        path.join(templateDir, "data.bin"),
-        Buffer.from([0x00, 0x01, 0x02])
-      );
-      await fs.writeFile(
-        path.join(targetDir, "data.bin"),
-        Buffer.from([0x00, 0x01, 0x03])
-      );
+      await fs.writeFile(path.join(templateDir, "data.bin"), Buffer.from([0x00, 0x01, 0x02]));
+      await fs.writeFile(path.join(targetDir, "data.bin"), Buffer.from([0x00, 0x01, 0x03]));
 
       const planner = new PreviewPlanner();
       const report = await planner.computePreview({
@@ -347,7 +341,7 @@ describe("PreviewPlanner", () => {
           templateDir: "/nonexistent/path",
           targetDir,
           data: {},
-        })
+        }),
       ).rejects.toThrow(/does not exist/);
     });
   });

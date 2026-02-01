@@ -8,16 +8,9 @@
 
 import { describe, it, expect } from "vitest";
 
-import {
-  ErrorCode,
-  getExitCode,
-  getErrorCategory,
-} from "../../src/core/errors/ErrorCode.js";
+import { ErrorCode, getExitCode, getErrorCategory } from "../../src/core/errors/ErrorCode.js";
 import { ScaffoldError } from "../../src/core/errors/errors.js";
-import {
-  ErrorPresenter,
-  formatError,
-} from "../../src/cli/errors/ErrorPresenter.js";
+import { ErrorPresenter, formatError } from "../../src/cli/errors/ErrorPresenter.js";
 
 // =============================================================================
 // ErrorCode Tests
@@ -89,9 +82,7 @@ describe("ErrorCode", () => {
     });
 
     it("returns manifest exit codes in 20-29 range", () => {
-      expect(getExitCode(ErrorCode.MANIFEST_NOT_FOUND)).toBeGreaterThanOrEqual(
-        20
-      );
+      expect(getExitCode(ErrorCode.MANIFEST_NOT_FOUND)).toBeGreaterThanOrEqual(20);
       expect(getExitCode(ErrorCode.MANIFEST_NOT_FOUND)).toBeLessThan(30);
     });
 
@@ -101,9 +92,7 @@ describe("ErrorCode", () => {
     });
 
     it("returns patch exit codes in 40-49 range", () => {
-      expect(getExitCode(ErrorCode.PATCH_APPLY_FAILED)).toBeGreaterThanOrEqual(
-        40
-      );
+      expect(getExitCode(ErrorCode.PATCH_APPLY_FAILED)).toBeGreaterThanOrEqual(40);
       expect(getExitCode(ErrorCode.PATCH_APPLY_FAILED)).toBeLessThan(50);
     });
 
@@ -113,9 +102,7 @@ describe("ErrorCode", () => {
     });
 
     it("returns state exit codes in 60-69 range", () => {
-      expect(getExitCode(ErrorCode.STATE_READ_FAILED)).toBeGreaterThanOrEqual(
-        60
-      );
+      expect(getExitCode(ErrorCode.STATE_READ_FAILED)).toBeGreaterThanOrEqual(60);
       expect(getExitCode(ErrorCode.STATE_READ_FAILED)).toBeLessThan(70);
     });
 
@@ -162,14 +149,12 @@ describe("ScaffoldError", () => {
       ErrorCode.PACK_NOT_FOUND,
       { packName: "my-pack" },
       undefined,
-      "Install the pack first using: scaffoldix pack add <source>"
+      "Install the pack first using: scaffoldix pack add <source>",
     );
 
     expect(error.code).toBe(ErrorCode.PACK_NOT_FOUND);
     expect(error.message).toBe("Pack not found");
-    expect(error.hint).toBe(
-      "Install the pack first using: scaffoldix pack add <source>"
-    );
+    expect(error.hint).toBe("Install the pack first using: scaffoldix pack add <source>");
     expect(error.details).toEqual({ packName: "my-pack" });
   });
 
@@ -181,7 +166,7 @@ describe("ScaffoldError", () => {
       undefined,
       undefined,
       undefined,
-      originalError
+      originalError,
     );
 
     expect(error.cause).toBe(originalError);
@@ -212,7 +197,7 @@ describe("ScaffoldError", () => {
       undefined,
       undefined,
       undefined,
-      true
+      true,
     );
 
     const programmingError = new ScaffoldError(
@@ -222,7 +207,7 @@ describe("ScaffoldError", () => {
       undefined,
       undefined,
       undefined,
-      false
+      false,
     );
 
     expect(operationalError.isOperational).toBe(true);
@@ -237,10 +222,7 @@ describe("ScaffoldError", () => {
 describe("ErrorPresenter", () => {
   describe("formatError", () => {
     it("formats error with code and message", () => {
-      const error = new ScaffoldError(
-        "Pack 'my-pack' not found",
-        ErrorCode.PACK_NOT_FOUND
-      );
+      const error = new ScaffoldError("Pack 'my-pack' not found", ErrorCode.PACK_NOT_FOUND);
 
       const output = formatError(error);
 
@@ -254,7 +236,7 @@ describe("ErrorPresenter", () => {
         ErrorCode.OUTPUT_CONFLICT,
         undefined,
         undefined,
-        "Use --force to overwrite existing files"
+        "Use --force to overwrite existing files",
       );
 
       const output = formatError(error);
@@ -269,7 +251,7 @@ describe("ErrorPresenter", () => {
         ErrorCode.OUTPUT_CONFLICT,
         {
           conflictingFiles: ["src/index.ts", "package.json"],
-        }
+        },
       );
 
       const output = formatError(error);
@@ -304,7 +286,7 @@ describe("ErrorPresenter", () => {
         undefined,
         undefined,
         undefined,
-        cause
+        cause,
       );
 
       const output = formatError(error, { debug: true });
@@ -369,7 +351,7 @@ describe("ErrorPresenter", () => {
         undefined,
         undefined,
         undefined,
-        cause
+        cause,
       );
       presenter.present(error);
 
@@ -393,7 +375,7 @@ describe("Error System Integration", () => {
         conflictingFiles: ["src/index.ts", "package.json"],
       },
       undefined,
-      "Use --force to overwrite, or choose a different target"
+      "Use --force to overwrite, or choose a different target",
     );
 
     const output = formatError(error);
@@ -412,7 +394,7 @@ describe("Error System Integration", () => {
         errors: ["name is required", "version must be semver"],
       },
       undefined,
-      "Check your archetype.yaml for syntax errors"
+      "Check your archetype.yaml for syntax errors",
     );
 
     const output = formatError(error);
@@ -430,7 +412,7 @@ describe("Error System Integration", () => {
         exitCode: 1,
       },
       undefined,
-      "Fix the linting errors and rerun generation"
+      "Fix the linting errors and rerun generation",
     );
 
     const output = formatError(error);

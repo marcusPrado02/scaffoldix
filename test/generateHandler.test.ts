@@ -41,7 +41,7 @@ function createRegistry(
     origin: PackOrigin;
     hash?: string;
     installedAt?: string;
-  }>
+  }>,
 ): Registry {
   const packsRecord: Registry["packs"] = {};
   for (const pack of packs) {
@@ -81,7 +81,7 @@ async function createTestPack(
       templateRoot: string;
       files: Array<{ name: string; content: string }>;
     }>;
-  }
+  },
 ): Promise<string> {
   const sanitizedId = sanitizePackId(packId);
   const packDir = path.join(packsDir, sanitizedId, hash);
@@ -250,7 +250,7 @@ describe("generateHandler", () => {
           dryRun: false,
           data: { projectName: "MyProject" },
         },
-        deps
+        deps,
       );
 
       expect(result.filesWritten.length).toBe(2);
@@ -295,7 +295,7 @@ describe("generateHandler", () => {
           dryRun: false,
           data: {},
         },
-        deps
+        deps,
       );
 
       expect(result.packId).toBe("result-pack");
@@ -329,8 +329,8 @@ describe("generateHandler", () => {
             dryRun: false,
             data: {},
           },
-          deps
-        )
+          deps,
+        ),
       ).rejects.toMatchObject({
         code: "PACK_NOT_FOUND",
       });
@@ -352,7 +352,7 @@ describe("generateHandler", () => {
             dryRun: false,
             data: {},
           },
-          deps
+          deps,
         );
         expect.fail("Should have thrown");
       } catch (err: any) {
@@ -402,8 +402,8 @@ describe("generateHandler", () => {
             dryRun: false,
             data: {},
           },
-          deps
-        )
+          deps,
+        ),
       ).rejects.toMatchObject({
         code: "ARCHETYPE_NOT_FOUND",
       });
@@ -444,7 +444,7 @@ describe("generateHandler", () => {
             dryRun: false,
             data: {},
           },
-          deps
+          deps,
         );
         expect.fail("Should have thrown");
       } catch (err: any) {
@@ -495,7 +495,7 @@ describe("generateHandler", () => {
           dryRun: true,
           data: {},
         },
-        deps
+        deps,
       );
 
       expect(result.dryRun).toBe(true);
@@ -541,12 +541,10 @@ describe("generateHandler", () => {
           dryRun: true,
           data: {},
         },
-        deps
+        deps,
       );
 
-      expect(result.filesPlanned[0].destRelativePath).toBe(
-        path.join("src", "deep", "file.ts")
-      );
+      expect(result.filesPlanned[0].destRelativePath).toBe(path.join("src", "deep", "file.ts"));
     });
   });
 
@@ -593,8 +591,8 @@ archetypes:
             dryRun: false,
             data: {},
           },
-          deps
-        )
+          deps,
+        ),
       ).rejects.toMatchObject({
         code: "TEMPLATE_DIR_NOT_FOUND",
       });
@@ -633,8 +631,8 @@ archetypes:
             dryRun: false,
             data: {},
           },
-          deps
-        )
+          deps,
+        ),
       ).rejects.toMatchObject({
         code: "PACK_STORE_MISSING",
       });
@@ -668,9 +666,7 @@ archetypes:
           {
             id: "entity",
             templateRoot: "templates",
-            files: [
-              { name: "{{EntityName}}.ts", content: "export class {{EntityName}} {}" },
-            ],
+            files: [{ name: "{{EntityName}}.ts", content: "export class {{EntityName}} {}" }],
           },
         ],
       });
@@ -682,7 +678,7 @@ archetypes:
           dryRun: false,
           data: { EntityName: "Customer" },
         },
-        deps
+        deps,
       );
 
       expect(result.filesWritten.length).toBe(1);
@@ -730,13 +726,11 @@ archetypes:
           dryRun: false,
           data: {},
         },
-        deps
+        deps,
       );
 
       expect(await fileExists(path.join(targetDir, "src", "index.ts"))).toBe(true);
-      expect(await fileExists(path.join(targetDir, "src", "utils", "helper.ts"))).toBe(
-        true
-      );
+      expect(await fileExists(path.join(targetDir, "src", "utils", "helper.ts"))).toBe(true);
       expect(await fileExists(path.join(targetDir, "tests", "index.test.ts"))).toBe(true);
     });
   });
@@ -772,9 +766,7 @@ archetypes:
         targetDir: "/home/user/project",
         dryRun: true,
         filesWritten: [],
-        filesPlanned: [
-          { srcRelativePath: "a.ts", destRelativePath: "a.ts", mode: "rendered" },
-        ],
+        filesPlanned: [{ srcRelativePath: "a.ts", destRelativePath: "a.ts", mode: "rendered" }],
       };
 
       const lines = formatGenerateOutput(result);
@@ -807,9 +799,24 @@ archetypes:
     it("formats trace with phase names and durations", () => {
       const trace: TraceJson = {
         trace: [
-          { name: "resolve pack", start: "2024-01-01T10:00:00.000Z", end: "2024-01-01T10:00:00.050Z", durationMs: 50 },
-          { name: "load manifest", start: "2024-01-01T10:00:00.050Z", end: "2024-01-01T10:00:00.100Z", durationMs: 50 },
-          { name: "render templates", start: "2024-01-01T10:00:00.100Z", end: "2024-01-01T10:00:00.250Z", durationMs: 150 },
+          {
+            name: "resolve pack",
+            start: "2024-01-01T10:00:00.000Z",
+            end: "2024-01-01T10:00:00.050Z",
+            durationMs: 50,
+          },
+          {
+            name: "load manifest",
+            start: "2024-01-01T10:00:00.050Z",
+            end: "2024-01-01T10:00:00.100Z",
+            durationMs: 50,
+          },
+          {
+            name: "render templates",
+            start: "2024-01-01T10:00:00.100Z",
+            end: "2024-01-01T10:00:00.250Z",
+            durationMs: 150,
+          },
         ],
         totalDurationMs: 250,
       };
@@ -838,7 +845,12 @@ archetypes:
     it("formats duration as seconds for long phases", () => {
       const trace: TraceJson = {
         trace: [
-          { name: "slow phase", start: "2024-01-01T10:00:00.000Z", end: "2024-01-01T10:00:02.500Z", durationMs: 2500 },
+          {
+            name: "slow phase",
+            start: "2024-01-01T10:00:00.000Z",
+            end: "2024-01-01T10:00:02.500Z",
+            durationMs: 2500,
+          },
         ],
         totalDurationMs: 2500,
       };
@@ -850,9 +862,7 @@ archetypes:
 
     it("shows in progress for phases without end time", () => {
       const trace: TraceJson = {
-        trace: [
-          { name: "running phase", start: "2024-01-01T10:00:00.000Z" },
-        ],
+        trace: [{ name: "running phase", start: "2024-01-01T10:00:00.000Z" }],
         totalDurationMs: 0,
       };
 
@@ -901,7 +911,7 @@ archetypes:
           dryRun: false,
           data: { name: "TestEntity" },
         },
-        deps
+        deps,
       );
 
       // Verify state file was created
@@ -954,7 +964,7 @@ archetypes:
           dryRun: true, // Dry run!
           data: {},
         },
-        deps
+        deps,
       );
 
       // Verify state file was NOT created
@@ -1002,7 +1012,7 @@ archetypes:
           dryRun: false,
           data: { v: 1 },
         },
-        deps
+        deps,
       );
 
       const stateFile = path.join(targetDir, ".scaffoldix", "state.json");
@@ -1018,7 +1028,7 @@ archetypes:
           data: { v: 2 },
           force: true,
         },
-        deps
+        deps,
       );
 
       const secondState = JSON.parse(await readFile(stateFile));
@@ -1027,7 +1037,7 @@ archetypes:
 
       // Verify updatedAt was updated
       expect(new Date(secondState.updatedAt).getTime()).toBeGreaterThanOrEqual(
-        new Date(firstState.updatedAt).getTime()
+        new Date(firstState.updatedAt).getTime(),
       );
     });
   });
@@ -1078,7 +1088,7 @@ archetypes:
             description: "An awesome project",
           },
         },
-        deps
+        deps,
       );
 
       expect(result.filesWritten.length).toBe(3);
@@ -1091,7 +1101,7 @@ archetypes:
       expect(pkg).toContain('"name": "awesome-project"');
 
       const main = await readFile(path.join(targetDir, "src/main.ts"));
-      expect(main).toContain('Hello, awesome-project!');
+      expect(main).toContain("Hello, awesome-project!");
 
       // Format output
       const lines = formatGenerateOutput(result);
@@ -1140,7 +1150,7 @@ archetypes:
           dryRun: false,
           data: {},
         },
-        deps
+        deps,
       );
 
       // Trace should be defined
@@ -1204,7 +1214,7 @@ archetypes:
           dryRun: false,
           data: {},
         },
-        deps
+        deps,
       );
 
       const trace = result.trace!;
@@ -1252,7 +1262,7 @@ archetypes:
           dryRun: true,
           data: {},
         },
-        deps
+        deps,
       );
 
       expect(result.dryRun).toBe(true);

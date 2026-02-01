@@ -74,9 +74,7 @@ async function createTestWorkspace(): Promise<{
   storeConfig: StoreServiceConfig;
   logger: StoreLogger;
 }> {
-  const workspaceDir = await fs.mkdtemp(
-    path.join(os.tmpdir(), "scaffoldix-smoke-test-")
-  );
+  const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "scaffoldix-smoke-test-"));
 
   const storeDir = path.join(workspaceDir, "store");
   const packsDir = path.join(storeDir, "packs");
@@ -177,35 +175,34 @@ describe("MVP v0.1 Smoke Test", () => {
     expect(addResult.version, "Pack version should be '1.0.0'").toBe("1.0.0");
     expect(addResult.hash, "Hash should be a 64-char hex string").toMatch(/^[a-f0-9]{64}$/);
     expect(addResult.status, "Status should be 'installed' or 'already_installed'").toMatch(
-      /^(installed|already_installed)$/
+      /^(installed|already_installed)$/,
     );
 
     // Assert: store contains intact copy of the pack
     const expectedStorePath = path.join(packsDir, "example-pack", addResult.hash);
     expect(
       await pathExists(expectedStorePath),
-      `Store path should exist: ${expectedStorePath}`
+      `Store path should exist: ${expectedStorePath}`,
     ).toBe(true);
 
     // Verify pack.yaml was copied
     const storedManifest = path.join(expectedStorePath, "pack.yaml");
     expect(
       await pathExists(storedManifest),
-      `Manifest should exist in store: ${storedManifest}`
+      `Manifest should exist in store: ${storedManifest}`,
     ).toBe(true);
 
     // Verify templates were copied
     const storedTemplate = path.join(expectedStorePath, "templates", "hello", "README.md");
     expect(
       await pathExists(storedTemplate),
-      `Template should exist in store: ${storedTemplate}`
+      `Template should exist in store: ${storedTemplate}`,
     ).toBe(true);
 
     // Assert: registry.json exists and is correct
-    expect(
-      await pathExists(registryFile),
-      `Registry file should exist: ${registryFile}`
-    ).toBe(true);
+    expect(await pathExists(registryFile), `Registry file should exist: ${registryFile}`).toBe(
+      true,
+    );
 
     const registry = await readJson<Registry>(registryFile);
 
@@ -275,38 +272,32 @@ describe("MVP v0.1 Smoke Test", () => {
 
     // Assert: README.md exists and content is rendered
     const readmePath = path.join(targetDir, "README.md");
-    expect(
-      await pathExists(readmePath),
-      `README.md should exist: ${readmePath}`
-    ).toBe(true);
+    expect(await pathExists(readmePath), `README.md should exist: ${readmePath}`).toBe(true);
 
     const readmeContent = await fs.readFile(readmePath, "utf-8");
     expect(readmeContent, "README should contain rendered name").toContain("Hello Marcus");
     expect(readmeContent, "README should contain welcome message").toContain(
-      "Welcome to your new project, Marcus!"
+      "Welcome to your new project, Marcus!",
     );
 
     // Assert: Renamed directory exists (via rename rules)
     const userDirPath = path.join(targetDir, "User");
-    expect(
-      await pathExists(userDirPath),
-      `Renamed directory should exist: ${userDirPath}`
-    ).toBe(true);
+    expect(await pathExists(userDirPath), `Renamed directory should exist: ${userDirPath}`).toBe(
+      true,
+    );
 
     // Assert: Renamed service file exists with rendered content
     const userServicePath = path.join(targetDir, "User", "UserService.ts");
     expect(
       await pathExists(userServicePath),
-      `Renamed service file should exist: ${userServicePath}`
+      `Renamed service file should exist: ${userServicePath}`,
     ).toBe(true);
 
     const serviceContent = await fs.readFile(userServicePath, "utf-8");
     expect(serviceContent, "Service should contain rendered class name").toContain(
-      "class UserService"
+      "class UserService",
     );
-    expect(serviceContent, "Service should contain rendered interface").toContain(
-      "interface User"
-    );
+    expect(serviceContent, "Service should contain rendered interface").toContain("interface User");
 
     // =========================================================================
     // Step D: state validation
@@ -315,7 +306,7 @@ describe("MVP v0.1 Smoke Test", () => {
     const stateFilePath = path.join(targetDir, ".scaffoldix", "state.json");
     expect(
       await pathExists(stateFilePath),
-      `.scaffoldix/state.json should exist: ${stateFilePath}`
+      `.scaffoldix/state.json should exist: ${stateFilePath}`,
     ).toBe(true);
 
     const state = await readJson<ProjectState>(stateFilePath);
@@ -337,10 +328,10 @@ describe("MVP v0.1 Smoke Test", () => {
 
     // Assert: timestamps are valid ISO strings
     expect(state.updatedAt, "updatedAt should be ISO string").toMatch(
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
     );
     expect(state.lastGeneration.timestamp, "timestamp should be ISO string").toMatch(
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
     );
 
     // =========================================================================
@@ -354,10 +345,7 @@ describe("MVP v0.1 Smoke Test", () => {
     const examplePackPath = getExamplePackPath();
 
     // Add the pack
-    await handlePackAdd(
-      { packPath: examplePackPath, cwd: process.cwd() },
-      { storeConfig, logger }
-    );
+    await handlePackAdd({ packPath: examplePackPath, cwd: process.cwd() }, { storeConfig, logger });
 
     // Generate WITHOUT rename rules
     const genResult = await handleGenerate(
@@ -368,7 +356,7 @@ describe("MVP v0.1 Smoke Test", () => {
         data: { name: "Test", entity: "Item" },
         // No renameRules provided
       },
-      { registryFile, packsDir, storeDir }
+      { registryFile, packsDir, storeDir },
     );
 
     expect(genResult.filesWritten.length).toBeGreaterThan(0);
@@ -377,7 +365,7 @@ describe("MVP v0.1 Smoke Test", () => {
     const entityDirPath = path.join(targetDir, "__Entity__");
     expect(
       await pathExists(entityDirPath),
-      `__Entity__ directory should exist without rename rules: ${entityDirPath}`
+      `__Entity__ directory should exist without rename rules: ${entityDirPath}`,
     ).toBe(true);
 
     // Content should still be rendered
@@ -391,10 +379,7 @@ describe("MVP v0.1 Smoke Test", () => {
     const examplePackPath = getExamplePackPath();
 
     // Add the pack
-    await handlePackAdd(
-      { packPath: examplePackPath, cwd: process.cwd() },
-      { storeConfig, logger }
-    );
+    await handlePackAdd({ packPath: examplePackPath, cwd: process.cwd() }, { storeConfig, logger });
 
     // Generate with dry-run
     const genResult = await handleGenerate(
@@ -404,7 +389,7 @@ describe("MVP v0.1 Smoke Test", () => {
         dryRun: true,
         data: { name: "DryRun" },
       },
-      { registryFile, packsDir, storeDir }
+      { registryFile, packsDir, storeDir },
     );
 
     // Assert: dry-run results
@@ -418,9 +403,6 @@ describe("MVP v0.1 Smoke Test", () => {
 
     // Assert: no state file created
     const stateFilePath = path.join(targetDir, ".scaffoldix", "state.json");
-    expect(
-      await pathExists(stateFilePath),
-      "State file should NOT exist on dry-run"
-    ).toBe(false);
+    expect(await pathExists(stateFilePath), "State file should NOT exist on dry-run").toBe(false);
   });
 });

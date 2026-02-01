@@ -55,7 +55,7 @@ async function createTestPack(
   baseDir: string,
   name: string,
   version: string,
-  additionalFiles?: Record<string, string>
+  additionalFiles?: Record<string, string>,
 ): Promise<string> {
   const packDir = path.join(baseDir, name);
   await fs.mkdir(packDir, { recursive: true });
@@ -69,12 +69,9 @@ async function createTestPack(
   await fs.mkdir(templateDir, { recursive: true });
   await fs.writeFile(
     path.join(templateDir, "README.md"),
-    `# ${name}\n\nThis is a test template.\n`
+    `# ${name}\n\nThis is a test template.\n`,
   );
-  await fs.writeFile(
-    path.join(templateDir, "index.ts"),
-    `export const name = "${name}";\n`
-  );
+  await fs.writeFile(path.join(templateDir, "index.ts"), `export const name = "${name}";\n`);
 
   // Add any additional files
   if (additionalFiles) {
@@ -144,10 +141,7 @@ async function computeFileHash(filePath: string): Promise<string> {
 /**
  * Checks if a directory contains all expected files.
  */
-async function directoryContainsFiles(
-  dir: string,
-  relativePaths: string[]
-): Promise<boolean> {
+async function directoryContainsFiles(dir: string, relativePaths: string[]): Promise<boolean> {
   for (const relativePath of relativePaths) {
     const fullPath = path.join(dir, relativePath);
     try {
@@ -302,11 +296,9 @@ describe("StoreService", () => {
       });
 
       // Verify content matches
-      const sourceContent = await readFileContent(
-        path.join(packDir, "templates/default/index.ts")
-      );
+      const sourceContent = await readFileContent(path.join(packDir, "templates/default/index.ts"));
       const destContent = await readFileContent(
-        path.join(result.destDir, "templates/default/index.ts")
+        path.join(result.destDir, "templates/default/index.ts"),
       );
 
       expect(destContent).toBe(sourceContent);
@@ -352,7 +344,7 @@ describe("StoreService", () => {
           packId: "logging-test",
           sourcePath: packDir,
           destDir: expect.stringContaining("logging-test"),
-        })
+        }),
       );
     });
   });
@@ -411,7 +403,7 @@ describe("StoreService", () => {
         "Pack already installed (skipped)",
         expect.objectContaining({
           packId: "skip-test",
-        })
+        }),
       );
     });
 
@@ -619,7 +611,7 @@ describe("StoreService", () => {
       await fs.mkdir(packDir, { recursive: true });
       await fs.writeFile(
         path.join(packDir, "archetype.yaml"),
-        createManifestYaml("@myorg/my-pack", "1.0.0")
+        createManifestYaml("@myorg/my-pack", "1.0.0"),
       );
       await fs.mkdir(path.join(packDir, "templates/default"), { recursive: true });
       await fs.writeFile(path.join(packDir, "templates/default/index.ts"), "");
@@ -648,7 +640,7 @@ describe("StoreService", () => {
       await expect(
         setup.service.installLocalPack({
           sourcePath: "relative/path",
-        })
+        }),
       ).rejects.toThrow(/must be absolute/i);
     });
 
@@ -664,7 +656,7 @@ describe("StoreService", () => {
       await expect(
         setup.service.installLocalPack({
           sourcePath: emptyDir,
-        })
+        }),
       ).rejects.toThrow(/manifest not found/i);
     });
 
@@ -676,7 +668,7 @@ describe("StoreService", () => {
       await expect(
         setup.service.installLocalPack({
           sourcePath: "/nonexistent/path/to/pack",
-        })
+        }),
       ).rejects.toThrow();
     });
   });
@@ -785,7 +777,7 @@ describe("StoreService", () => {
       // Modify manifest
       await fs.writeFile(
         path.join(packDir, "archetype.yaml"),
-        createManifestYaml("multi-version", "2.0.0")
+        createManifestYaml("multi-version", "2.0.0"),
       );
 
       // Install v2
@@ -855,12 +847,7 @@ describe("StoreService", () => {
         ".hidden/secret.txt": "this should be copied too",
       };
 
-      const packDir = await createTestPack(
-        setup.sourceDir,
-        "integrity-test",
-        "1.0.0",
-        customFiles
-      );
+      const packDir = await createTestPack(setup.sourceDir, "integrity-test", "1.0.0", customFiles);
 
       const result = await setup.service.installLocalPack({
         sourcePath: packDir,
@@ -868,9 +855,7 @@ describe("StoreService", () => {
 
       // Verify each file content matches
       for (const [relativePath, expectedContent] of Object.entries(customFiles)) {
-        const actualContent = await readFileContent(
-          path.join(result.destDir, relativePath)
-        );
+        const actualContent = await readFileContent(path.join(result.destDir, relativePath));
         expect(actualContent).toBe(expectedContent);
       }
     });

@@ -101,11 +101,14 @@ export class PatchResolver {
 
     for (let i = 0; i < patches.length; i++) {
       const patch = patches[i];
-      const operation = await this.resolvePatch({
-        patch,
-        data,
-        packStorePath,
-      }, i);
+      const operation = await this.resolvePatch(
+        {
+          patch,
+          data,
+          packStorePath,
+        },
+        i,
+      );
       operations.push(operation);
     }
 
@@ -123,10 +126,7 @@ export class PatchResolver {
    * @returns PatchEngine-ready operation
    * @throws ScaffoldError if content resolution fails
    */
-  private async resolvePatch(
-    input: ResolvePatchInput,
-    index?: number
-  ): Promise<EnginePatch> {
+  private async resolvePatch(input: ResolvePatchInput, index?: number): Promise<EnginePatch> {
     const { patch, data, packStorePath } = input;
 
     // Resolve content from contentTemplate or path
@@ -182,7 +182,7 @@ export class PatchResolver {
     patch: ManifestPatch,
     data: Record<string, unknown>,
     packStorePath: string,
-    index?: number
+    index?: number,
   ): Promise<string> {
     let templateContent: string;
 
@@ -207,7 +207,7 @@ export class PatchResolver {
         `Patch '${patch.idempotencyKey}' has neither contentTemplate nor path. ` +
           `Provide exactly one of these fields in the manifest.`,
         undefined,
-        true
+        true,
       );
     }
 
@@ -228,7 +228,7 @@ export class PatchResolver {
     relativePath: string,
     packStorePath: string,
     patch: ManifestPatch,
-    index?: number
+    index?: number,
   ): Promise<string> {
     const absolutePath = path.join(packStorePath, relativePath);
     const patchRef = index !== undefined ? `patches[${index}]` : patch.idempotencyKey;
@@ -252,7 +252,7 @@ export class PatchResolver {
           `but it was not found at ${absolutePath}. ` +
           `Ensure the file exists in the pack.`,
         cause,
-        true
+        true,
       );
     }
   }
@@ -270,7 +270,7 @@ export class PatchResolver {
     template: string,
     data: Record<string, unknown>,
     patch: ManifestPatch,
-    index?: number
+    index?: number,
   ): string {
     const patchRef = index !== undefined ? `patches[${index}]` : patch.idempotencyKey;
 
@@ -292,7 +292,7 @@ export class PatchResolver {
         `Patch '${patch.idempotencyKey}' failed to render: ${cause.message}. ` +
           `Check the template syntax and ensure all referenced variables are provided.`,
         cause,
-        true
+        true,
       );
     }
   }

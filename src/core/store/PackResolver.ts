@@ -148,7 +148,7 @@ export class PackResolver {
         undefined,
         `Pack '${packId}' is not installed. Run \`scaffoldix pack list\` to see installed packs.`,
         undefined,
-        true
+        true,
       );
     }
 
@@ -173,9 +173,7 @@ export class PackResolver {
     // Find matching version
     const match = installs.find((i) => i.version === version);
     if (!match) {
-      const available = installs
-        .map((i) => i.version)
-        .sort((a, b) => compareSemver(b, a)); // Descending
+      const available = installs.map((i) => i.version).sort((a, b) => compareSemver(b, a)); // Descending
 
       throw new ScaffoldError(
         `Version '${version}' of pack '${packId}' not found`,
@@ -186,7 +184,7 @@ export class PackResolver {
           `Available versions: ${available.join(", ")}. ` +
           `Install a specific version with \`scaffoldix pack add <source> --version ${version}\`.`,
         undefined,
-        true
+        true,
       );
     }
 
@@ -212,23 +210,16 @@ export class PackResolver {
       return [];
     }
 
-    return installs
-      .map((i) => i.version)
-      .sort((a, b) => compareSemver(b, a)); // Descending
+    return installs.map((i) => i.version).sort((a, b) => compareSemver(b, a)); // Descending
   }
 
   /**
    * Resolves the latest version from a list of installs.
    * "Latest" means highest semver, with stable releases preferred over prereleases.
    */
-  private resolveLatest(
-    packId: string,
-    installs: PackInstallRecord[]
-  ): ResolvedPack {
+  private resolveLatest(packId: string, installs: PackInstallRecord[]): ResolvedPack {
     // Sort by semver descending
-    const sorted = [...installs].sort((a, b) =>
-      compareSemver(b.version, a.version)
-    );
+    const sorted = [...installs].sort((a, b) => compareSemver(b.version, a.version));
 
     // Prefer stable over prerelease if available
     const stable = sorted.find((i) => !parseSemver(i.version).prerelease);

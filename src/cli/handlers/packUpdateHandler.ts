@@ -104,7 +104,7 @@ export interface PackUpdateDependencies {
  */
 export async function handlePackUpdate(
   input: PackUpdateInput,
-  deps: PackUpdateDependencies
+  deps: PackUpdateDependencies,
 ): Promise<PackUpdateResult> {
   const { packId, ref } = input;
   const { storeConfig, logger } = deps;
@@ -121,7 +121,7 @@ export async function handlePackUpdate(
       undefined,
       `Pack '${packId}' is not installed. Run \`scaffoldix pack list\` to see installed packs.`,
       undefined,
-      true
+      true,
     );
   }
 
@@ -135,7 +135,7 @@ export async function handlePackUpdate(
       `Pack '${packId}' was installed from ${packEntry.origin.type}, not from Git. ` +
         `Only Git-based packs can be updated. To update this pack, remove it and re-add from a Git URL.`,
       undefined,
-      true
+      true,
     );
   }
 

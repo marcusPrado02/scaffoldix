@@ -102,7 +102,7 @@ describe("InputResolver", () => {
         resolveInputs({
           inputsSchema,
           nonInteractive: true,
-        })
+        }),
       ).rejects.toMatchObject({
         code: "MISSING_REQUIRED_INPUTS",
       });
@@ -125,9 +125,7 @@ describe("InputResolver", () => {
     });
 
     it("error includes suggestion to run without --yes", async () => {
-      const inputsSchema: InputDefinition[] = [
-        { name: "input1", type: "string", required: true },
-      ];
+      const inputsSchema: InputDefinition[] = [{ name: "input1", type: "string", required: true }];
 
       try {
         await resolveInputs({
@@ -295,7 +293,7 @@ describe("InputResolver", () => {
           inputsSchema,
           nonInteractive: false,
           // No prompt adapter provided
-        })
+        }),
       ).rejects.toMatchObject({
         code: "PROMPT_ADAPTER_REQUIRED",
       });
@@ -308,9 +306,7 @@ describe("InputResolver", () => {
 
   describe("type coercion", () => {
     it("coerces string default to number when type is number", async () => {
-      const inputsSchema: InputDefinition[] = [
-        { name: "port", type: "number", default: "3000" },
-      ];
+      const inputsSchema: InputDefinition[] = [{ name: "port", type: "number", default: "3000" }];
 
       const result = await resolveInputs({
         inputsSchema,
@@ -322,9 +318,7 @@ describe("InputResolver", () => {
     });
 
     it("coerces string provided value to number when type is number", async () => {
-      const inputsSchema: InputDefinition[] = [
-        { name: "port", type: "number" },
-      ];
+      const inputsSchema: InputDefinition[] = [{ name: "port", type: "number" }];
 
       const result = await resolveInputs({
         inputsSchema,
@@ -345,7 +339,7 @@ describe("InputResolver", () => {
         resolveInputs({
           inputsSchema,
           nonInteractive: true,
-        })
+        }),
       ).rejects.toMatchObject({
         code: "INPUT_TYPE_ERROR",
       });
@@ -380,9 +374,7 @@ describe("InputResolver", () => {
     });
 
     it("preserves boolean values as-is", async () => {
-      const inputsSchema: InputDefinition[] = [
-        { name: "flag", type: "boolean", default: true },
-      ];
+      const inputsSchema: InputDefinition[] = [{ name: "flag", type: "boolean", default: true }];
 
       const result = await resolveInputs({
         inputsSchema,
@@ -393,15 +385,13 @@ describe("InputResolver", () => {
     });
 
     it("throws error for invalid boolean string", async () => {
-      const inputsSchema: InputDefinition[] = [
-        { name: "flag", type: "boolean", default: "yes" },
-      ];
+      const inputsSchema: InputDefinition[] = [{ name: "flag", type: "boolean", default: "yes" }];
 
       await expect(
         resolveInputs({
           inputsSchema,
           nonInteractive: true,
-        })
+        }),
       ).rejects.toMatchObject({
         code: "INPUT_TYPE_ERROR",
       });
@@ -445,7 +435,7 @@ describe("InputResolver", () => {
         resolveInputs({
           inputsSchema,
           nonInteractive: true,
-        })
+        }),
       ).rejects.toMatchObject({
         code: "INPUT_ENUM_ERROR",
       });

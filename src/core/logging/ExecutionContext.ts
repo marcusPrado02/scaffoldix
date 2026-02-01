@@ -63,7 +63,7 @@ export interface CreateExecutionContextOptions {
  * ```
  */
 export function createExecutionContext(
-  options: CreateExecutionContextOptions = {}
+  options: CreateExecutionContextOptions = {},
 ): ExecutionContext {
   return {
     correlationId: options.correlationId ?? generateCorrelationId(),
@@ -81,7 +81,7 @@ export function createExecutionContext(
  */
 export function updateExecutionContext(
   ctx: ExecutionContext,
-  updates: Partial<ExecutionContext>
+  updates: Partial<ExecutionContext>,
 ): ExecutionContext {
   return {
     ...ctx,

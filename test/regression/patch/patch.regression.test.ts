@@ -121,7 +121,7 @@ describe("Patch Regression Tests", () => {
       const filePath = path.join(tempDir, "wrongorder.ts");
       await fs.writeFile(
         filePath,
-        "// Some content\n// END_MARKER\n// Middle\n// START_MARKER\n// More\n"
+        "// Some content\n// END_MARKER\n// Middle\n// START_MARKER\n// More\n",
       );
 
       const operation: PatchOperation = {
@@ -212,7 +212,7 @@ describe("Patch Regression Tests", () => {
       const filePath = path.join(tempDir, "already-patched.ts");
       await fs.writeFile(
         filePath,
-        "// START\n// SCAFFOLDIX_PATCH:existing-patch\n// Existing content\n// END\n"
+        "// START\n// SCAFFOLDIX_PATCH:existing-patch\n// Existing content\n// END\n",
       );
 
       const operation: PatchOperation = {

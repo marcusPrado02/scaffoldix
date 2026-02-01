@@ -191,11 +191,7 @@ export class ContextualLogger {
   /**
    * Internal log method.
    */
-  private log(
-    level: LogLevel,
-    msg: string,
-    ctx?: Record<string, unknown>
-  ): void {
+  private log(level: LogLevel, msg: string, ctx?: Record<string, unknown>): void {
     if (!shouldLog(level, this.minLevel)) {
       return;
     }
@@ -248,10 +244,7 @@ export class ContextualLogger {
           entry.stack = error.stack;
         }
         if (error.cause) {
-          entry.cause =
-            error.cause instanceof Error
-              ? error.cause.message
-              : String(error.cause);
+          entry.cause = error.cause instanceof Error ? error.cause.message : String(error.cause);
         }
       }
     } else {

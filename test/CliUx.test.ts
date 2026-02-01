@@ -7,11 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  CliUx,
-  type LogLevel,
-  createCliUx,
-} from "../src/cli/ux/CliUx.js";
+import { CliUx, type LogLevel, createCliUx } from "../src/cli/ux/CliUx.js";
 
 // =============================================================================
 // Test Helpers

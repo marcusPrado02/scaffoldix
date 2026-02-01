@@ -1,21 +1,6 @@
-/**
- * {{appName}} - Main Entry Point
- */
-
-const config = require("./config");
-
-function initializePlugins(plugins) {
-  for (const plugin of plugins) {
-    if (plugin && typeof plugin.init === "function") {
-      plugin.init();
-    }
-  }
-}
-
-function main() {
-  console.log(`Starting ${config.appName}...`);
-  initializePlugins(config.plugins);
-  console.log(`${config.appName} ready with ${config.plugins.length} plugin(s).`);
-}
-
-main();
+/** *
+{{appName}}
+- Main Entry Point */ const config = require("./config"); function initializePlugins(plugins) { for
+(const plugin of plugins) { if (plugin && typeof plugin.init === "function") { plugin.init(); } } }
+function main() { console.log(`Starting ${config.appName}...`); initializePlugins(config.plugins);
+console.log(`${config.appName} ready with ${config.plugins.length} plugin(s).`); } main();

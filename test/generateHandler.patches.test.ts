@@ -40,9 +40,7 @@ async function createTestWorkspace(): Promise<{
   storeConfig: StoreServiceConfig;
   logger: StoreLogger;
 }> {
-  const workspaceDir = await fs.mkdtemp(
-    path.join(os.tmpdir(), "scaffoldix-patch-test-")
-  );
+  const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "scaffoldix-patch-test-"));
 
   const storeDir = path.join(workspaceDir, "store");
   const packsDir = path.join(storeDir, "packs");
@@ -111,10 +109,7 @@ describe("Generate with Patches", () => {
       const patchPackPath = getPatchPackPath();
 
       // Install the pack
-      await handlePackAdd(
-        { packPath: patchPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: patchPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       // Generate with patches
       const result = await handleGenerate(
@@ -124,7 +119,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       // Assert: generation succeeded
@@ -159,10 +154,7 @@ describe("Generate with Patches", () => {
       const patchPackPath = getPatchPackPath();
 
       // Install the pack
-      await handlePackAdd(
-        { packPath: patchPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: patchPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       // First generation - patches are applied
       const firstResult = await handleGenerate(
@@ -172,7 +164,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       expect(firstResult.patchReport!.applied).toBe(2);
@@ -197,7 +189,7 @@ describe("Generate with Patches", () => {
           data: { appName: "MyApp", moduleName: "User" },
           force: true,
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       // Note: Since Renderer re-creates files, stamps are removed, patches re-apply
@@ -217,10 +209,7 @@ describe("Generate with Patches", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
-      await handlePackAdd(
-        { packPath: patchPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: patchPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       // Generate once
       await handleGenerate(
@@ -230,7 +219,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       // Save the patched content
@@ -256,7 +245,7 @@ describe("Generate with Patches", () => {
             content: 'import { User } from "./User";',
           },
         ],
-        { rootDir: targetDir, strict: true }
+        { rootDir: targetDir, strict: true },
       );
 
       // Assert: patch was skipped due to existing stamp
@@ -269,10 +258,7 @@ describe("Generate with Patches", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
-      await handlePackAdd(
-        { packPath: patchPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: patchPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       const result = await handleGenerate(
         {
@@ -281,7 +267,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       const output = formatGenerateOutput(result);
@@ -297,10 +283,7 @@ describe("Generate with Patches", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
-      await handlePackAdd(
-        { packPath: patchPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: patchPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       // Use different module name to verify Handlebars rendering
       await handleGenerate(
@@ -310,7 +293,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { appName: "TestApp", moduleName: "Customer" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       const appPath = path.join(targetDir, "src", "app.ts");
@@ -331,10 +314,7 @@ describe("Generate with Patches", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
-      await handlePackAdd(
-        { packPath: patchPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: patchPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       // Try to generate with archetype that has missing-marker patch
       await expect(
@@ -345,8 +325,8 @@ describe("Generate with Patches", () => {
             dryRun: false,
             data: { appName: "MyApp" },
           },
-          { registryFile, packsDir, storeDir }
-        )
+          { registryFile, packsDir, storeDir },
+        ),
       ).rejects.toThrow(/patch/i);
     });
 
@@ -354,10 +334,7 @@ describe("Generate with Patches", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
-      await handlePackAdd(
-        { packPath: patchPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: patchPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       // Try to generate (will fail due to missing marker)
       try {
@@ -368,7 +345,7 @@ describe("Generate with Patches", () => {
             dryRun: false,
             data: { appName: "MyApp" },
           },
-          { registryFile, packsDir, storeDir }
+          { registryFile, packsDir, storeDir },
         );
       } catch {
         // Expected to throw
@@ -383,10 +360,7 @@ describe("Generate with Patches", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
-      await handlePackAdd(
-        { packPath: patchPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: patchPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       try {
         await handleGenerate(
@@ -396,7 +370,7 @@ describe("Generate with Patches", () => {
             dryRun: false,
             data: { appName: "MyApp" },
           },
-          { registryFile, packsDir, storeDir }
+          { registryFile, packsDir, storeDir },
         );
         expect.fail("Should have thrown");
       } catch (error) {
@@ -416,10 +390,7 @@ describe("Generate with Patches", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
-      await handlePackAdd(
-        { packPath: patchPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: patchPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       // Generate in dry-run mode
       const result = await handleGenerate(
@@ -429,7 +400,7 @@ describe("Generate with Patches", () => {
           dryRun: true,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       // Assert: no patch report (patches not executed)
@@ -445,10 +416,7 @@ describe("Generate with Patches", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const patchPackPath = getPatchPackPath();
 
-      await handlePackAdd(
-        { packPath: patchPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: patchPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       const result = await handleGenerate(
         {
@@ -457,7 +425,7 @@ describe("Generate with Patches", () => {
           dryRun: true,
           data: { appName: "MyApp", moduleName: "User" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       const output = formatGenerateOutput(result);
@@ -478,7 +446,7 @@ describe("Generate with Patches", () => {
 
       await handlePackAdd(
         { packPath: examplePackPath, cwd: process.cwd() },
-        { storeConfig, logger }
+        { storeConfig, logger },
       );
 
       const result = await handleGenerate(
@@ -488,7 +456,7 @@ describe("Generate with Patches", () => {
           dryRun: false,
           data: { name: "Test", entity: "Item" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       // Assert: no patch report when no patches
@@ -509,9 +477,25 @@ describe("Generate with Patches", () => {
         skipped: 1,
         failed: 0,
         entries: [
-          { kind: "marker_insert", file: "src/app.ts", idempotencyKey: "patch-1", status: "applied" as const },
-          { kind: "marker_replace", file: "src/app.ts", idempotencyKey: "patch-2", status: "applied" as const },
-          { kind: "append_if_missing", file: "exports.ts", idempotencyKey: "patch-3", status: "skipped" as const, reason: "already_applied" },
+          {
+            kind: "marker_insert",
+            file: "src/app.ts",
+            idempotencyKey: "patch-1",
+            status: "applied" as const,
+          },
+          {
+            kind: "marker_replace",
+            file: "src/app.ts",
+            idempotencyKey: "patch-2",
+            status: "applied" as const,
+          },
+          {
+            kind: "append_if_missing",
+            file: "exports.ts",
+            idempotencyKey: "patch-3",
+            status: "skipped" as const,
+            reason: "already_applied",
+          },
         ],
       };
 

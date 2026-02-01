@@ -17,6 +17,7 @@ The Scaffoldix engine is generic and language-agnostic. It knows nothing about J
 An **Archetype** is a generator unit within a pack. A single pack may contain multiple archetypes, each producing different outputs.
 
 Example: A "java-microservices" pack might contain archetypes for:
+
 - `service` — Generate a new microservice
 - `entity` — Generate a JPA entity with repository
 - `controller` — Generate a REST controller
@@ -25,18 +26,18 @@ Example: A "java-microservices" pack might contain archetypes for:
 
 ## Pack vs Engine Responsibilities
 
-| Responsibility | Belongs In |
-|----------------|------------|
-| Template files | Pack |
-| Language-specific logic | Pack |
-| Framework conventions | Pack |
-| Build commands | Pack (hooks/checks) |
-| Input prompts | Pack (manifest) |
-| Patch operations | Pack (manifest) |
-| Template rendering | Engine |
-| File system operations | Engine |
-| State tracking | Engine |
-| Idempotency enforcement | Engine |
+| Responsibility          | Belongs In          |
+| ----------------------- | ------------------- |
+| Template files          | Pack                |
+| Language-specific logic | Pack                |
+| Framework conventions   | Pack                |
+| Build commands          | Pack (hooks/checks) |
+| Input prompts           | Pack (manifest)     |
+| Patch operations        | Pack (manifest)     |
+| Template rendering      | Engine              |
+| File system operations  | Engine              |
+| State tracking          | Engine              |
+| Idempotency enforcement | Engine              |
 
 **Rule:** If you find yourself wanting to change engine behavior for a specific language or framework, that logic belongs in a pack instead.
 
@@ -44,11 +45,11 @@ Example: A "java-microservices" pack might contain archetypes for:
 
 ## Documentation
 
-| Document | Purpose |
-|----------|---------|
-| [Pack Authoring Guide](./pack-authoring-guide.md) | Complete guide from zero to working pack |
-| [archetype.yaml Reference](./archetype-yaml-reference.md) | Field-by-field manifest specification |
-| [Examples](./examples/) | Realistic example packs to copy and adapt |
+| Document                                                  | Purpose                                   |
+| --------------------------------------------------------- | ----------------------------------------- |
+| [Pack Authoring Guide](./pack-authoring-guide.md)         | Complete guide from zero to working pack  |
+| [archetype.yaml Reference](./archetype-yaml-reference.md) | Field-by-field manifest specification     |
+| [Examples](./examples/)                                   | Realistic example packs to copy and adapt |
 
 ---
 

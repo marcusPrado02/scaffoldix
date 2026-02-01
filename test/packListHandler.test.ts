@@ -66,7 +66,7 @@ function createRegistry(
     origin: PackOrigin;
     hash?: string;
     installedAt?: string;
-  }>
+  }>,
 ): Registry {
   const packsRecord: Registry["packs"] = {};
 
@@ -294,7 +294,7 @@ describe("packListHandler", () => {
         JSON.stringify({
           schemaVersion: "not a number",
           packs: {},
-        })
+        }),
       );
 
       await expect(handlePackList(deps)).rejects.toMatchObject({
@@ -312,7 +312,7 @@ describe("packListHandler", () => {
         JSON.stringify({
           // Missing schemaVersion
           packs: {},
-        })
+        }),
       );
 
       try {

@@ -164,12 +164,12 @@ export class HookRunner {
 
       if (result.success) {
         logger.info(
-          `Hook (${hookNumber}/${total}) completed successfully in ${this.formatDuration(result.durationMs)}`
+          `Hook (${hookNumber}/${total}) completed successfully in ${this.formatDuration(result.durationMs)}`,
         );
       } else {
         logger.error(
           `Hook (${hookNumber}/${total}) failed with exit code ${result.exitCode} ` +
-          `after ${this.formatDuration(result.durationMs)}`
+            `after ${this.formatDuration(result.durationMs)}`,
         );
 
         // Abort on first failure
@@ -189,7 +189,7 @@ export class HookRunner {
             `${result.error ? `Error: ${result.error}. ` : ""}` +
             `Run the command manually in the target directory to debug: cd "${cwd}" && ${command}`,
           undefined,
-          true
+          true,
         );
       }
     }
@@ -199,7 +199,7 @@ export class HookRunner {
 
     logger.info(
       `All ${total} hook${total === 1 ? "" : "s"} completed successfully ` +
-      `in ${this.formatDuration(totalDurationMs)}`
+        `in ${this.formatDuration(totalDurationMs)}`,
     );
 
     return {
@@ -225,7 +225,7 @@ export class HookRunner {
     command: string,
     cwd: string,
     env: Record<string, string> | undefined,
-    logger: HookLogger
+    logger: HookLogger,
   ): Promise<HookResult> {
     const startTime = Date.now();
 
@@ -246,7 +246,10 @@ export class HookRunner {
       // Stream stdout
       if (subprocess.stdout) {
         subprocess.stdout.on("data", (chunk: Buffer) => {
-          const lines = chunk.toString().split("\n").filter((l) => l.trim());
+          const lines = chunk
+            .toString()
+            .split("\n")
+            .filter((l) => l.trim());
           for (const line of lines) {
             if (logger.stdout) {
               logger.stdout(line);
@@ -260,7 +263,10 @@ export class HookRunner {
       // Stream stderr
       if (subprocess.stderr) {
         subprocess.stderr.on("data", (chunk: Buffer) => {
-          const lines = chunk.toString().split("\n").filter((l) => l.trim());
+          const lines = chunk
+            .toString()
+            .split("\n")
+            .filter((l) => l.trim());
           for (const line of lines) {
             if (logger.stderr) {
               logger.stderr(line);
@@ -280,11 +286,12 @@ export class HookRunner {
       // Convert stderr to string (may be array or Uint8Array in execa v9)
       let stderrStr: string | undefined;
       if (result.stderr) {
-        stderrStr = typeof result.stderr === "string"
-          ? result.stderr
-          : Array.isArray(result.stderr)
-            ? result.stderr.join("\n")
-            : result.stderr.toString();
+        stderrStr =
+          typeof result.stderr === "string"
+            ? result.stderr
+            : Array.isArray(result.stderr)
+              ? result.stderr.join("\n")
+              : result.stderr.toString();
       }
 
       return {

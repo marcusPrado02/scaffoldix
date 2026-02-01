@@ -38,7 +38,7 @@ interface TestWorkspace {
 async function createTestGitRepo(
   baseDir: string,
   packName: string,
-  version: string
+  version: string,
 ): Promise<TestGitRepo> {
   const repoPath = path.join(baseDir, `${packName}-repo`);
   await fs.mkdir(repoPath, { recursive: true });
@@ -163,7 +163,7 @@ describe("GitPackFetcher", () => {
       const { repoPath, commitHash } = await createTestGitRepo(
         workspace.baseDir,
         "test-pack",
-        "1.0.0"
+        "1.0.0",
       );
 
       const result = await fetcher.fetch(repoPath);
@@ -184,11 +184,7 @@ describe("GitPackFetcher", () => {
     });
 
     it("clones with a specific branch ref", async () => {
-      const { repoPath, git } = await createTestGitRepo(
-        workspace.baseDir,
-        "branch-pack",
-        "1.0.0"
-      );
+      const { repoPath, git } = await createTestGitRepo(workspace.baseDir, "branch-pack", "1.0.0");
 
       // Get the current/default branch name (could be main or master)
       const branchInfo = await git.branch();
@@ -205,7 +201,7 @@ describe("GitPackFetcher", () => {
 archetypes:
   - id: default
     templateRoot: templates
-`
+`,
       );
       await git.add(".");
       await git.commit("Version 2 on feature branch");
@@ -224,7 +220,7 @@ archetypes:
       // Verify we got v2 content
       const manifestContent = await fs.readFile(
         path.join(result.packDir, "archetype.yaml"),
-        "utf-8"
+        "utf-8",
       );
       expect(manifestContent).toContain('version: "2.0.0"');
     });
@@ -233,7 +229,7 @@ archetypes:
       const { repoPath, git, commitHash } = await createTestGitRepo(
         workspace.baseDir,
         "tag-pack",
-        "1.0.0"
+        "1.0.0",
       );
 
       // Create a tag
@@ -251,30 +247,29 @@ archetypes:
       expect(result.ref).toBe("v1.0.0");
 
       // Verify we got the tagged version (no new-file.txt)
-      const newFileExists = await fs.access(path.join(result.packDir, "new-file.txt"))
+      const newFileExists = await fs
+        .access(path.join(result.packDir, "new-file.txt"))
         .then(() => true)
         .catch(() => false);
       expect(newFileExists).toBe(false);
     });
 
     it("cleans up temp directory after successful fetch", async () => {
-      const { repoPath } = await createTestGitRepo(
-        workspace.baseDir,
-        "cleanup-pack",
-        "1.0.0"
-      );
+      const { repoPath } = await createTestGitRepo(workspace.baseDir, "cleanup-pack", "1.0.0");
 
       const result = await fetcher.fetch(repoPath);
 
       // The packDir should exist (it's the result)
-      const packDirExists = await fs.access(result.packDir)
+      const packDirExists = await fs
+        .access(result.packDir)
         .then(() => true)
         .catch(() => false);
       expect(packDirExists).toBe(true);
 
       // No other temp directories should exist in staging
       const stagingDir = path.join(workspace.storeDir, ".tmp", "git-clones");
-      const stagingExists = await fs.access(stagingDir)
+      const stagingExists = await fs
+        .access(stagingDir)
         .then(() => true)
         .catch(() => false);
 
@@ -308,14 +303,10 @@ archetypes:
     });
 
     it("throws actionable error when ref does not exist", async () => {
-      const { repoPath } = await createTestGitRepo(
-        workspace.baseDir,
-        "noref-pack",
-        "1.0.0"
-      );
+      const { repoPath } = await createTestGitRepo(workspace.baseDir, "noref-pack", "1.0.0");
 
       await expect(fetcher.fetch(repoPath, { ref: "nonexistent-branch" })).rejects.toThrow(
-        ScaffoldError
+        ScaffoldError,
       );
 
       try {
@@ -339,7 +330,8 @@ archetypes:
 
       // Check no temp directories left behind
       const stagingDir = path.join(workspace.storeDir, ".tmp", "git-clones");
-      const stagingExists = await fs.access(stagingDir)
+      const stagingExists = await fs
+        .access(stagingDir)
         .then(() => true)
         .catch(() => false);
 
@@ -356,26 +348,28 @@ archetypes:
 
   describe("cleanup()", () => {
     it("removes the cloned pack directory", async () => {
-      const { repoPath } = await createTestGitRepo(
-        workspace.baseDir,
-        "cleanup-test",
-        "1.0.0"
-      );
+      const { repoPath } = await createTestGitRepo(workspace.baseDir, "cleanup-test", "1.0.0");
 
       const result = await fetcher.fetch(repoPath);
-      expect(await fs.access(result.packDir).then(() => true).catch(() => false)).toBe(true);
+      expect(
+        await fs
+          .access(result.packDir)
+          .then(() => true)
+          .catch(() => false),
+      ).toBe(true);
 
       await fetcher.cleanup(result);
 
-      expect(await fs.access(result.packDir).then(() => true).catch(() => false)).toBe(false);
+      expect(
+        await fs
+          .access(result.packDir)
+          .then(() => true)
+          .catch(() => false),
+      ).toBe(false);
     });
 
     it("does not throw if directory already deleted", async () => {
-      const { repoPath } = await createTestGitRepo(
-        workspace.baseDir,
-        "double-cleanup",
-        "1.0.0"
-      );
+      const { repoPath } = await createTestGitRepo(workspace.baseDir, "double-cleanup", "1.0.0");
 
       const result = await fetcher.fetch(repoPath);
       await fetcher.cleanup(result);

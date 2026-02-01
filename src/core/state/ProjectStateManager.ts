@@ -339,7 +339,7 @@ export class ProjectStateManager {
         undefined,
         `Could not read the state file at ${statePath}. Check file permissions.`,
         err instanceof Error ? err : undefined,
-        true
+        true,
       );
     }
 
@@ -356,7 +356,7 @@ export class ProjectStateManager {
         `The state file at ${statePath} contains invalid JSON. ` +
           `Delete the file or fix its contents manually.`,
         err instanceof Error ? err : undefined,
-        true
+        true,
       );
     }
 
@@ -375,7 +375,7 @@ export class ProjectStateManager {
         `This state file was created by a newer version of Scaffoldix. ` +
           `Please update Scaffoldix to the latest version, or regenerate this project.`,
         undefined,
-        true
+        true,
       );
     }
 
@@ -394,7 +394,7 @@ export class ProjectStateManager {
           `The state file at ${statePath} has an invalid structure. ` +
             `Delete the file to reset state, or fix it manually.`,
           err,
-          true
+          true,
         );
       }
       throw err;
@@ -410,9 +410,7 @@ export class ProjectStateManager {
     // Validate schema (accepts both v1 and v2, but after migration should be v2)
     const result = ProjectStateAnySchema.safeParse(migrationResult.state);
     if (!result.success) {
-      const issues = result.error.issues
-        .map((i) => `${i.path.join(".")}: ${i.message}`)
-        .join("; ");
+      const issues = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
 
       throw new ScaffoldError(
         `Invalid project state schema`,
@@ -425,7 +423,7 @@ export class ProjectStateManager {
         `The state file at ${statePath} has an invalid structure: ${issues}. ` +
           `Delete the file to reset state, or fix it manually.`,
         undefined,
-        true
+        true,
       );
     }
 

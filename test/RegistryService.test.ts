@@ -93,9 +93,7 @@ describe("RegistryService", () => {
     });
 
     it("rejects relative paths", () => {
-      expect(() => new RegistryService("relative/path/registry.json")).toThrow(
-        /must be absolute/i
-      );
+      expect(() => new RegistryService("relative/path/registry.json")).toThrow(/must be absolute/i);
     });
 
     it("rejects empty paths", () => {
@@ -440,7 +438,7 @@ describe("RegistryService", () => {
           id: "updatable",
           version: "1.0.0",
           hash: "1".repeat(64),
-        })
+        }),
       );
 
       // Update to v2
@@ -449,7 +447,7 @@ describe("RegistryService", () => {
           id: "updatable",
           version: "2.0.0",
           hash: "2".repeat(64),
-        })
+        }),
       );
 
       expect(result.packs["updatable"].version).toBe("2.0.0");
@@ -498,7 +496,7 @@ describe("RegistryService", () => {
           createTestPackInput({
             id: `origin-${i}`,
             origin: origins[i],
-          })
+          }),
         );
       }
 
@@ -511,15 +509,13 @@ describe("RegistryService", () => {
     });
 
     it("rejects invalid pack ID", async () => {
-      await expect(
-        service.registerPack(createTestPackInput({ id: "" }))
-      ).rejects.toThrow(/ID/i);
+      await expect(service.registerPack(createTestPackInput({ id: "" }))).rejects.toThrow(/ID/i);
     });
 
     it("rejects invalid hash", async () => {
-      await expect(
-        service.registerPack(createTestPackInput({ hash: "invalid" }))
-      ).rejects.toThrow(/hash/i);
+      await expect(service.registerPack(createTestPackInput({ hash: "invalid" }))).rejects.toThrow(
+        /hash/i,
+      );
     });
   });
 
@@ -637,7 +633,7 @@ describe("RegistryService", () => {
         createTestPackInput({
           id: "unicode-pack-日本語",
           origin: { type: "local", localPath: "/путь/到/パック" },
-        })
+        }),
       );
 
       const loaded = await service.load();

@@ -7,10 +7,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  formatPackInfoJson,
-  type PackInfoResult,
-} from "../src/cli/handlers/packInfoHandler.js";
+import { formatPackInfoJson, type PackInfoResult } from "../src/cli/handlers/packInfoHandler.js";
 
 describe("pack info --json", () => {
   describe("formatPackInfoJson", () => {

@@ -70,7 +70,7 @@ function createRegistry(
     origin: PackOrigin;
     hash?: string;
     installedAt?: string;
-  }>
+  }>,
 ): Registry {
   const packsRecord: Registry["packs"] = {};
 
@@ -114,7 +114,7 @@ async function createPackInStore(
   packsDir: string,
   packId: string,
   hash: string,
-  archetypes: string[]
+  archetypes: string[],
 ): Promise<string> {
   const sanitizedId = sanitizePackId(packId);
   const packDir = path.join(packsDir, sanitizedId, hash);
@@ -124,7 +124,7 @@ async function createPackInStore(
   const archetypesList = archetypes
     .map(
       (id) => `  - id: ${id}
-    templateRoot: templates/${id}`
+    templateRoot: templates/${id}`,
     )
     .join("\n");
 
@@ -442,11 +442,7 @@ describe("packInfoHandler", () => {
 
       const result = await handlePackInfo({ packId: "multi-arch-pack" }, deps);
 
-      expect(result.archetypes).toEqual([
-        "alpha-archetype",
-        "middle-archetype",
-        "zebra-archetype",
-      ]);
+      expect(result.archetypes).toEqual(["alpha-archetype", "middle-archetype", "zebra-archetype"]);
     });
 
     it("handles single archetype", async () => {
@@ -547,7 +543,9 @@ describe("packInfoHandler", () => {
       expect(lines).toContain("Pack: my-pack");
       expect(lines).toContain("Version: 1.2.3");
       expect(lines).toContain("Origin: local:/home/user/pack");
-      expect(lines).toContain("Store path: /home/user/.local/share/scaffoldix/packs/my-pack/abc123");
+      expect(lines).toContain(
+        "Store path: /home/user/.local/share/scaffoldix/packs/my-pack/abc123",
+      );
       expect(lines).toContain("Installed at: 2024-06-15T14:30:00.000Z");
       expect(lines).toContain("Hash: abc123def456");
       expect(lines).toContain("Archetypes:");

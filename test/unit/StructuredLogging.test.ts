@@ -124,12 +124,7 @@ describe("ContextualLogger", () => {
       logger.error("Error message");
 
       expect(sink.entries).toHaveLength(4);
-      expect(sink.entries.map((e) => e.level)).toEqual([
-        "debug",
-        "info",
-        "warn",
-        "error",
-      ]);
+      expect(sink.entries.map((e) => e.level)).toEqual(["debug", "info", "warn", "error"]);
     });
 
     it("includes timestamp as ISO string", () => {
@@ -244,10 +239,7 @@ describe("ContextualLogger", () => {
 
   describe("error logging", () => {
     it("includes errorCode when logging ScaffoldError", () => {
-      const error = new ScaffoldError(
-        "Pack not found",
-        ErrorCode.PACK_NOT_FOUND
-      );
+      const error = new ScaffoldError("Pack not found", ErrorCode.PACK_NOT_FOUND);
 
       logger.error("Operation failed", { error });
 
@@ -255,10 +247,7 @@ describe("ContextualLogger", () => {
     });
 
     it("includes error message", () => {
-      const error = new ScaffoldError(
-        "Manifest invalid",
-        ErrorCode.MANIFEST_INVALID
-      );
+      const error = new ScaffoldError("Manifest invalid", ErrorCode.MANIFEST_INVALID);
 
       logger.error("Validation failed", { error });
 
@@ -293,7 +282,7 @@ describe("ContextualLogger", () => {
         undefined,
         undefined,
         undefined,
-        cause
+        cause,
       );
 
       const debugLogger = createLogger({ sink, minLevel: "debug", debug: true });
@@ -366,11 +355,9 @@ describe("StepTimer", () => {
     expect(result).toBe("patch-result");
 
     const startEntry = sink.entries.find(
-      (e) => e.event === "step.start" && e.step === "patch.apply"
+      (e) => e.event === "step.start" && e.step === "patch.apply",
     );
-    const endEntry = sink.entries.find(
-      (e) => e.event === "step.end" && e.step === "patch.apply"
-    );
+    const endEntry = sink.entries.find((e) => e.event === "step.end" && e.step === "patch.apply");
 
     expect(startEntry).toBeDefined();
     expect(endEntry).toBeDefined();
@@ -383,12 +370,10 @@ describe("StepTimer", () => {
     await expect(
       timer.run(Step.HOOKS_RUN, async () => {
         throw new Error("Hook failed");
-      })
+      }),
     ).rejects.toThrow("Hook failed");
 
-    const endEntry = sink.entries.find(
-      (e) => e.event === "step.end" && e.step === "hooks.run"
-    );
+    const endEntry = sink.entries.find((e) => e.event === "step.end" && e.step === "hooks.run");
     expect(endEntry).toBeDefined();
     expect(endEntry?.error).toBe(true);
   });

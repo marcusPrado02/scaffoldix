@@ -147,9 +147,7 @@ function applyRenameRules(relativePath: string, rules?: RenameRules): string {
   }
 
   // Sort keys by length descending to avoid partial replacement issues
-  const sortedKeys = Object.keys(rules.replacements).sort(
-    (a, b) => b.length - a.length
-  );
+  const sortedKeys = Object.keys(rules.replacements).sort((a, b) => b.length - a.length);
 
   let result = relativePath;
   for (const key of sortedKeys) {
@@ -168,7 +166,7 @@ function applyRenameRules(relativePath: string, rules?: RenameRules): string {
 function validateSafePath(
   destRelativePath: string,
   targetDir: string,
-  srcRelativePath: string
+  srcRelativePath: string,
 ): void {
   const normalizedPath = path.normalize(destRelativePath);
 
@@ -186,7 +184,7 @@ function validateSafePath(
       `Rename rules would place "${srcRelativePath}" outside target directory. ` +
         `Resulting path "${destRelativePath}" is not allowed.`,
       undefined,
-      true
+      true,
     );
   }
 
@@ -207,7 +205,7 @@ function validateSafePath(
       undefined,
       `Rename rules would place "${srcRelativePath}" outside target directory.`,
       undefined,
-      true
+      true,
     );
   }
 }
@@ -215,11 +213,7 @@ function validateSafePath(
 /**
  * Renders a Handlebars template string with the given data.
  */
-function renderTemplate(
-  content: string,
-  data: Record<string, unknown>,
-  filePath: string
-): string {
+function renderTemplate(content: string, data: Record<string, unknown>, filePath: string): string {
   try {
     const template = Handlebars.compile(content);
     return template(data);
@@ -232,7 +226,7 @@ function renderTemplate(
       undefined,
       `Template "${filePath}" has invalid Handlebars syntax: ${cause.message}`,
       cause,
-      true
+      true,
     );
   }
 }
@@ -275,14 +269,7 @@ async function getFileMode(filePath: string): Promise<number> {
  * @throws ScaffoldError on validation or rendering failures
  */
 export async function renderArchetype(params: RenderParams): Promise<RenderResult> {
-  const {
-    templateDir,
-    targetDir,
-    data,
-    renameRules,
-    dryRun = false,
-    force = false,
-  } = params;
+  const { templateDir, targetDir, data, renameRules, dryRun = false, force = false } = params;
 
   // Validate template directory exists
   try {
@@ -295,7 +282,7 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
       undefined,
       `The template directory "${templateDir}" does not exist or is not accessible.`,
       undefined,
-      true
+      true,
     );
   }
 
@@ -340,7 +327,7 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
         "RENDER_FILE_EXISTS",
         { srcRelativePath, destRelativePath, destAbsolutePath }, // details
         undefined, // data
-        `Use --force to overwrite existing files.` // hint
+        `Use --force to overwrite existing files.`, // hint
       );
     }
 
@@ -442,9 +429,7 @@ export interface RenderPlan {
  * @returns Render plan with list of output paths
  * @throws ScaffoldError if template directory doesn't exist
  */
-export async function computeRenderPlan(
-  params: ComputeRenderPlanParams
-): Promise<RenderPlan> {
+export async function computeRenderPlan(params: ComputeRenderPlanParams): Promise<RenderPlan> {
   const { templateDir, renameRules } = params;
 
   // Validate template directory exists
@@ -458,7 +443,7 @@ export async function computeRenderPlan(
       undefined,
       `The template directory "${templateDir}" does not exist or is not accessible.`,
       undefined,
-      true
+      true,
     );
   }
 

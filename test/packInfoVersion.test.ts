@@ -14,10 +14,7 @@ import {
   formatPackInfoOutput,
   type PackInfoDependencies,
 } from "../src/cli/handlers/packInfoHandler.js";
-import {
-  REGISTRY_SCHEMA_VERSION,
-  type Registry,
-} from "../src/core/registry/RegistryService.js";
+import { REGISTRY_SCHEMA_VERSION, type Registry } from "../src/core/registry/RegistryService.js";
 
 // =============================================================================
 // Test Helpers
@@ -44,7 +41,7 @@ async function createVersionedPack(
   packId: string,
   version: string,
   hash: string,
-  archetypes: string[] = ["default"]
+  archetypes: string[] = ["default"],
 ): Promise<void> {
   const sanitizedId = sanitizePackId(packId);
   const packDir = path.join(packsDir, sanitizedId, hash);
@@ -73,7 +70,7 @@ ${archetypesList}
 
 function createMultiVersionRegistry(
   packId: string,
-  versions: Array<{ version: string; hash: string; archetypes?: string[] }>
+  versions: Array<{ version: string; hash: string; archetypes?: string[] }>,
 ): Registry {
   const installs = versions.map((v) => ({
     version: v.version,
@@ -145,10 +142,7 @@ describe("pack info with --version", () => {
     const deps: PackInfoDependencies = { registryFile, packsDir };
 
     // Request v1 info
-    const result = await handlePackInfo(
-      { packId: "info-pack", version: "1.0.0" },
-      deps
-    );
+    const result = await handlePackInfo({ packId: "info-pack", version: "1.0.0" }, deps);
 
     expect(result.version).toBe("1.0.0");
     expect(result.hash).toBe(hashV1);
@@ -192,15 +186,13 @@ describe("pack info with --version", () => {
     const hashV1 = "a".repeat(64);
     await createVersionedPack(packsDir, "only-one", "1.0.0", hashV1);
 
-    const registry = createMultiVersionRegistry("only-one", [
-      { version: "1.0.0", hash: hashV1 },
-    ]);
+    const registry = createMultiVersionRegistry("only-one", [{ version: "1.0.0", hash: hashV1 }]);
     await writeRegistry(registryFile, registry);
 
     const deps: PackInfoDependencies = { registryFile, packsDir };
 
     await expect(
-      handlePackInfo({ packId: "only-one", version: "5.0.0" }, deps)
+      handlePackInfo({ packId: "only-one", version: "5.0.0" }, deps),
     ).rejects.toMatchObject({
       code: "VERSION_NOT_FOUND",
       hint: expect.stringContaining("1.0.0"),
@@ -227,10 +219,7 @@ describe("pack info with --version", () => {
 
     const deps: PackInfoDependencies = { registryFile, packsDir };
 
-    const result = await handlePackInfo(
-      { packId: "format-pack", version: "1.0.0" },
-      deps
-    );
+    const result = await handlePackInfo({ packId: "format-pack", version: "1.0.0" }, deps);
 
     // availableVersions should be populated for multi-version packs
     const output = formatPackInfoOutput(result);

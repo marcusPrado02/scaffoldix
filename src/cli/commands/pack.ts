@@ -43,21 +43,12 @@ import {
  */
 function createStoreLogger(logger: Logger) {
   return {
-    info: (
-      message: string,
-      context?: Record<string, unknown>,
-      data?: Record<string, unknown>
-    ) => logger.info(message, context, data),
-    debug: (
-      message: string,
-      context?: Record<string, unknown>,
-      data?: Record<string, unknown>
-    ) => logger.debug(message, context, data),
-    warn: (
-      message: string,
-      context?: Record<string, unknown>,
-      data?: Record<string, unknown>
-    ) => logger.warn(message, context, data),
+    info: (message: string, context?: Record<string, unknown>, data?: Record<string, unknown>) =>
+      logger.info(message, context, data),
+    debug: (message: string, context?: Record<string, unknown>, data?: Record<string, unknown>) =>
+      logger.debug(message, context, data),
+    warn: (message: string, context?: Record<string, unknown>, data?: Record<string, unknown>) =>
+      logger.warn(message, context, data),
   };
 }
 
@@ -98,7 +89,7 @@ export function buildPackCommand(logger: Logger): Command {
             packPath,
             cwd: process.cwd(),
           },
-          deps
+          deps,
         );
 
         // Output success message
@@ -194,7 +185,7 @@ export function buildPackCommand(logger: Logger): Command {
           {
             registryFile: storePaths.registryFile,
             packsDir: storePaths.packsDir,
-          }
+          },
         );
 
         // Output result

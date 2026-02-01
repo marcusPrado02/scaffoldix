@@ -54,7 +54,7 @@ async function createTestPack(
   baseDir: string,
   name: string,
   version: string,
-  additionalFiles?: Record<string, string>
+  additionalFiles?: Record<string, string>,
 ): Promise<string> {
   const packDir = path.join(baseDir, name.replace("/", "__"));
   await fs.mkdir(packDir, { recursive: true });
@@ -142,10 +142,7 @@ describe("packAddHandler", () => {
       const { storeDir, deps } = await createTestDependencies();
       trackDir(storeDir);
 
-      const result = await handlePackAdd(
-        { packPath: packDir, cwd: "/tmp" },
-        deps
-      );
+      const result = await handlePackAdd({ packPath: packDir, cwd: "/tmp" }, deps);
 
       expect(result.packId).toBe("test-pack");
       expect(result.version).toBe("1.0.0");
@@ -163,10 +160,7 @@ describe("packAddHandler", () => {
       // Use relative path from sourceDir
       const relativePath = path.relative(sourceDir, packDir);
 
-      const result = await handlePackAdd(
-        { packPath: relativePath, cwd: sourceDir },
-        deps
-      );
+      const result = await handlePackAdd({ packPath: relativePath, cwd: sourceDir }, deps);
 
       expect(result.packId).toBe("relative-test");
       expect(result.version).toBe("2.0.0");
@@ -181,10 +175,7 @@ describe("packAddHandler", () => {
       const { storeDir, deps } = await createTestDependencies();
       trackDir(storeDir);
 
-      const result = await handlePackAdd(
-        { packPath: packDir, cwd: "/tmp" },
-        deps
-      );
+      const result = await handlePackAdd({ packPath: packDir, cwd: "/tmp" }, deps);
 
       // Check registry directly
       const registry = new RegistryService(deps.storeConfig.registryFile);
@@ -205,10 +196,7 @@ describe("packAddHandler", () => {
       const { storeDir, deps } = await createTestDependencies();
       trackDir(storeDir);
 
-      const result = await handlePackAdd(
-        { packPath: packDir, cwd: "/tmp" },
-        deps
-      );
+      const result = await handlePackAdd({ packPath: packDir, cwd: "/tmp" }, deps);
 
       // Check files exist in destDir
       const manifestExists = await fs
@@ -237,16 +225,10 @@ describe("packAddHandler", () => {
       trackDir(storeDir);
 
       // First install
-      const result1 = await handlePackAdd(
-        { packPath: packDir, cwd: "/tmp" },
-        deps
-      );
+      const result1 = await handlePackAdd({ packPath: packDir, cwd: "/tmp" }, deps);
 
       // Second install
-      const result2 = await handlePackAdd(
-        { packPath: packDir, cwd: "/tmp" },
-        deps
-      );
+      const result2 = await handlePackAdd({ packPath: packDir, cwd: "/tmp" }, deps);
 
       expect(result1.status).toBe("installed");
       expect(result2.status).toBe("already_installed");
@@ -280,10 +262,7 @@ describe("packAddHandler", () => {
 
       const results: PackAddResult[] = [];
       for (let i = 0; i < 3; i++) {
-        const result = await handlePackAdd(
-          { packPath: packDir, cwd: "/tmp" },
-          deps
-        );
+        const result = await handlePackAdd({ packPath: packDir, cwd: "/tmp" }, deps);
         results.push(result);
       }
 
@@ -303,10 +282,7 @@ describe("packAddHandler", () => {
       trackDir(storeDir);
 
       await expect(
-        handlePackAdd(
-          { packPath: "/nonexistent/pack/path", cwd: "/tmp" },
-          deps
-        )
+        handlePackAdd({ packPath: "/nonexistent/pack/path", cwd: "/tmp" }, deps),
       ).rejects.toMatchObject({
         code: "PACK_PATH_NOT_FOUND",
         message: expect.stringContaining("not found"),
@@ -318,10 +294,7 @@ describe("packAddHandler", () => {
       trackDir(storeDir);
 
       try {
-        await handlePackAdd(
-          { packPath: "./missing-pack", cwd: "/some/cwd" },
-          deps
-        );
+        await handlePackAdd({ packPath: "./missing-pack", cwd: "/some/cwd" }, deps);
         expect.fail("Should have thrown");
       } catch (err: any) {
         expect(err.code).toBe("PACK_PATH_NOT_FOUND");
@@ -338,9 +311,7 @@ describe("packAddHandler", () => {
       const { storeDir, deps } = await createTestDependencies();
       trackDir(storeDir);
 
-      await expect(
-        handlePackAdd({ packPath: filePath, cwd: "/tmp" }, deps)
-      ).rejects.toMatchObject({
+      await expect(handlePackAdd({ packPath: filePath, cwd: "/tmp" }, deps)).rejects.toMatchObject({
         code: "PACK_NOT_DIRECTORY",
         message: expect.stringContaining("directory"),
       });
@@ -377,9 +348,7 @@ describe("packAddHandler", () => {
       const { storeDir, deps } = await createTestDependencies();
       trackDir(storeDir);
 
-      await expect(
-        handlePackAdd({ packPath: emptyDir, cwd: "/tmp" }, deps)
-      ).rejects.toMatchObject({
+      await expect(handlePackAdd({ packPath: emptyDir, cwd: "/tmp" }, deps)).rejects.toMatchObject({
         code: "MANIFEST_NOT_FOUND",
       });
     });
@@ -407,15 +376,13 @@ describe("packAddHandler", () => {
       // Create invalid manifest (missing required fields)
       await fs.writeFile(
         path.join(packDir, "archetype.yaml"),
-        "pack:\n  name: test\n# missing version and archetypes"
+        "pack:\n  name: test\n# missing version and archetypes",
       );
 
       const { storeDir, deps } = await createTestDependencies();
       trackDir(storeDir);
 
-      await expect(
-        handlePackAdd({ packPath: packDir, cwd: "/tmp" }, deps)
-      ).rejects.toMatchObject({
+      await expect(handlePackAdd({ packPath: packDir, cwd: "/tmp" }, deps)).rejects.toMatchObject({
         code: "MANIFEST_SCHEMA_ERROR",
       });
     });
@@ -476,10 +443,7 @@ describe("packAddHandler", () => {
       // Path with extra slashes
       const messyPath = packDir + "///";
 
-      const result = await handlePackAdd(
-        { packPath: messyPath, cwd: "/tmp" },
-        deps
-      );
+      const result = await handlePackAdd({ packPath: messyPath, cwd: "/tmp" }, deps);
 
       expect(result.status).toBe("installed");
       expect(result.sourcePath).not.toContain("///");
@@ -496,10 +460,7 @@ describe("packAddHandler", () => {
       await fs.mkdir(nestedCwd, { recursive: true });
       const relativePath = "../../parent-ref";
 
-      const result = await handlePackAdd(
-        { packPath: relativePath, cwd: nestedCwd },
-        deps
-      );
+      const result = await handlePackAdd({ packPath: relativePath, cwd: nestedCwd }, deps);
 
       expect(result.packId).toBe("parent-ref");
       expect(result.status).toBe("installed");

@@ -45,7 +45,7 @@ interface TestWorkspace {
 async function createTestGitRepo(
   baseDir: string,
   packName: string,
-  version: string
+  version: string,
 ): Promise<TestGitRepo> {
   const repoPath = path.join(baseDir, `${packName}-repo`);
   await fs.mkdir(repoPath, { recursive: true });
@@ -154,7 +154,7 @@ describe("pack add <git-url>", () => {
       const { repoPath, commitHash } = await createTestGitRepo(
         workspace.baseDir,
         "git-pack",
-        "1.0.0"
+        "1.0.0",
       );
 
       const result = await handlePackAdd(
@@ -166,7 +166,7 @@ describe("pack add <git-url>", () => {
         {
           storeConfig: workspace.storeConfig,
           logger: workspace.logger,
-        }
+        },
       );
 
       expect(result.packId).toBe("git-pack");
@@ -187,11 +187,7 @@ describe("pack add <git-url>", () => {
     });
 
     it("installs pack with specific ref", async () => {
-      const { repoPath, git } = await createTestGitRepo(
-        workspace.baseDir,
-        "ref-pack",
-        "1.0.0"
-      );
+      const { repoPath, git } = await createTestGitRepo(workspace.baseDir, "ref-pack", "1.0.0");
 
       // Get the current/default branch name (could be main or master)
       const branchInfo = await git.branch();
@@ -208,7 +204,7 @@ describe("pack add <git-url>", () => {
 archetypes:
   - id: default
     templateRoot: templates
-`
+`,
       );
       await git.add(".");
       await git.commit("Version 2");
@@ -229,7 +225,7 @@ archetypes:
         {
           storeConfig: workspace.storeConfig,
           logger: workspace.logger,
-        }
+        },
       );
 
       expect(result.version).toBe("2.0.0");
@@ -246,11 +242,7 @@ archetypes:
     });
 
     it("stores pack in correct store location", async () => {
-      const { repoPath } = await createTestGitRepo(
-        workspace.baseDir,
-        "store-pack",
-        "1.0.0"
-      );
+      const { repoPath } = await createTestGitRepo(workspace.baseDir, "store-pack", "1.0.0");
 
       const result = await handlePackAdd(
         {
@@ -261,7 +253,7 @@ archetypes:
         {
           storeConfig: workspace.storeConfig,
           logger: workspace.logger,
-        }
+        },
       );
 
       // Verify pack is installed in store
@@ -281,11 +273,7 @@ archetypes:
 
   describe("idempotency", () => {
     it("returns already_installed on second identical install", async () => {
-      const { repoPath } = await createTestGitRepo(
-        workspace.baseDir,
-        "idempotent-pack",
-        "1.0.0"
-      );
+      const { repoPath } = await createTestGitRepo(workspace.baseDir, "idempotent-pack", "1.0.0");
 
       const deps: PackAddDependencies = {
         storeConfig: workspace.storeConfig,
@@ -309,11 +297,7 @@ archetypes:
     });
 
     it("does not create duplicate registry entries", async () => {
-      const { repoPath } = await createTestGitRepo(
-        workspace.baseDir,
-        "nodup-pack",
-        "1.0.0"
-      );
+      const { repoPath } = await createTestGitRepo(workspace.baseDir, "nodup-pack", "1.0.0");
 
       const deps: PackAddDependencies = {
         storeConfig: workspace.storeConfig,
@@ -357,8 +341,8 @@ archetypes:
             cwd: workspace.baseDir,
             isGitUrl: true,
           },
-          deps
-        )
+          deps,
+        ),
       ).rejects.toThrow();
 
       try {
@@ -368,7 +352,7 @@ archetypes:
             cwd: workspace.baseDir,
             isGitUrl: true,
           },
-          deps
+          deps,
         );
       } catch (err) {
         expect((err as Error).message).toContain("clone");
@@ -401,8 +385,8 @@ archetypes:
             cwd: workspace.baseDir,
             isGitUrl: true,
           },
-          deps
-        )
+          deps,
+        ),
       ).rejects.toThrow();
 
       try {
@@ -412,7 +396,7 @@ archetypes:
             cwd: workspace.baseDir,
             isGitUrl: true,
           },
-          deps
+          deps,
         );
       } catch (err) {
         expect((err as Error).message.toLowerCase()).toContain("manifest");
@@ -445,7 +429,7 @@ archetypes:
             cwd: workspace.baseDir,
             isGitUrl: true,
           },
-          deps
+          deps,
         );
       } catch {
         // Expected to fail

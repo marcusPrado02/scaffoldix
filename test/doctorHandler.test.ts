@@ -10,10 +10,7 @@ import {
   type DoctorResult,
   MIN_NODE_VERSION,
 } from "../src/cli/handlers/doctorHandler.js";
-import {
-  REGISTRY_SCHEMA_VERSION,
-  type Registry,
-} from "../src/core/registry/RegistryService.js";
+import { REGISTRY_SCHEMA_VERSION, type Registry } from "../src/core/registry/RegistryService.js";
 
 // =============================================================================
 // Test Helpers
@@ -63,11 +60,13 @@ function createValidRegistry(packCount: number = 0): Registry {
 /**
  * Creates test dependencies with isolated store.
  */
-async function createTestDependencies(options: {
-  nodeVersion?: string;
-  pnpmResult?: { success: boolean; version?: string; error?: string };
-  fsWritable?: boolean;
-} = {}): Promise<{
+async function createTestDependencies(
+  options: {
+    nodeVersion?: string;
+    pnpmResult?: { success: boolean; version?: string; error?: string };
+    fsWritable?: boolean;
+  } = {},
+): Promise<{
   storeDir: string;
   deps: DoctorDependencies;
 }> {
@@ -95,16 +94,17 @@ async function createTestDependencies(options: {
       }
       return { available: true, version: "9.1.0" };
     },
-    testWriteAccess: options.fsWritable === false
-      ? async () => {
-          throw new Error("EACCES: permission denied");
-        }
-      : async (dir: string) => {
-          // Default: actually test write
-          const testFile = path.join(dir, `.doctor-test-${Date.now()}`);
-          await fs.writeFile(testFile, "test");
-          await fs.unlink(testFile);
-        },
+    testWriteAccess:
+      options.fsWritable === false
+        ? async () => {
+            throw new Error("EACCES: permission denied");
+          }
+        : async (dir: string) => {
+            // Default: actually test write
+            const testFile = path.join(dir, `.doctor-test-${Date.now()}`);
+            await fs.writeFile(testFile, "test");
+            await fs.unlink(testFile);
+          },
   };
 
   return { storeDir, deps };
@@ -186,7 +186,7 @@ describe("doctorHandler", () => {
       // Write valid registry
       await fs.writeFile(
         deps.storePaths.registryFile,
-        JSON.stringify(createValidRegistry(2), null, 2)
+        JSON.stringify(createValidRegistry(2), null, 2),
       );
 
       const result = await handleDoctor(deps);
@@ -340,7 +340,7 @@ describe("doctorHandler", () => {
       // Write valid registry
       await fs.writeFile(
         deps.storePaths.registryFile,
-        JSON.stringify(createValidRegistry(3), null, 2)
+        JSON.stringify(createValidRegistry(3), null, 2),
       );
 
       const result = await handleDoctor(deps);
@@ -384,7 +384,7 @@ describe("doctorHandler", () => {
       // Write valid JSON but invalid schema
       await fs.writeFile(
         deps.storePaths.registryFile,
-        JSON.stringify({ schemaVersion: "wrong", packs: {} })
+        JSON.stringify({ schemaVersion: "wrong", packs: {} }),
       );
 
       const result = await handleDoctor(deps);
@@ -412,7 +412,7 @@ describe("doctorHandler", () => {
 
       await fs.writeFile(
         deps.storePaths.registryFile,
-        JSON.stringify(createValidRegistry(5), null, 2)
+        JSON.stringify(createValidRegistry(5), null, 2),
       );
 
       const result = await handleDoctor(deps);
@@ -531,7 +531,7 @@ describe("doctorHandler", () => {
       // Create valid registry with packs
       await fs.writeFile(
         deps.storePaths.registryFile,
-        JSON.stringify(createValidRegistry(2), null, 2)
+        JSON.stringify(createValidRegistry(2), null, 2),
       );
 
       const result = await handleDoctor(deps);

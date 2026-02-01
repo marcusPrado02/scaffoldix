@@ -129,7 +129,7 @@ function checkNodeVersion(getVersion: () => string): DoctorCheckResult {
  * Checks if pnpm is available.
  */
 async function checkPnpmAvailability(
-  checkPnpm: () => Promise<PnpmCheckResult>
+  checkPnpm: () => Promise<PnpmCheckResult>,
 ): Promise<DoctorCheckResult> {
   try {
     const result = await checkPnpm();
@@ -163,7 +163,7 @@ async function checkPnpmAvailability(
  */
 async function checkStoreWritable(
   storeDir: string,
-  testWrite: (dir: string) => Promise<void>
+  testWrite: (dir: string) => Promise<void>,
 ): Promise<DoctorCheckResult> {
   try {
     await testWrite(storeDir);
@@ -188,9 +188,7 @@ async function checkStoreWritable(
 /**
  * Checks registry integrity using RegistryService.
  */
-async function checkRegistryIntegrity(
-  registryFile: string
-): Promise<DoctorCheckResult> {
+async function checkRegistryIntegrity(registryFile: string): Promise<DoctorCheckResult> {
   try {
     const registryService = new RegistryService(registryFile);
     const registry = await registryService.load();
@@ -268,9 +266,7 @@ export async function handleDoctor(deps: DoctorDependencies): Promise<DoctorResu
  * @param storePaths - Store paths from paths module
  * @returns Dependencies configured for real system checks
  */
-export function createDefaultDoctorDependencies(
-  storePaths: StorePaths
-): DoctorDependencies {
+export function createDefaultDoctorDependencies(storePaths: StorePaths): DoctorDependencies {
   return {
     storePaths,
     getNodeVersion: () => process.versions.node,

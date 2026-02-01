@@ -70,7 +70,7 @@ function createRegistry(
     origin: PackOrigin;
     hash: string;
     installedAt?: string;
-  }>
+  }>,
 ): Registry {
   const packsRecord: Registry["packs"] = {};
   for (const pack of packs) {
@@ -118,7 +118,7 @@ async function createTestPack(
       postGenerate?: string[];
       checks?: string[];
     }>;
-  }
+  },
 ): Promise<string> {
   const sanitizedId = sanitizePackId(packId);
   const packDir = path.join(packsDir, sanitizedId, hash);
@@ -239,7 +239,7 @@ describe("generateHandler - generation report persistence", () => {
           dryRun: false,
           data: { name: "Test" },
         },
-        workspace.deps
+        workspace.deps,
       );
 
       // Read state from target
@@ -312,7 +312,7 @@ describe("generateHandler - generation report persistence", () => {
           dryRun: false,
           data: {},
         },
-        workspace.deps
+        workspace.deps,
       );
 
       const state = (await stateManager.read(workspace.targetDir)) as ProjectStateV2;
@@ -357,7 +357,7 @@ describe("generateHandler - generation report persistence", () => {
           dryRun: false,
           data: {},
         },
-        workspace.deps
+        workspace.deps,
       );
 
       const state = (await stateManager.read(workspace.targetDir)) as ProjectStateV2;
@@ -402,7 +402,7 @@ describe("generateHandler - generation report persistence", () => {
           dryRun: false,
           data: {},
         },
-        workspace.deps
+        workspace.deps,
       );
 
       const state = (await stateManager.read(workspace.targetDir)) as ProjectStateV2;
@@ -449,7 +449,7 @@ describe("generateHandler - generation report persistence", () => {
             data: { run: i },
             force: i > 0, // Force for subsequent runs to handle conflicts
           },
-          workspace.deps
+          workspace.deps,
         );
       }
 
@@ -503,8 +503,8 @@ describe("generateHandler - generation report persistence", () => {
             dryRun: false,
             data: {},
           },
-          workspace.deps
-        )
+          workspace.deps,
+        ),
       ).rejects.toThrow();
 
       // Target state should NOT be modified (generation failed)
@@ -550,7 +550,7 @@ describe("generateHandler - generation report persistence", () => {
           dryRun: false,
           data: { foo: "bar" },
         },
-        workspace.deps
+        workspace.deps,
       );
 
       const state = (await stateManager.read(workspace.targetDir)) as ProjectStateV2;

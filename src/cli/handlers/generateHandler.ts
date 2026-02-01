@@ -24,10 +24,7 @@ import {
   type FileEntry,
   type RenameRules,
 } from "../../core/render/Renderer.js";
-import {
-  ConflictDetector,
-  GenerateConflictError,
-} from "../../core/conflicts/ConflictDetector.js";
+import { ConflictDetector, GenerateConflictError } from "../../core/conflicts/ConflictDetector.js";
 import {
   ProjectStateManager,
   type GenerationReport,
@@ -36,18 +33,22 @@ import {
 } from "../../core/state/ProjectStateManager.js";
 import { PatchEngine, type PatchApplySummary } from "../../core/patch/PatchEngine.js";
 import { PatchResolver } from "../../core/patch/PatchResolver.js";
-import { HookRunner, type HookRunSummary, type HookResult, type HookLogger } from "../../core/hooks/HookRunner.js";
-import { CheckRunner, type CheckRunSummary, type CheckResult, type CheckLogger } from "../../core/checks/CheckRunner.js";
+import {
+  HookRunner,
+  type HookRunSummary,
+  type HookResult,
+  type HookLogger,
+} from "../../core/hooks/HookRunner.js";
+import {
+  CheckRunner,
+  type CheckRunSummary,
+  type CheckResult,
+  type CheckLogger,
+} from "../../core/checks/CheckRunner.js";
 import { StagingManager } from "../../core/staging/StagingManager.js";
-import {
-  resolveInputs,
-  type InputDefinition,
-} from "../../core/generate/InputResolver.js";
+import { resolveInputs, type InputDefinition } from "../../core/generate/InputResolver.js";
 import { EngineTrace, type TraceJson } from "../../core/observability/EngineTrace.js";
-import {
-  PreviewPlanner,
-  type PreviewReport,
-} from "../../core/preview/PreviewPlanner.js";
+import { PreviewPlanner, type PreviewReport } from "../../core/preview/PreviewPlanner.js";
 import { printDryRunPreview } from "../printers/DryRunPreviewPrinter.js";
 
 // =============================================================================
@@ -269,7 +270,7 @@ function validateCompatibility(manifest: PackManifest): void {
         `You are using Scaffoldix v${CLI_VERSION}. ` +
         `Please upgrade Scaffoldix or use a compatible pack version.`,
       undefined,
-      true
+      true,
     );
   }
 }
@@ -297,7 +298,9 @@ function deriveStorePath(packsDir: string, packId: string, hash: string): string
  * Input for applying patches.
  */
 interface ApplyPatchesInput {
-  readonly patches: NonNullable<import("../../core/manifest/ManifestLoader.js").Archetype["patches"]>;
+  readonly patches: NonNullable<
+    import("../../core/manifest/ManifestLoader.js").Archetype["patches"]
+  >;
   readonly data: Record<string, unknown>;
   readonly packStorePath: string;
   readonly targetDir: string;
@@ -383,7 +386,7 @@ async function applyPatches(input: ApplyPatchesInput): Promise<PatchReport> {
       undefined,
       `An unexpected error occurred while applying patches: ${cause.message}`,
       cause,
-      true
+      true,
     );
   }
 
@@ -436,7 +439,7 @@ export function parseArchetypeRef(ref: string): ArchetypeRef {
       `Expected format: packId:archetypeId (e.g., "java-spring:base-entity"). ` +
         `The colon separates pack ID from archetype ID.`,
       undefined,
-      true
+      true,
     );
   }
 
@@ -452,7 +455,7 @@ export function parseArchetypeRef(ref: string): ArchetypeRef {
       `Expected format: packId:archetypeId (e.g., "java-spring:base-entity"). ` +
         `Pack ID cannot be empty.`,
       undefined,
-      true
+      true,
     );
   }
 
@@ -465,7 +468,7 @@ export function parseArchetypeRef(ref: string): ArchetypeRef {
       `Expected format: packId:archetypeId (e.g., "java-spring:base-entity"). ` +
         `Archetype ID cannot be empty.`,
       undefined,
-      true
+      true,
     );
   }
 
@@ -503,7 +506,7 @@ export function parseArchetypeRef(ref: string): ArchetypeRef {
  */
 export async function handleGenerate(
   input: GenerateInput,
-  deps: GenerateDependencies
+  deps: GenerateDependencies,
 ): Promise<GenerateResult> {
   const { ref, targetDir, dryRun, data, renameRules, version, force = false } = input;
   const { registryFile, packsDir, storeDir } = deps;
@@ -549,7 +552,7 @@ export async function handleGenerate(
       `Pack '${packId}' is registered but its files are missing from the store at ${storePath}. ` +
         `Try reinstalling the pack with \`scaffoldix pack add <path>\`.`,
       undefined,
-      true
+      true,
     );
   }
   trace.end("validate store path");
@@ -582,7 +585,7 @@ export async function handleGenerate(
         `Available archetypes: ${availableArchetypes}. ` +
         `Run \`scaffoldix pack info ${packId}\` to see all archetypes.`,
       undefined,
-      true
+      true,
     );
   }
   trace.end("find archetype");
@@ -632,7 +635,7 @@ export async function handleGenerate(
         `Expected at: ${templateDir}. ` +
         `The pack may be corrupted. Try reinstalling with \`scaffoldix pack add <path>\`.`,
       undefined,
-      true
+      true,
     );
   }
   trace.end("validate template dir");
@@ -808,7 +811,7 @@ export async function handleGenerate(
             `${failedSummary}. ` +
             `Target was not modified. Fix the issues and re-run.`,
           undefined,
-          true
+          true,
         );
       }
     }
@@ -887,37 +890,43 @@ export async function handleGenerate(
         applied: patchReport.applied,
         skipped: patchReport.skipped,
         failed: patchReport.failed,
-        items: patchReport.entries.map((e): PatchItem => ({
-          kind: e.kind,
-          file: e.file,
-          idempotencyKey: e.idempotencyKey,
-          status: e.status,
-          reason: e.reason,
-        })),
+        items: patchReport.entries.map(
+          (e): PatchItem => ({
+            kind: e.kind,
+            file: e.file,
+            idempotencyKey: e.idempotencyKey,
+            status: e.status,
+            reason: e.reason,
+          }),
+        ),
       };
     }
 
     // Add hooks summary if hooks were run
     if (hookSummary) {
       generationReport.hooks = {
-        items: hookSummary.results.map((r): CommandItem => ({
-          command: r.command,
-          status: r.success ? "success" : "failure",
-          exitCode: r.exitCode,
-          durationMs: r.durationMs,
-        })),
+        items: hookSummary.results.map(
+          (r): CommandItem => ({
+            command: r.command,
+            status: r.success ? "success" : "failure",
+            exitCode: r.exitCode,
+            durationMs: r.durationMs,
+          }),
+        ),
       };
     }
 
     // Add checks summary if checks were run
     if (checkSummary) {
       generationReport.checks = {
-        items: checkSummary.results.map((r): CommandItem => ({
-          command: r.command,
-          status: r.success ? "success" : "failure",
-          exitCode: r.exitCode,
-          durationMs: r.durationMs,
-        })),
+        items: checkSummary.results.map(
+          (r): CommandItem => ({
+            command: r.command,
+            status: r.success ? "success" : "failure",
+            exitCode: r.exitCode,
+            durationMs: r.durationMs,
+          }),
+        ),
       };
     }
 
@@ -931,7 +940,6 @@ export async function handleGenerate(
     await stagingManager.commit(stagingDir, targetDir, { force: true });
     console.log(`[staging] Successfully committed to target.`);
     trace.end("commit staging");
-
   } catch (error) {
     // Failure: cleanup staging, do NOT touch target
     console.error(`[staging] Aborted; target was not modified.`);
@@ -1014,8 +1022,8 @@ export function formatGenerateOutput(result: GenerateResult): string[] {
 
   // Report overwritten files
   const overwrittenFiles = result.dryRun
-    ? result.filesWouldOverwrite ?? []
-    : result.filesOverwritten ?? [];
+    ? (result.filesWouldOverwrite ?? [])
+    : (result.filesOverwritten ?? []);
 
   if (overwrittenFiles.length > 0) {
     lines.push("");
@@ -1092,7 +1100,7 @@ export function formatPatchReport(report: PatchReport): string {
   // Summary line
   lines.push(
     `Patches: total=${report.total} applied=${report.applied} ` +
-    `skipped=${report.skipped} failed=${report.failed}`
+      `skipped=${report.skipped} failed=${report.failed}`,
   );
 
   // Individual patch results
@@ -1115,8 +1123,10 @@ export function formatPatchReport(report: PatchReport): string {
  */
 export function formatHookReport(report: HookReport): string {
   const durationStr = formatDuration(report.totalDurationMs);
-  return `Hooks: total=${report.total} succeeded=${report.succeeded} ` +
-    `failed=${report.failed} duration=${durationStr}`;
+  return (
+    `Hooks: total=${report.total} succeeded=${report.succeeded} ` +
+    `failed=${report.failed} duration=${durationStr}`
+  );
 }
 
 /**
@@ -1127,8 +1137,10 @@ export function formatHookReport(report: HookReport): string {
  */
 export function formatCheckReport(report: CheckReport): string {
   const durationStr = formatDuration(report.totalDurationMs);
-  return `Checks: total=${report.total} passed=${report.passed} ` +
-    `failed=${report.failed} duration=${durationStr}`;
+  return (
+    `Checks: total=${report.total} passed=${report.passed} ` +
+    `failed=${report.failed} duration=${durationStr}`
+  );
 }
 
 /**

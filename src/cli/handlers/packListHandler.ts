@@ -139,9 +139,7 @@ function toListEntry(entry: RegistryPackEntry): PackListEntry {
  * @returns Result with list of packs
  * @throws ScaffoldError on registry corruption
  */
-export async function handlePackList(
-  deps: PackListDependencies
-): Promise<PackListResult> {
+export async function handlePackList(deps: PackListDependencies): Promise<PackListResult> {
   const { registryFile } = deps;
 
   const registryService = new RegistryService(registryFile);
@@ -151,9 +149,7 @@ export async function handlePackList(
 
   // Convert to list and sort
   const entries = Object.values(registry.packs);
-  const packs = entries
-    .map(toListEntry)
-    .sort((a, b) => a.packId.localeCompare(b.packId));
+  const packs = entries.map(toListEntry).sort((a, b) => a.packId.localeCompare(b.packId));
 
   // Determine if registry file actually exists (for messaging)
   // If we got packs, it exists. If empty, we can't tell from the data alone,

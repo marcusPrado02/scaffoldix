@@ -12,10 +12,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 
-import {
-  handleGenerate,
-  type GenerateDependencies,
-} from "../src/cli/handlers/generateHandler.js";
+import { handleGenerate, type GenerateDependencies } from "../src/cli/handlers/generateHandler.js";
 import {
   REGISTRY_SCHEMA_VERSION,
   type Registry,
@@ -68,7 +65,7 @@ function createRegistry(
     origin: PackOrigin;
     hash?: string;
     installedAt?: string;
-  }>
+  }>,
 ): Registry {
   const packsRecord: Registry["packs"] = {};
   for (const pack of packs) {
@@ -104,7 +101,7 @@ async function createTestPack(
       templateRoot: string;
       files: Array<{ name: string; content: string }>;
     }>;
-  }
+  },
 ): Promise<string> {
   const sanitizedId = sanitizePackId(packId);
   const packDir = path.join(packsDir, sanitizedId, hash);
@@ -229,8 +226,8 @@ describe("generateHandler conflict detection", () => {
             data: { projectName: "Test" },
             force: false,
           },
-          deps
-        )
+          deps,
+        ),
       ).rejects.toThrow(GenerateConflictError);
     });
 
@@ -276,7 +273,7 @@ describe("generateHandler conflict detection", () => {
             data: { projectName: "Test" },
             force: false,
           },
-          deps
+          deps,
         );
         expect.fail("Should have thrown GenerateConflictError");
       } catch (err: any) {
@@ -327,7 +324,7 @@ describe("generateHandler conflict detection", () => {
             data: { projectName: "Test" },
             force: false,
           },
-          deps
+          deps,
         );
       } catch {
         // Expected to throw
@@ -373,7 +370,7 @@ describe("generateHandler conflict detection", () => {
           data: { projectName: "Test" },
           force: false,
         },
-        deps
+        deps,
       );
 
       expect(result.filesWritten.length).toBeGreaterThan(0);
@@ -422,7 +419,7 @@ describe("generateHandler conflict detection", () => {
           data: { projectName: "NewProject" },
           force: true,
         },
-        deps
+        deps,
       );
 
       // Verify success
@@ -473,7 +470,7 @@ describe("generateHandler conflict detection", () => {
           data: { projectName: "Test" },
           force: true,
         },
-        deps
+        deps,
       );
 
       // Verify all files were written
@@ -528,7 +525,7 @@ describe("generateHandler conflict detection", () => {
           data: { projectName: "FirstGen" },
           force: false,
         },
-        deps
+        deps,
       );
       expect(result1.filesWritten.length).toBeGreaterThan(0);
 
@@ -542,8 +539,8 @@ describe("generateHandler conflict detection", () => {
             data: { projectName: "SecondGen" },
             force: false,
           },
-          deps
-        )
+          deps,
+        ),
       ).rejects.toThrow(GenerateConflictError);
     });
 
@@ -582,7 +579,7 @@ describe("generateHandler conflict detection", () => {
           data: { projectName: "FirstGen" },
           force: false,
         },
-        deps
+        deps,
       );
 
       // Second generation with force - should succeed
@@ -594,7 +591,7 @@ describe("generateHandler conflict detection", () => {
           data: { projectName: "SecondGen" },
           force: true,
         },
-        deps
+        deps,
       );
 
       expect(result2.filesWritten.length).toBeGreaterThan(0);
@@ -647,7 +644,7 @@ describe("generateHandler conflict detection", () => {
           data: { projectName: "Test" },
           force: false,
         },
-        deps
+        deps,
       );
 
       // Should return preview report with MODIFY operation
@@ -698,7 +695,7 @@ describe("generateHandler conflict detection", () => {
           data: { projectName: "Test" },
           force: true,
         },
-        deps
+        deps,
       );
 
       // Dry-run should return planned files

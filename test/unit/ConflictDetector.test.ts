@@ -116,9 +116,7 @@ describe("ConflictDetector", () => {
       expect(report.count).toBe(1);
       expect(report.conflicts).toHaveLength(1);
       expect(report.conflicts[0].relativePath).toBe("package.json");
-      expect(report.conflicts[0].absolutePath).toBe(
-        path.join(targetDir, "package.json")
-      );
+      expect(report.conflicts[0].absolutePath).toBe(path.join(targetDir, "package.json"));
     });
 
     it("detects multiple file conflicts", async () => {
@@ -145,7 +143,7 @@ describe("ConflictDetector", () => {
     it("detects conflicts in nested directories", async () => {
       await writeFile(
         path.join(targetDir, "src", "components", "Button.tsx"),
-        "export const Button = () => {};"
+        "export const Button = () => {};",
       );
 
       const detector = new ConflictDetector();

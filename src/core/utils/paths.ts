@@ -255,7 +255,7 @@ function ensureDirectory(dirPath: string): void {
         undefined,
         `Unable to create ${dirPath}. Ensure you have write permissions to the parent directory.`,
         cause,
-        true
+        true,
       );
     }
 
@@ -268,7 +268,7 @@ function ensureDirectory(dirPath: string): void {
         undefined,
         `Unable to create ${dirPath}. The disk appears to be full.`,
         cause,
-        true
+        true,
       );
     }
 
@@ -280,7 +280,7 @@ function ensureDirectory(dirPath: string): void {
         undefined,
         `Unable to create ${dirPath}. The filesystem is read-only.`,
         cause,
-        true
+        true,
       );
     }
 
@@ -292,7 +292,7 @@ function ensureDirectory(dirPath: string): void {
       undefined,
       `Could not create ${dirPath}. ${cause.message}`,
       cause,
-      true
+      true,
     );
   }
 }

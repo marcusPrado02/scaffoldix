@@ -70,10 +70,7 @@ export class ErrorPresenter {
  * For unknown errors: wraps as INTERNAL_ERROR.
  * Stack traces only shown in debug mode.
  */
-export function formatError(
-  error: unknown,
-  options: FormatErrorOptions = {}
-): string {
+export function formatError(error: unknown, options: FormatErrorOptions = {}): string {
   const { debug = false } = options;
 
   // Normalize to ScaffoldError
@@ -151,7 +148,7 @@ function normalizeError(error: unknown): ScaffoldError {
       undefined,
       undefined,
       error,
-      false // programming error
+      false, // programming error
     );
     scaffoldError.stack = error.stack;
     return scaffoldError;
@@ -164,7 +161,7 @@ function normalizeError(error: unknown): ScaffoldError {
     undefined,
     undefined,
     undefined,
-    false
+    false,
   );
 }
 

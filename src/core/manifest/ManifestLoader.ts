@@ -83,48 +83,52 @@ function validateContentSource(data: { contentTemplate?: string; path?: string }
  * - strict: Strictness flag (default true at runtime)
  * - when: Reserved for future conditional execution
  */
-const MarkerInsertSchema = z.object({
-  kind: z.literal("marker_insert"),
-  file: nonEmptyString("Patch file"),
-  idempotencyKey: nonEmptyString("Patch idempotencyKey"),
-  markerStart: nonEmptyString("markerStart"),
-  markerEnd: nonEmptyString("markerEnd"),
-  /**
-   * Inline template content (Handlebars).
-   * Will be rendered with generation inputs at execution time.
-   */
-  contentTemplate: z.string().optional(),
-  /**
-   * Path to a template file within the pack.
-   * Relative to pack root. Will be read and rendered with generation inputs.
-   */
-  path: z.string().optional(),
-  description: z.string().optional(),
-  strict: z.boolean().optional(),
-  when: z.string().optional(),
-}).refine(validateContentSource, {
-  message: "Provide exactly one of contentTemplate or path",
-});
+const MarkerInsertSchema = z
+  .object({
+    kind: z.literal("marker_insert"),
+    file: nonEmptyString("Patch file"),
+    idempotencyKey: nonEmptyString("Patch idempotencyKey"),
+    markerStart: nonEmptyString("markerStart"),
+    markerEnd: nonEmptyString("markerEnd"),
+    /**
+     * Inline template content (Handlebars).
+     * Will be rendered with generation inputs at execution time.
+     */
+    contentTemplate: z.string().optional(),
+    /**
+     * Path to a template file within the pack.
+     * Relative to pack root. Will be read and rendered with generation inputs.
+     */
+    path: z.string().optional(),
+    description: z.string().optional(),
+    strict: z.boolean().optional(),
+    when: z.string().optional(),
+  })
+  .refine(validateContentSource, {
+    message: "Provide exactly one of contentTemplate or path",
+  });
 
 /**
  * Schema for marker_replace operation.
  *
  * Replaces everything between markerStart and markerEnd with new content.
  */
-const MarkerReplaceSchema = z.object({
-  kind: z.literal("marker_replace"),
-  file: nonEmptyString("Patch file"),
-  idempotencyKey: nonEmptyString("Patch idempotencyKey"),
-  markerStart: nonEmptyString("markerStart"),
-  markerEnd: nonEmptyString("markerEnd"),
-  contentTemplate: z.string().optional(),
-  path: z.string().optional(),
-  description: z.string().optional(),
-  strict: z.boolean().optional(),
-  when: z.string().optional(),
-}).refine(validateContentSource, {
-  message: "Provide exactly one of contentTemplate or path",
-});
+const MarkerReplaceSchema = z
+  .object({
+    kind: z.literal("marker_replace"),
+    file: nonEmptyString("Patch file"),
+    idempotencyKey: nonEmptyString("Patch idempotencyKey"),
+    markerStart: nonEmptyString("markerStart"),
+    markerEnd: nonEmptyString("markerEnd"),
+    contentTemplate: z.string().optional(),
+    path: z.string().optional(),
+    description: z.string().optional(),
+    strict: z.boolean().optional(),
+    when: z.string().optional(),
+  })
+  .refine(validateContentSource, {
+    message: "Provide exactly one of contentTemplate or path",
+  });
 
 /**
  * Schema for append_if_missing operation.
@@ -132,18 +136,20 @@ const MarkerReplaceSchema = z.object({
  * Appends content to end of file if not already present.
  * Does NOT use markers - markerStart/markerEnd are forbidden.
  */
-const AppendIfMissingSchema = z.object({
-  kind: z.literal("append_if_missing"),
-  file: nonEmptyString("Patch file"),
-  idempotencyKey: nonEmptyString("Patch idempotencyKey"),
-  contentTemplate: z.string().optional(),
-  path: z.string().optional(),
-  description: z.string().optional(),
-  strict: z.boolean().optional(),
-  when: z.string().optional(),
-}).refine(validateContentSource, {
-  message: "Provide exactly one of contentTemplate or path",
-});
+const AppendIfMissingSchema = z
+  .object({
+    kind: z.literal("append_if_missing"),
+    file: nonEmptyString("Patch file"),
+    idempotencyKey: nonEmptyString("Patch idempotencyKey"),
+    contentTemplate: z.string().optional(),
+    path: z.string().optional(),
+    description: z.string().optional(),
+    strict: z.boolean().optional(),
+    when: z.string().optional(),
+  })
+  .refine(validateContentSource, {
+    message: "Provide exactly one of contentTemplate or path",
+  });
 
 /**
  * Raw patch schema without marker validation for append_if_missing.
@@ -160,28 +166,32 @@ const RawPatchSchema = z.discriminatedUnion("kind", [
  * Uses superRefine to validate that append_if_missing does not include markers,
  * providing actionable error messages.
  */
-const PatchSchema = z.object({
-  kind: z.enum(["marker_insert", "marker_replace", "append_if_missing"]),
-  markerStart: z.string().optional(),
-  markerEnd: z.string().optional(),
-}).passthrough().superRefine((data, ctx) => {
-  if (data.kind === "append_if_missing") {
-    if (data.markerStart !== undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "append_if_missing does not use markers. Remove markerStart.",
-        path: ["markerStart"],
-      });
+const PatchSchema = z
+  .object({
+    kind: z.enum(["marker_insert", "marker_replace", "append_if_missing"]),
+    markerStart: z.string().optional(),
+    markerEnd: z.string().optional(),
+  })
+  .passthrough()
+  .superRefine((data, ctx) => {
+    if (data.kind === "append_if_missing") {
+      if (data.markerStart !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "append_if_missing does not use markers. Remove markerStart.",
+          path: ["markerStart"],
+        });
+      }
+      if (data.markerEnd !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "append_if_missing does not use markers. Remove markerEnd.",
+          path: ["markerEnd"],
+        });
+      }
     }
-    if (data.markerEnd !== undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "append_if_missing does not use markers. Remove markerEnd.",
-        path: ["markerEnd"],
-      });
-    }
-  }
-}).pipe(RawPatchSchema);
+  })
+  .pipe(RawPatchSchema);
 
 /**
  * Schema for input definition in archetype.
@@ -449,7 +459,7 @@ export class ManifestLoader {
         undefined,
         `The path "${packRootDir}" is not absolute. Provide a full path to the pack directory.`,
         undefined,
-        false // programming error
+        false, // programming error
       );
     }
 
@@ -506,7 +516,7 @@ export class ManifestLoader {
         `Expected ${expectedFiles}. ` +
         `Create archetype.yaml or pack.yaml in the pack root directory.`,
       undefined,
-      true
+      true,
     );
   }
 
@@ -530,7 +540,7 @@ export class ManifestLoader {
         undefined,
         `Could not read ${manifestPath}. ${cause.message}`,
         cause,
-        true
+        true,
       );
     }
   }
@@ -571,7 +581,7 @@ export class ManifestLoader {
         `Failed to parse ${path.basename(manifestPath)}: ${parseMessage}. ` +
           `Check the YAML syntax in ${manifestPath}.`,
         cause,
-        true
+        true,
       );
     }
   }
@@ -585,11 +595,7 @@ export class ManifestLoader {
    * @returns Validated manifest data
    * @throws ScaffoldError if schema validation fails
    */
-  private validateSchema(
-    parsed: unknown,
-    manifestPath: string,
-    packRootDir: string
-  ): ManifestData {
+  private validateSchema(parsed: unknown, manifestPath: string, packRootDir: string): ManifestData {
     const result = ManifestSchema.safeParse(parsed);
 
     if (!result.success) {
@@ -617,7 +623,7 @@ export class ManifestLoader {
         `The manifest at ${manifestPath} has validation errors: ${issuesSummary}. ` +
           `Fix the manifest file according to the pack schema.`,
         undefined,
-        true
+        true,
       );
     }
 

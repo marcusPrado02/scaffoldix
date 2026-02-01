@@ -219,7 +219,7 @@ describe("CliSpinner", () => {
         await expect(
           spinner.wrap("Processing", async () => {
             throw new Error("Test error");
-          })
+          }),
         ).rejects.toThrow("Test error");
       } finally {
         process.stdout.write = originalStdout;

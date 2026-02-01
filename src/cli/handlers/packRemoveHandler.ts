@@ -145,7 +145,7 @@ async function removeIfEmpty(dirPath: string): Promise<boolean> {
  */
 export async function handlePackRemove(
   input: PackRemoveInput,
-  deps: PackRemoveDependencies
+  deps: PackRemoveDependencies,
 ): Promise<PackRemoveResult> {
   const { packId } = input;
   const { registryFile, packsDir, logger } = deps;
@@ -163,7 +163,7 @@ export async function handlePackRemove(
       undefined,
       `Pack '${packId}' is not installed. Run \`scaffoldix pack list\` to see installed packs.`,
       undefined,
-      true
+      true,
     );
   }
 
@@ -186,7 +186,7 @@ export async function handlePackRemove(
       `The computed store path "${storePath}" is outside the packs directory. ` +
         `This may indicate registry corruption. Please manually verify and repair.`,
       undefined,
-      true
+      true,
     );
   }
 

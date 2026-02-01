@@ -162,7 +162,9 @@ describe("Renderer", () => {
 
       // __Entity__Service.ts should become CustomerService.ts
       expect(await fileExists(path.join(targetDir, "Customer", "CustomerService.ts"))).toBe(true);
-      expect(await fileExists(path.join(targetDir, "Customer", "CustomerRepository.ts"))).toBe(true);
+      expect(await fileExists(path.join(targetDir, "Customer", "CustomerRepository.ts"))).toBe(
+        true,
+      );
     });
 
     it("renames directories according to replacement rules", async () => {
@@ -220,7 +222,7 @@ describe("Renderer", () => {
       await fs.mkdir(path.join(customTemplateDir, "__EntityName__"), { recursive: true });
       await fs.writeFile(
         path.join(customTemplateDir, "__EntityName__", "__Entity__File.ts"),
-        "content"
+        "content",
       );
 
       await renderArchetype({
@@ -393,12 +395,10 @@ describe("Renderer", () => {
 
       // Should plan OrderService.ts in Order directory
       const servicePlanned = result.filesPlanned.find(
-        (f) => f.destRelativePath === path.join("Order", "OrderService.ts")
+        (f) => f.destRelativePath === path.join("Order", "OrderService.ts"),
       );
       expect(servicePlanned).toBeDefined();
-      expect(servicePlanned?.srcRelativePath).toBe(
-        path.join("__Entity__", "__Entity__Service.ts")
-      );
+      expect(servicePlanned?.srcRelativePath).toBe(path.join("__Entity__", "__Entity__Service.ts"));
     });
 
     it("does not create target directory in dry run", async () => {
@@ -496,7 +496,7 @@ describe("Renderer", () => {
             },
           },
           dryRun: false,
-        })
+        }),
       ).rejects.toThrow();
     });
 
@@ -515,7 +515,7 @@ describe("Renderer", () => {
             },
           },
           dryRun: false,
-        })
+        }),
       ).rejects.toThrow();
     });
   });
@@ -534,7 +534,7 @@ describe("Renderer", () => {
           targetDir,
           data: {},
           dryRun: false,
-        })
+        }),
       ).rejects.toThrow();
     });
 
@@ -544,10 +544,7 @@ describe("Renderer", () => {
       testDirs.push(badTemplateDir);
 
       // Create a template with invalid Handlebars syntax
-      await fs.writeFile(
-        path.join(badTemplateDir, "bad.txt"),
-        "{{#if unclosed"
-      );
+      await fs.writeFile(path.join(badTemplateDir, "bad.txt"), "{{#if unclosed");
 
       try {
         await renderArchetype({
@@ -573,10 +570,7 @@ describe("Renderer", () => {
       const simpleTemplateDir = await createTestDir("simple-template");
       testDirs.push(simpleTemplateDir);
 
-      await fs.writeFile(
-        path.join(simpleTemplateDir, "static.txt"),
-        "No variables here"
-      );
+      await fs.writeFile(path.join(simpleTemplateDir, "static.txt"), "No variables here");
 
       const result = await renderArchetype({
         templateDir: simpleTemplateDir,
@@ -713,10 +707,7 @@ describe("computeRenderPlan", () => {
     const templateDir = trackDir(await createTestDir("plan-multi-rename"));
 
     await fs.mkdir(path.join(templateDir, "src", "__Entity__"), { recursive: true });
-    await fs.writeFile(
-      path.join(templateDir, "src", "__Entity__", "__entity__Repository.ts"),
-      ""
-    );
+    await fs.writeFile(path.join(templateDir, "src", "__Entity__", "__entity__Repository.ts"), "");
 
     const plan = await computeRenderPlan({
       templateDir,
@@ -736,7 +727,7 @@ describe("computeRenderPlan", () => {
     const nonExistentDir = "/nonexistent/template/dir";
 
     await expect(computeRenderPlan({ templateDir: nonExistentDir })).rejects.toThrow(
-      /does not exist/
+      /does not exist/,
     );
   });
 

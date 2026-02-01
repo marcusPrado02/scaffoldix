@@ -145,7 +145,9 @@ export class DryRunPreviewPrinter {
 
     // Hint
     if (report.hasModifications) {
-      lines.push("Hint: Rerun without --dry-run to apply. Use --force to allow overwriting existing files.");
+      lines.push(
+        "Hint: Rerun without --dry-run to apply. Use --force to allow overwriting existing files.",
+      );
     } else if (report.summary.create > 0) {
       lines.push("Hint: Rerun without --dry-run to apply changes.");
     }
@@ -211,7 +213,9 @@ export class DryRunPreviewPrinter {
 
   private printHint(report: PreviewReport): void {
     if (report.hasModifications) {
-      this.output("Hint: Rerun without --dry-run to apply. Use --force to allow overwriting existing files.");
+      this.output(
+        "Hint: Rerun without --dry-run to apply. Use --force to allow overwriting existing files.",
+      );
     } else if (report.summary.create > 0) {
       this.output("Hint: Rerun without --dry-run to apply changes.");
     }
@@ -231,7 +235,7 @@ export class DryRunPreviewPrinter {
  */
 export function formatDryRunPreview(
   report: PreviewReport,
-  options: PrintPreviewOptions = {}
+  options: PrintPreviewOptions = {},
 ): string[] {
   const printer = new DryRunPreviewPrinter(options);
   return printer.format(report);
@@ -243,10 +247,7 @@ export function formatDryRunPreview(
  * @param report - The preview report to print
  * @param options - Printing options
  */
-export function printDryRunPreview(
-  report: PreviewReport,
-  options: PrintPreviewOptions = {}
-): void {
+export function printDryRunPreview(report: PreviewReport, options: PrintPreviewOptions = {}): void {
   const printer = new DryRunPreviewPrinter(options);
   printer.print(report);
 }

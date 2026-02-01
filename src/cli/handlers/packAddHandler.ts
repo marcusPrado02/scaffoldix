@@ -128,7 +128,7 @@ export interface PackAddDependencies {
  */
 export async function handlePackAdd(
   input: PackAddInput,
-  deps: PackAddDependencies
+  deps: PackAddDependencies,
 ): Promise<PackAddResult> {
   const { packPath, cwd, ref } = input;
   const { storeConfig, logger } = deps;
@@ -150,7 +150,7 @@ async function handleGitPackAdd(
   url: string,
   ref: string | undefined,
   storeConfig: StoreServiceConfig,
-  logger: StoreLogger
+  logger: StoreLogger,
 ): Promise<PackAddResult> {
   const fetcher = new GitPackFetcher(storeConfig.storeDir);
 
@@ -206,7 +206,7 @@ async function handleLocalPackAdd(
   packPath: string,
   cwd: string,
   storeConfig: StoreServiceConfig,
-  logger: StoreLogger
+  logger: StoreLogger,
 ): Promise<PackAddResult> {
   // 1. Resolve to absolute path
   const resolvedPath = path.isAbsolute(packPath)
@@ -235,7 +235,7 @@ async function handleLocalPackAdd(
       `The path "${packPath}" does not exist (resolved to "${resolvedPath}"). ` +
         `Verify the path is correct and the directory exists.`,
       error instanceof Error ? error : undefined,
-      true
+      true,
     );
   }
 
@@ -258,7 +258,7 @@ async function handleLocalPackAdd(
       undefined,
       hint,
       undefined,
-      true
+      true,
     );
   }
 
@@ -317,7 +317,7 @@ function validateCompatibility(manifest: PackManifest): void {
         `You are using Scaffoldix v${CLI_VERSION}. ` +
         `Please upgrade Scaffoldix or use a compatible pack version.`,
       undefined,
-      true
+      true,
     );
   }
 }

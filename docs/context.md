@@ -31,6 +31,7 @@ It generates project structures from external template packs, tracks generation 
 ### 1. Engine/Pack Separation
 
 The core engine MUST NOT contain:
+
 - Language-specific logic (e.g., "if JavaScript, do X")
 - Framework-specific templates or defaults
 - Opinionated project structures
@@ -95,42 +96,42 @@ Operations MUST be atomic and recoverable.
 
 ### Engine Constraints
 
-| Constraint | Rationale |
-|------------|-----------|
-| No AI in core engine | Determinism requires no probabilistic behavior |
-| No network during render | Offline-first, reproducible builds |
-| No language detection | Packs declare their domain, not the engine |
-| No shell execution during render | Security and determinism (hooks are post-render) |
-| No interactive prompts during render | Inputs are resolved before render starts |
+| Constraint                           | Rationale                                        |
+| ------------------------------------ | ------------------------------------------------ |
+| No AI in core engine                 | Determinism requires no probabilistic behavior   |
+| No network during render             | Offline-first, reproducible builds               |
+| No language detection                | Packs declare their domain, not the engine       |
+| No shell execution during render     | Security and determinism (hooks are post-render) |
+| No interactive prompts during render | Inputs are resolved before render starts         |
 
 ### Pack Constraints
 
-| Constraint | Rationale |
-|------------|-----------|
-| Packs MUST have a manifest | Validation requires schema |
-| Packs MUST NOT modify engine behavior | Packs are data, not code |
-| Pack templates MUST be Handlebars | Single templating standard |
-| Patches MUST have idempotency keys | Duplicate protection |
+| Constraint                            | Rationale                  |
+| ------------------------------------- | -------------------------- |
+| Packs MUST have a manifest            | Validation requires schema |
+| Packs MUST NOT modify engine behavior | Packs are data, not code   |
+| Pack templates MUST be Handlebars     | Single templating standard |
+| Patches MUST have idempotency keys    | Duplicate protection       |
 
 ### State Constraints
 
-| Constraint | Rationale |
-|------------|-----------|
-| State is per-project, not global | Projects are independent |
-| State writes MUST be atomic | Crash safety |
-| State schema MUST be versioned | Forward compatibility |
+| Constraint                                | Rationale                  |
+| ----------------------------------------- | -------------------------- |
+| State is per-project, not global          | Projects are independent   |
+| State writes MUST be atomic               | Crash safety               |
+| State schema MUST be versioned            | Forward compatibility      |
 | State MUST NOT be required for generation | New projects have no state |
 
 ---
 
 ## Sources of Truth
 
-| Artifact | Location | Purpose |
-|----------|----------|---------|
-| **Pack Manifest** | `archetype.yaml` in pack root | Defines pack structure, archetypes, inputs, patches |
-| **Registry** | `~/.scaffoldix/registry.json` | Tracks installed packs, origins, versions, hashes |
-| **Project State** | `<project>/.scaffoldix/state.json` | Records generation history for the project |
-| **Documentation** | `/docs/*.md` | Architectural decisions and rules |
+| Artifact          | Location                           | Purpose                                             |
+| ----------------- | ---------------------------------- | --------------------------------------------------- |
+| **Pack Manifest** | `archetype.yaml` in pack root      | Defines pack structure, archetypes, inputs, patches |
+| **Registry**      | `~/.scaffoldix/registry.json`      | Tracks installed packs, origins, versions, hashes   |
+| **Project State** | `<project>/.scaffoldix/state.json` | Records generation history for the project          |
+| **Documentation** | `/docs/*.md`                       | Architectural decisions and rules                   |
 
 ### Truth Hierarchy
 
@@ -199,7 +200,7 @@ throw new ScaffoldError(
   "MANIFEST_SCHEMA_ERROR",
   { path: filePath },
   undefined,
-  "Check that all required fields are present in archetype.yaml"
+  "Check that all required fields are present in archetype.yaml",
 );
 
 // Incorrect
@@ -210,33 +211,33 @@ throw new Error("Validation failed");
 
 ## Terminology
 
-| Term | Definition |
-|------|------------|
-| **Engine** | The core CLI runtime (`src/core/`) |
-| **Pack** | A bundle containing manifest, archetypes, and templates |
-| **Store** | Internal directory where installed packs reside (`~/.scaffoldix/store/`) |
-| **Registry** | JSON file tracking installed packs (`~/.scaffoldix/registry.json`) |
-| **Archetype** | A generator unit inside a pack |
-| **Patch** | Safe snippet to modify generated files |
-| **Hook** | Post-generate command (build/test/other) |
-| **Check** | A quality gate command (blocks on failure) |
-| **State** | Per-project file tracking generation history |
+| Term          | Definition                                                               |
+| ------------- | ------------------------------------------------------------------------ |
+| **Engine**    | The core CLI runtime (`src/core/`)                                       |
+| **Pack**      | A bundle containing manifest, archetypes, and templates                  |
+| **Store**     | Internal directory where installed packs reside (`~/.scaffoldix/store/`) |
+| **Registry**  | JSON file tracking installed packs (`~/.scaffoldix/registry.json`)       |
+| **Archetype** | A generator unit inside a pack                                           |
+| **Patch**     | Safe snippet to modify generated files                                   |
+| **Hook**      | Post-generate command (build/test/other)                                 |
+| **Check**     | A quality gate command (blocks on failure)                               |
+| **State**     | Per-project file tracking generation history                             |
 
 ---
 
 ## Technology Stack
 
-| Area | Technology | Rationale |
-|------|------------|-----------|
-| Runtime | Node.js (ES2022+) | Cross-platform, async-first |
-| Language | TypeScript (strict mode) | Type safety, maintainability |
-| CLI Framework | Commander | Industry standard, minimal |
-| Prompts | @clack/prompts | Modern, accessible UX |
-| Template Engine | Handlebars | Logic-less, deterministic |
-| Validation | Zod | Runtime type safety |
-| Git Operations | simple-git | Mature, well-tested |
-| Shell Execution | execa | Cross-platform, secure |
-| Testing | Vitest | Fast, modern, ESM-native |
+| Area            | Technology               | Rationale                    |
+| --------------- | ------------------------ | ---------------------------- |
+| Runtime         | Node.js (ES2022+)        | Cross-platform, async-first  |
+| Language        | TypeScript (strict mode) | Type safety, maintainability |
+| CLI Framework   | Commander                | Industry standard, minimal   |
+| Prompts         | @clack/prompts           | Modern, accessible UX        |
+| Template Engine | Handlebars               | Logic-less, deterministic    |
+| Validation      | Zod                      | Runtime type safety          |
+| Git Operations  | simple-git               | Mature, well-tested          |
+| Shell Execution | execa                    | Cross-platform, secure       |
+| Testing         | Vitest                   | Fast, modern, ESM-native     |
 
 ---
 
@@ -246,14 +247,14 @@ throw new Error("Validation failed");
 
 Scaffoldix follows SemVer with these definitions:
 
-| Change Type | Version Bump |
-|-------------|--------------|
-| Breaking CLI change | Major |
-| Breaking state schema (without migration) | Major |
-| New command or flag | Minor |
-| New error code | Minor |
-| Bug fix | Patch |
-| Documentation only | None |
+| Change Type                               | Version Bump |
+| ----------------------------------------- | ------------ |
+| Breaking CLI change                       | Major        |
+| Breaking state schema (without migration) | Major        |
+| New command or flag                       | Minor        |
+| New error code                            | Minor        |
+| Bug fix                                   | Patch        |
+| Documentation only                        | None         |
 
 ### State Schema Versioning
 
@@ -272,6 +273,7 @@ Scaffoldix follows SemVer with these definitions:
 4. Coverage MUST NOT decrease (enforced by CI thresholds)
 
 Test locations:
+
 - `test/unit/` — Unit tests for isolated modules
 - `test/` — Integration tests for handlers
 - `test/regression/` — Regression tests for specific failure scenarios

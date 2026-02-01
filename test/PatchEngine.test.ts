@@ -65,7 +65,7 @@ describe("PatchEngine", () => {
         `// existing code
 // <SCAFFOLDIX:START:imports>
 // <SCAFFOLDIX:END:imports>
-// more code`
+// more code`,
       );
 
       const op: MarkerInsertOperation = {
@@ -93,7 +93,7 @@ describe("PatchEngine", () => {
       await writeFile(
         targetFile,
         `// <SCAFFOLDIX:START:deps>
-// <SCAFFOLDIX:END:deps>`
+// <SCAFFOLDIX:END:deps>`,
       );
 
       const op: MarkerInsertOperation = {
@@ -137,7 +137,7 @@ describe("PatchEngine", () => {
       };
 
       await expect(engine.applyPatch(op, { rootDir: tempDir, strict: true })).rejects.toThrow(
-        ScaffoldError
+        ScaffoldError,
       );
 
       try {
@@ -165,7 +165,7 @@ describe("PatchEngine", () => {
       };
 
       await expect(engine.applyPatch(op, { rootDir: tempDir, strict: true })).rejects.toThrow(
-        ScaffoldError
+        ScaffoldError,
       );
 
       try {
@@ -189,7 +189,7 @@ describe("PatchEngine", () => {
       };
 
       await expect(engine.applyPatch(op, { rootDir: tempDir, strict: true })).rejects.toThrow(
-        ScaffoldError
+        ScaffoldError,
       );
 
       try {
@@ -215,7 +215,7 @@ describe("PatchEngine", () => {
 // <SCAFFOLDIX:START:config>
 const oldConfig = { debug: false };
 // <SCAFFOLDIX:END:config>
-// end`
+// end`,
       );
 
       const op: MarkerReplaceOperation = {
@@ -243,7 +243,7 @@ const oldConfig = { debug: false };
         targetFile,
         `// <SCAFFOLDIX:START:data>
 original
-// <SCAFFOLDIX:END:data>`
+// <SCAFFOLDIX:END:data>`,
       );
 
       const op: MarkerReplaceOperation = {
@@ -284,7 +284,7 @@ original
       };
 
       await expect(engine.applyPatch(op, { rootDir: tempDir, strict: true })).rejects.toThrow(
-        ScaffoldError
+        ScaffoldError,
       );
     });
 
@@ -296,7 +296,7 @@ original
 // <SCAFFOLDIX:START:section>
 old content
 // <SCAFFOLDIX:END:section>
-const after = true;`
+const after = true;`,
       );
 
       const op: MarkerReplaceOperation = {
@@ -382,7 +382,7 @@ const after = true;`
       };
 
       await expect(engine.applyPatch(op, { rootDir: tempDir, strict: true })).rejects.toThrow(
-        ScaffoldError
+        ScaffoldError,
       );
     });
 
@@ -418,7 +418,7 @@ const after = true;`
 // <SCAFFOLDIX:END:imports>
 // <SCAFFOLDIX:START:config>
 old config
-// <SCAFFOLDIX:END:config>`
+// <SCAFFOLDIX:END:config>`,
       );
 
       const ops: PatchOperation[] = [
@@ -454,7 +454,7 @@ old config
         targetFile,
         `// SCAFFOLDIX_PATCH:already-applied
 // <SCAFFOLDIX:START:section>
-// <SCAFFOLDIX:END:section>`
+// <SCAFFOLDIX:END:section>`,
       );
 
       const ops: PatchOperation[] = [

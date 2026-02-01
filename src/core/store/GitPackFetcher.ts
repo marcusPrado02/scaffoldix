@@ -271,7 +271,7 @@ export class GitPackFetcher {
           `Verify the branch, tag, or commit hash exists. ` +
           `Check available refs with: git ls-remote ${url}`,
         error instanceof Error ? error : undefined,
-        true
+        true,
       );
     }
   }
@@ -314,7 +314,7 @@ export class GitPackFetcher {
         `Check network connectivity, authentication, and that the repository URL is correct. ` +
         `Error: ${details}`,
       cause,
-      true
+      true,
     );
   }
 }

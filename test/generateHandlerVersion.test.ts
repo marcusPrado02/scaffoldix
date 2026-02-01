@@ -9,14 +9,8 @@ import { describe, it, expect, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
-import {
-  handleGenerate,
-  type GenerateDependencies,
-} from "../src/cli/handlers/generateHandler.js";
-import {
-  REGISTRY_SCHEMA_VERSION,
-  type Registry,
-} from "../src/core/registry/RegistryService.js";
+import { handleGenerate, type GenerateDependencies } from "../src/cli/handlers/generateHandler.js";
+import { REGISTRY_SCHEMA_VERSION, type Registry } from "../src/core/registry/RegistryService.js";
 
 // =============================================================================
 // Test Helpers
@@ -46,7 +40,7 @@ async function createVersionedTestPack(
   packId: string,
   version: string,
   hash: string,
-  templateContent: string
+  templateContent: string,
 ): Promise<string> {
   const sanitizedId = sanitizePackId(packId);
   const packDir = path.join(packsDir, sanitizedId, hash);
@@ -76,7 +70,7 @@ archetypes:
  */
 function createMultiVersionRegistry(
   packId: string,
-  versions: Array<{ version: string; hash: string }>
+  versions: Array<{ version: string; hash: string }>,
 ): Registry {
   const installs = versions.map((v) => ({
     version: v.version,
@@ -151,7 +145,7 @@ describe("generate with --version", () => {
     const deps: GenerateDependencies = { registryFile, packsDir, storeDir };
     const result = await handleGenerate(
       { ref: "my-pack:default", targetDir, dryRun: true, data: {} },
-      deps
+      deps,
     );
 
     expect(result.packId).toBe("my-pack");
@@ -184,7 +178,7 @@ describe("generate with --version", () => {
     // Request v1 specifically
     const result = await handleGenerate(
       { ref: "versioned-pack:default", targetDir, dryRun: false, data: {}, version: "1.0.0" },
-      deps
+      deps,
     );
 
     expect(result.packId).toBe("versioned-pack");
@@ -204,9 +198,7 @@ describe("generate with --version", () => {
     const hashV1 = "a".repeat(64);
     await createVersionedTestPack(packsDir, "only-v1", "1.0.0", hashV1, "// v1\n");
 
-    const registry = createMultiVersionRegistry("only-v1", [
-      { version: "1.0.0", hash: hashV1 },
-    ]);
+    const registry = createMultiVersionRegistry("only-v1", [{ version: "1.0.0", hash: hashV1 }]);
     await writeRegistry(registryFile, registry);
 
     const deps: GenerateDependencies = { registryFile, packsDir, storeDir };
@@ -214,8 +206,8 @@ describe("generate with --version", () => {
     await expect(
       handleGenerate(
         { ref: "only-v1:default", targetDir, dryRun: true, data: {}, version: "9.9.9" },
-        deps
-      )
+        deps,
+      ),
     ).rejects.toMatchObject({
       code: "VERSION_NOT_FOUND",
       hint: expect.stringContaining("1.0.0"),

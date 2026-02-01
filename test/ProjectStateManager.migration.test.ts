@@ -45,7 +45,7 @@ function createV1StateJson() {
       },
     },
     null,
-    2
+    2,
   );
 }
 
@@ -65,7 +65,7 @@ function createLegacyStateJson() {
       },
     },
     null,
-    2
+    2,
   );
 }
 
@@ -80,7 +80,7 @@ function createFutureStateJson() {
       futureField: "some future data",
     },
     null,
-    2
+    2,
   );
 }
 

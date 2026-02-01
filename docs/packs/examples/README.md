@@ -4,10 +4,10 @@ This directory contains example packs demonstrating Scaffoldix pack authoring pa
 
 ## Examples
 
-| Example | Description |
-|---------|-------------|
+| Example                         | Description                                         |
+| ------------------------------- | --------------------------------------------------- |
 | [minimal-pack](./minimal-pack/) | Simplest possible pack with basic inputs and checks |
-| [patched-pack](./patched-pack/) | Demonstrates patches, hooks, and quality checks |
+| [patched-pack](./patched-pack/) | Demonstrates patches, hooks, and quality checks     |
 
 ## Using Examples
 

@@ -256,7 +256,7 @@ export class RegistryService {
         undefined,
         "The registryFilePath provided to RegistryService must be an absolute path.",
         undefined,
-        false // programming error, not operational
+        false, // programming error, not operational
       );
     }
   }
@@ -293,7 +293,7 @@ export class RegistryService {
         undefined,
         `Could not read ${this.registryFilePath}. ${cause.message}`,
         cause,
-        true
+        true,
       );
     }
 
@@ -311,7 +311,7 @@ export class RegistryService {
         `The registry file at ${this.registryFilePath} contains invalid JSON. ` +
           `You may need to delete it and reinstall your packs. Error: ${cause.message}`,
         cause,
-        true
+        true,
       );
     }
 
@@ -333,7 +333,7 @@ export class RegistryService {
         `The registry file at ${this.registryFilePath} has an invalid structure. ` +
           `Issues: ${issues}. You may need to delete it and reinstall your packs.`,
         undefined,
-        true
+        true,
       );
     }
 
@@ -365,7 +365,7 @@ export class RegistryService {
         undefined,
         "Attempted to save a registry object that doesn't match the schema. This is a bug.",
         undefined,
-        false // programming error
+        false, // programming error
       );
     }
 
@@ -385,7 +385,7 @@ export class RegistryService {
         undefined,
         `Could not create directory ${dir}. ${cause.message}`,
         cause,
-        true
+        true,
       );
     }
 
@@ -431,7 +431,7 @@ export class RegistryService {
         undefined,
         `Could not save registry to ${this.registryFilePath}. ${cause.message}`,
         cause,
-        true
+        true,
       );
     }
   }
@@ -464,7 +464,7 @@ export class RegistryService {
         undefined,
         "A valid pack ID string is required.",
         undefined,
-        true
+        true,
       );
     }
 
@@ -476,7 +476,7 @@ export class RegistryService {
         undefined,
         "Pack hash must be a valid 64-character SHA-256 hex string.",
         undefined,
-        true
+        true,
       );
     }
 
@@ -553,10 +553,7 @@ export class RegistryService {
    * @returns The updated registry
    * @throws ScaffoldError if pack doesn't exist or save fails
    */
-  async updatePackWithHistory(
-    packId: string,
-    input: RegisterPackInput
-  ): Promise<Registry> {
+  async updatePackWithHistory(packId: string, input: RegisterPackInput): Promise<Registry> {
     const registry = await this.load();
 
     const existingEntry = registry.packs[packId];
@@ -568,7 +565,7 @@ export class RegistryService {
         undefined,
         `Pack '${packId}' is not installed and cannot be updated.`,
         undefined,
-        true
+        true,
       );
     }
 
@@ -708,10 +705,7 @@ export class RegistryService {
    * @returns The updated registry
    * @throws ScaffoldError if validation fails
    */
-  async registerPackWithInstalls(
-    packId: string,
-    installs: PackInstallRecord[]
-  ): Promise<Registry> {
+  async registerPackWithInstalls(packId: string, installs: PackInstallRecord[]): Promise<Registry> {
     if (!packId || typeof packId !== "string") {
       throw new ScaffoldError(
         "Pack ID is required",
@@ -720,7 +714,7 @@ export class RegistryService {
         undefined,
         "A valid pack ID string is required.",
         undefined,
-        true
+        true,
       );
     }
 
@@ -732,7 +726,7 @@ export class RegistryService {
         undefined,
         "At least one install record must be provided.",
         undefined,
-        true
+        true,
       );
     }
 
@@ -742,7 +736,7 @@ export class RegistryService {
     // Use the first install as the "default" entry (for backward compatibility)
     // Sort by installedAt to find most recent as the "current" version
     const sortedByDate = [...installs].sort(
-      (a, b) => new Date(b.installedAt).getTime() - new Date(a.installedAt).getTime()
+      (a, b) => new Date(b.installedAt).getTime() - new Date(a.installedAt).getTime(),
     );
     const mostRecent = sortedByDate[0];
 

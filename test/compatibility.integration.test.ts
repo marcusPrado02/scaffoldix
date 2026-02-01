@@ -113,7 +113,7 @@ describe("Compatibility integration", () => {
 
       const result = await handlePackAdd(
         { packPath: packDir, cwd: tempDir },
-        createMockDeps(storeDir)
+        createMockDeps(storeDir),
       );
 
       expect(result.status).toBe("installed");
@@ -122,12 +122,12 @@ describe("Compatibility integration", () => {
     it("succeeds when CLI version is within range", async () => {
       await fs.writeFile(
         path.join(packDir, "archetype.yaml"),
-        createManifest({ minVersion: "0.2.0", maxVersion: "1.0.0" })
+        createManifest({ minVersion: "0.2.0", maxVersion: "1.0.0" }),
       );
 
       const result = await handlePackAdd(
         { packPath: packDir, cwd: tempDir },
-        createMockDeps(storeDir)
+        createMockDeps(storeDir),
       );
 
       expect(result.status).toBe("installed");
@@ -136,11 +136,11 @@ describe("Compatibility integration", () => {
     it("throws when CLI version is below minVersion", async () => {
       await fs.writeFile(
         path.join(packDir, "archetype.yaml"),
-        createManifest({ minVersion: "1.0.0" }) // CLI is 0.5.0, below this
+        createManifest({ minVersion: "1.0.0" }), // CLI is 0.5.0, below this
       );
 
       await expect(
-        handlePackAdd({ packPath: packDir, cwd: tempDir }, createMockDeps(storeDir))
+        handlePackAdd({ packPath: packDir, cwd: tempDir }, createMockDeps(storeDir)),
       ).rejects.toThrow(ScaffoldError);
 
       try {
@@ -157,7 +157,7 @@ describe("Compatibility integration", () => {
     it("throws when CLI version is above maxVersion", async () => {
       await fs.writeFile(
         path.join(packDir, "archetype.yaml"),
-        createManifest({ maxVersion: "0.4.0" }) // CLI is 0.5.0, above this
+        createManifest({ maxVersion: "0.4.0" }), // CLI is 0.5.0, above this
       );
 
       try {
@@ -174,7 +174,7 @@ describe("Compatibility integration", () => {
     it("throws when CLI version is in incompatible list", async () => {
       await fs.writeFile(
         path.join(packDir, "archetype.yaml"),
-        createManifest({ incompatible: ["0.5.0", "0.6.0"] }) // CLI is 0.5.0
+        createManifest({ incompatible: ["0.5.0", "0.6.0"] }), // CLI is 0.5.0
       );
 
       try {
@@ -191,7 +191,7 @@ describe("Compatibility integration", () => {
     it("error includes pack information", async () => {
       await fs.writeFile(
         path.join(packDir, "archetype.yaml"),
-        createManifest({ name: "my-pack", version: "2.0.0", minVersion: "1.0.0" })
+        createManifest({ name: "my-pack", version: "2.0.0", minVersion: "1.0.0" }),
       );
 
       try {

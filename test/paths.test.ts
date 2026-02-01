@@ -169,7 +169,7 @@ describe("Store paths module", () => {
         // Should be under ~/.local/share or XDG_DATA_HOME
         expect(
           paths.storeDir.includes(".local/share") ||
-            paths.storeDir.includes(process.env.XDG_DATA_HOME || "")
+            paths.storeDir.includes(process.env.XDG_DATA_HOME || ""),
         ).toBe(true);
       } else if (platform === "darwin") {
         // Should be under ~/Library/Application Support

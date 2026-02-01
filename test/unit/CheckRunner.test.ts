@@ -188,7 +188,9 @@ describe("CheckRunner", () => {
       });
 
       expect(logger.infoMessages.some((m) => m.includes("Running check"))).toBe(true);
-      expect(logger.infoMessages.some((m) => m.includes("passed") || m.includes("Check passed"))).toBe(true);
+      expect(
+        logger.infoMessages.some((m) => m.includes("passed") || m.includes("Check passed")),
+      ).toBe(true);
     });
 
     it("shows check count correctly", async () => {
@@ -196,10 +198,7 @@ describe("CheckRunner", () => {
       const logger = createTestLogger();
 
       await runner.runChecks({
-        commands: [
-          'node -e "process.exit(0)"',
-          'node -e "process.exit(0)"',
-        ],
+        commands: ['node -e "process.exit(0)"', 'node -e "process.exit(0)"'],
         cwd: tempDir,
         logger,
       });
@@ -240,7 +239,7 @@ describe("CheckRunner", () => {
           commands: ['node -e "process.exit(1)"'],
           cwd: tempDir,
           logger,
-        })
+        }),
       ).rejects.toThrow(ScaffoldError);
     });
 
@@ -327,7 +326,9 @@ describe("CheckRunner", () => {
 
       try {
         await runner.runChecks({
-          commands: ['node -e "console.log(\\"line1\\"); console.error(\\"line2\\"); process.exit(1)"'],
+          commands: [
+            'node -e "console.log(\\"line1\\"); console.error(\\"line2\\"); process.exit(1)"',
+          ],
           cwd: tempDir,
           logger,
         });

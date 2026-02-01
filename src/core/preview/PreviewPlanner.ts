@@ -160,9 +160,7 @@ function applyRenameRules(relativePath: string, rules?: RenameRules): string {
     return relativePath;
   }
 
-  const sortedKeys = Object.keys(rules.replacements).sort(
-    (a, b) => b.length - a.length
-  );
+  const sortedKeys = Object.keys(rules.replacements).sort((a, b) => b.length - a.length);
 
   let result = relativePath;
   for (const key of sortedKeys) {
@@ -176,11 +174,7 @@ function applyRenameRules(relativePath: string, rules?: RenameRules): string {
 /**
  * Renders a Handlebars template string with the given data.
  */
-function renderTemplate(
-  content: string,
-  data: Record<string, unknown>,
-  filePath: string
-): string {
+function renderTemplate(content: string, data: Record<string, unknown>, filePath: string): string {
   try {
     const template = Handlebars.compile(content);
     return template(data);
@@ -193,7 +187,7 @@ function renderTemplate(
       undefined,
       `Template "${filePath}" has invalid Handlebars syntax: ${cause.message}`,
       cause,
-      true
+      true,
     );
   }
 }
@@ -253,7 +247,7 @@ export class PreviewPlanner {
         undefined,
         `The template directory "${templateDir}" does not exist or is not accessible.`,
         undefined,
-        true
+        true,
       );
     }
 

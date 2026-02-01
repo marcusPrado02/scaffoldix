@@ -69,7 +69,7 @@ function createRegistry(
     origin: PackOrigin;
     hash?: string;
     installedAt?: string;
-  }>
+  }>,
 ): Registry {
   const packsRecord: Registry["packs"] = {};
 
@@ -113,7 +113,7 @@ async function createPackInStore(
   packsDir: string,
   packId: string,
   hash: string,
-  archetypes: string[]
+  archetypes: string[],
 ): Promise<string> {
   const sanitizedId = sanitizePackId(packId);
   const packDir = path.join(packsDir, sanitizedId, hash);
@@ -123,7 +123,7 @@ async function createPackInStore(
   const archetypesList = archetypes
     .map(
       (id) => `  - id: ${id}
-    templateRoot: templates/${id}`
+    templateRoot: templates/${id}`,
     )
     .join("\n");
 
@@ -391,11 +391,7 @@ describe("archetypesListHandler", () => {
       await createPackInStore(packsDir, "valid-pack", hashValid, ["component"]);
 
       // Create invalid pack (directory exists but manifest is invalid YAML)
-      const invalidDir = path.join(
-        packsDir,
-        sanitizePackId("invalid-manifest-pack"),
-        hashInvalid
-      );
+      const invalidDir = path.join(packsDir, sanitizePackId("invalid-manifest-pack"), hashInvalid);
       await fs.mkdir(invalidDir, { recursive: true });
       await fs.writeFile(path.join(invalidDir, "pack.yaml"), "{ invalid: yaml: content }");
 
@@ -437,11 +433,7 @@ describe("archetypesListHandler", () => {
       await createPackInStore(packsDir, "valid-pack", hashValid, ["component"]);
 
       // Create pack directory without manifest
-      const noManifestDir = path.join(
-        packsDir,
-        sanitizePackId("no-manifest-pack"),
-        hashNoManifest
-      );
+      const noManifestDir = path.join(packsDir, sanitizePackId("no-manifest-pack"), hashNoManifest);
       await fs.mkdir(noManifestDir, { recursive: true });
 
       const result = await handleArchetypesList(deps);
@@ -502,7 +494,7 @@ describe("archetypesListHandler", () => {
         `pack:
   name: error-pack
   # Missing version
-archetypes: []`
+archetypes: []`,
       );
 
       const result = await handleArchetypesList(deps);
@@ -555,7 +547,7 @@ archetypes: []`
         JSON.stringify({
           schemaVersion: "not a number",
           packs: {},
-        })
+        }),
       );
 
       await expect(handleArchetypesList(deps)).rejects.toMatchObject({
@@ -599,22 +591,14 @@ archetypes: []`
 
     it("formats multiple archetypes as one per line", () => {
       const result: ArchetypesListResult = {
-        archetypes: [
-          "alpha-pack:api",
-          "alpha-pack:web",
-          "beta-pack:service",
-        ],
+        archetypes: ["alpha-pack:api", "alpha-pack:web", "beta-pack:service"],
         noPacksInstalled: false,
         warnings: [],
       };
 
       const { stdout, stderr } = formatArchetypesListOutput(result);
 
-      expect(stdout).toEqual([
-        "alpha-pack:api",
-        "alpha-pack:web",
-        "beta-pack:service",
-      ]);
+      expect(stdout).toEqual(["alpha-pack:api", "alpha-pack:web", "beta-pack:service"]);
       expect(stderr).toHaveLength(0);
     });
 

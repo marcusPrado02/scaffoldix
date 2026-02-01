@@ -133,7 +133,7 @@ export function runMigrations(state: Record<string, unknown>): MigrationResult {
       undefined,
       `The state file has a corrupted schemaVersion field. Delete the file to reset state.`,
       undefined,
-      true
+      true,
     );
   }
 
@@ -149,7 +149,7 @@ export function runMigrations(state: Record<string, unknown>): MigrationResult {
       undefined,
       `The state file is missing required fields. Delete the file to reset state.`,
       undefined,
-      true
+      true,
     );
   }
 
@@ -166,7 +166,7 @@ export function runMigrations(state: Record<string, unknown>): MigrationResult {
       `This state file was created by a newer version of Scaffoldix. ` +
         `Please update Scaffoldix to the latest version, or regenerate this project.`,
       undefined,
-      true
+      true,
     );
   }
 

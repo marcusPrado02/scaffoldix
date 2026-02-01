@@ -126,14 +126,9 @@ export type ErrorCategory =
  */
 export function getErrorCategory(code: ErrorCode): ErrorCategory {
   if (code.startsWith("PACK_")) return "pack";
-  if (code.startsWith("MANIFEST_") || code.startsWith("ARCHETYPE_"))
-    return "manifest";
+  if (code.startsWith("MANIFEST_") || code.startsWith("ARCHETYPE_")) return "manifest";
   if (code.startsWith("INPUT_")) return "input";
-  if (
-    code.startsWith("TEMPLATE_") ||
-    code.startsWith("OUTPUT_") ||
-    code.startsWith("STAGING_")
-  )
+  if (code.startsWith("TEMPLATE_") || code.startsWith("OUTPUT_") || code.startsWith("STAGING_"))
     return "generation";
   if (code.startsWith("PATCH_")) return "patch";
   if (code.startsWith("HOOK_") || code.startsWith("CHECK_")) return "hook";

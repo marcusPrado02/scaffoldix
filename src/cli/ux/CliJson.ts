@@ -60,10 +60,7 @@ export interface JsonErrorDetails {
  * // => '{\n  "packs": []\n}'
  * ```
  */
-export function formatJsonOutput(
-  data: unknown,
-  options?: JsonOutputOptions
-): string {
+export function formatJsonOutput(data: unknown, options?: JsonOutputOptions): string {
   const json = JSON.stringify(data, null, 2);
   return options?.trailingNewline ? json + "\n" : json;
 }
@@ -95,10 +92,7 @@ export function formatJsonOutput(
  * });
  * ```
  */
-export function formatJsonError(
-  details: JsonErrorDetails,
-  options?: JsonOutputOptions
-): string {
+export function formatJsonError(details: JsonErrorDetails, options?: JsonOutputOptions): string {
   const errorObj: Record<string, unknown> = {
     message: details.message,
   };

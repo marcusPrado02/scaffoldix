@@ -43,87 +43,98 @@ export function buildGenerateCommand(_logger: Logger): Command {
     .option("--yes", "Non-interactive mode: use defaults without prompting", false)
     .option("--force", "Overwrite existing files without prompting", false)
     .option("--verbose", "Show detailed timing trace for each phase", false)
-    .action(async (ref: string, options: { target: string; dryRun: boolean; yes: boolean; force: boolean; verbose: boolean }) => {
-      // Set up UX with verbose level if requested
-      if (options.verbose) {
-        setDefaultCliUx(createCliUx({ level: "verbose" }));
-      }
-      const ux = getCliUx();
-      const spinner = createCliSpinner({ ux });
-
-      try {
-        // Initialize store paths
-        const storePaths = initStorePaths();
-
-        // Resolve target directory to absolute path
-        const targetDir = path.resolve(process.cwd(), options.target);
-
-        // Show what we're doing
-        if (options.dryRun) {
-          ux.info(`Dry run: ${ref}`);
-        } else {
-          spinner.start(`Generating from ${ref}`);
+    .action(
+      async (
+        ref: string,
+        options: {
+          target: string;
+          dryRun: boolean;
+          yes: boolean;
+          force: boolean;
+          verbose: boolean;
+        },
+      ) => {
+        // Set up UX with verbose level if requested
+        if (options.verbose) {
+          setDefaultCliUx(createCliUx({ level: "verbose" }));
         }
+        const ux = getCliUx();
+        const spinner = createCliSpinner({ ux });
 
-        // Execute handler
-        const result = await handleGenerate(
-          {
-            ref,
-            targetDir,
-            dryRun: options.dryRun,
-            data: {}, // Provided values (from future --set flags)
-            nonInteractive: options.yes,
-            force: options.force,
-          },
-          {
-            registryFile: storePaths.registryFile,
-            packsDir: storePaths.packsDir,
-            storeDir: storePaths.storeDir,
+        try {
+          // Initialize store paths
+          const storePaths = initStorePaths();
+
+          // Resolve target directory to absolute path
+          const targetDir = path.resolve(process.cwd(), options.target);
+
+          // Show what we're doing
+          if (options.dryRun) {
+            ux.info(`Dry run: ${ref}`);
+          } else {
+            spinner.start(`Generating from ${ref}`);
           }
-        );
 
-        // Stop spinner before output
-        if (!options.dryRun) {
+          // Execute handler
+          const result = await handleGenerate(
+            {
+              ref,
+              targetDir,
+              dryRun: options.dryRun,
+              data: {}, // Provided values (from future --set flags)
+              nonInteractive: options.yes,
+              force: options.force,
+            },
+            {
+              registryFile: storePaths.registryFile,
+              packsDir: storePaths.packsDir,
+              storeDir: storePaths.storeDir,
+            },
+          );
+
+          // Stop spinner before output
+          if (!options.dryRun) {
+            spinner.stop();
+          }
+
+          // Output formatted result using CliUx
+          const lines = formatGenerateOutput(result);
+          for (const line of lines) {
+            // Parse line to determine type
+            if (line.startsWith("✓") || line.startsWith("Generated")) {
+              ux.success(line.replace(/^✓\s*/, ""));
+            } else if (line.startsWith("  ")) {
+              ux.detail(line.trim());
+            } else if (line.trim()) {
+              ux.info(line);
+            }
+          }
+
+          // Display trace output (summary by default, details in verbose)
+          if (result.trace && result.trace.trace.length > 0) {
+            ux.info("");
+            ux.info("Trace:");
+            const traceLines = formatTraceOutput(result.trace);
+            for (const traceLine of traceLines) {
+              ux.info(traceLine);
+            }
+          }
+        } catch (err) {
+          // Stop spinner on error
           spinner.stop();
+
+          // Format error for user using CliUx
+          const userMessage = toUserMessage(err);
+
+          ux.error(userMessage.message, {
+            code: userMessage.code,
+            hint: err instanceof ScaffoldError ? err.hint : undefined,
+          });
+
+          process.exitCode = 1;
         }
-
-        // Output formatted result using CliUx
-        const lines = formatGenerateOutput(result);
-        for (const line of lines) {
-          // Parse line to determine type
-          if (line.startsWith("✓") || line.startsWith("Generated")) {
-            ux.success(line.replace(/^✓\s*/, ""));
-          } else if (line.startsWith("  ")) {
-            ux.detail(line.trim());
-          } else if (line.trim()) {
-            ux.info(line);
-          }
-        }
-
-        // Display trace output (summary by default, details in verbose)
-        if (result.trace && result.trace.trace.length > 0) {
-          ux.info("");
-          ux.info("Trace:");
-          const traceLines = formatTraceOutput(result.trace);
-          for (const traceLine of traceLines) {
-            ux.info(traceLine);
-          }
-        }
-      } catch (err) {
-        // Stop spinner on error
-        spinner.stop();
-
-        // Format error for user using CliUx
-        const userMessage = toUserMessage(err);
-
-        ux.error(userMessage.message, {
-          code: userMessage.code,
-          hint: err instanceof ScaffoldError ? err.hint : undefined,
-        });
-
-        process.exitCode = 1;
-      }
-    });
+      },
+    );
 
   return generateCommand;
 }

@@ -11,7 +11,10 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
-import { RegistryService, REGISTRY_SCHEMA_VERSION } from "../../../src/core/registry/RegistryService.js";
+import {
+  RegistryService,
+  REGISTRY_SCHEMA_VERSION,
+} from "../../../src/core/registry/RegistryService.js";
 import { ScaffoldError } from "../../../src/core/errors/errors.js";
 
 // =============================================================================

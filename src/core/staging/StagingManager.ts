@@ -158,7 +158,7 @@ export class StagingManager {
         `Target directory "${targetDir}" already exists. ` +
           `Choose a different target directory or use --force to overwrite.`,
         undefined,
-        true
+        true,
       );
     }
 
@@ -184,7 +184,7 @@ export class StagingManager {
           undefined,
           `Failed to backup existing target directory before overwrite.`,
           error instanceof Error ? error : undefined,
-          true
+          true,
         );
       }
     }
@@ -215,10 +215,9 @@ export class StagingManager {
           "COMMIT_FAILED",
           { stagingDir, targetDir },
           undefined,
-          `Failed to move staging directory to target. ` +
-            `The target directory was not modified.`,
+          `Failed to move staging directory to target. ` + `The target directory was not modified.`,
           copyError instanceof Error ? copyError : undefined,
-          true
+          true,
         );
       }
     }

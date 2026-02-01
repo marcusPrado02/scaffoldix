@@ -40,9 +40,7 @@ async function createTestWorkspace(): Promise<{
   storeConfig: StoreServiceConfig;
   logger: StoreLogger;
 }> {
-  const workspaceDir = await fs.mkdtemp(
-    path.join(os.tmpdir(), "scaffoldix-hook-test-")
-  );
+  const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "scaffoldix-hook-test-"));
 
   const storeDir = path.join(workspaceDir, "store");
   const packsDir = path.join(storeDir, "packs");
@@ -111,10 +109,7 @@ describe("Generate with postGenerate Hooks", () => {
       const hookPackPath = getHookPackPath();
 
       // Install the pack
-      await handlePackAdd(
-        { packPath: hookPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: hookPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       // Generate with hooks
       const result = await handleGenerate(
@@ -124,7 +119,7 @@ describe("Generate with postGenerate Hooks", () => {
           dryRun: false,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       // Assert: generation succeeded
@@ -154,10 +149,7 @@ describe("Generate with postGenerate Hooks", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const hookPackPath = getHookPackPath();
 
-      await handlePackAdd(
-        { packPath: hookPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: hookPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       const result = await handleGenerate(
         {
@@ -166,7 +158,7 @@ describe("Generate with postGenerate Hooks", () => {
           dryRun: false,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       expect(result.hookReport).toBeDefined();
@@ -179,10 +171,7 @@ describe("Generate with postGenerate Hooks", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const hookPackPath = getHookPackPath();
 
-      await handlePackAdd(
-        { packPath: hookPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: hookPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       const result = await handleGenerate(
         {
@@ -191,7 +180,7 @@ describe("Generate with postGenerate Hooks", () => {
           dryRun: false,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       expect(result.hookReport!.totalDurationMs).toBeGreaterThanOrEqual(0);
@@ -207,10 +196,7 @@ describe("Generate with postGenerate Hooks", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const hookPackPath = getHookPackPath();
 
-      await handlePackAdd(
-        { packPath: hookPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: hookPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       await expect(
         handleGenerate(
@@ -220,8 +206,8 @@ describe("Generate with postGenerate Hooks", () => {
             dryRun: false,
             data: { projectName: "TestProject" },
           },
-          { registryFile, packsDir, storeDir }
-        )
+          { registryFile, packsDir, storeDir },
+        ),
       ).rejects.toThrow(/hook/i);
     });
 
@@ -229,10 +215,7 @@ describe("Generate with postGenerate Hooks", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const hookPackPath = getHookPackPath();
 
-      await handlePackAdd(
-        { packPath: hookPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: hookPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       try {
         await handleGenerate(
@@ -242,7 +225,7 @@ describe("Generate with postGenerate Hooks", () => {
             dryRun: false,
             data: { projectName: "TestProject" },
           },
-          { registryFile, packsDir, storeDir }
+          { registryFile, packsDir, storeDir },
         );
       } catch {
         // Expected to throw
@@ -257,10 +240,7 @@ describe("Generate with postGenerate Hooks", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const hookPackPath = getHookPackPath();
 
-      await handlePackAdd(
-        { packPath: hookPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: hookPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       try {
         await handleGenerate(
@@ -270,7 +250,7 @@ describe("Generate with postGenerate Hooks", () => {
             dryRun: false,
             data: { projectName: "TestProject" },
           },
-          { registryFile, packsDir, storeDir }
+          { registryFile, packsDir, storeDir },
         );
         expect.fail("Should have thrown");
       } catch (error) {
@@ -291,10 +271,7 @@ describe("Generate with postGenerate Hooks", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const hookPackPath = getHookPackPath();
 
-      await handlePackAdd(
-        { packPath: hookPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: hookPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       // Generate in dry-run mode
       const result = await handleGenerate(
@@ -304,7 +281,7 @@ describe("Generate with postGenerate Hooks", () => {
           dryRun: true,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       // Assert: no hook report (hooks not executed)
@@ -320,10 +297,7 @@ describe("Generate with postGenerate Hooks", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const hookPackPath = getHookPackPath();
 
-      await handlePackAdd(
-        { packPath: hookPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: hookPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       const result = await handleGenerate(
         {
@@ -332,7 +306,7 @@ describe("Generate with postGenerate Hooks", () => {
           dryRun: true,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       const output = formatGenerateOutput(result);
@@ -351,10 +325,7 @@ describe("Generate with postGenerate Hooks", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const hookPackPath = getHookPackPath();
 
-      await handlePackAdd(
-        { packPath: hookPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: hookPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       const result = await handleGenerate(
         {
@@ -363,7 +334,7 @@ describe("Generate with postGenerate Hooks", () => {
           dryRun: false,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       // Assert: no hook report when no hooks
@@ -379,10 +350,7 @@ describe("Generate with postGenerate Hooks", () => {
       const { storeDir, packsDir, registryFile, targetDir, storeConfig, logger } = workspace;
       const hookPackPath = getHookPackPath();
 
-      await handlePackAdd(
-        { packPath: hookPackPath, cwd: process.cwd() },
-        { storeConfig, logger }
-      );
+      await handlePackAdd({ packPath: hookPackPath, cwd: process.cwd() }, { storeConfig, logger });
 
       const result = await handleGenerate(
         {
@@ -391,7 +359,7 @@ describe("Generate with postGenerate Hooks", () => {
           dryRun: false,
           data: { projectName: "TestProject" },
         },
-        { registryFile, packsDir, storeDir }
+        { registryFile, packsDir, storeDir },
       );
 
       const output = formatGenerateOutput(result);

@@ -68,9 +68,7 @@ export class StepTimer {
     };
     this.timings.set(step, timing);
 
-    this.logger
-      .withContext({ step })
-      .info("Step started", { event: "step.start", ...context });
+    this.logger.withContext({ step }).info("Step started", { event: "step.start", ...context });
   }
 
   /**
@@ -101,11 +99,7 @@ export class StepTimer {
    * @param error - Error that occurred
    * @param context - Optional context
    */
-  endWithError(
-    step: Step,
-    error: Error,
-    context?: Record<string, unknown>
-  ): void {
+  endWithError(step: Step, error: Error, context?: Record<string, unknown>): void {
     const timing = this.timings.get(step);
     if (!timing) {
       return;
@@ -133,11 +127,7 @@ export class StepTimer {
    * @param context - Optional context for start event
    * @returns Result of the function
    */
-  async run<T>(
-    step: Step,
-    fn: () => Promise<T>,
-    context?: Record<string, unknown>
-  ): Promise<T> {
+  async run<T>(step: Step, fn: () => Promise<T>, context?: Record<string, unknown>): Promise<T> {
     this.start(step, context);
 
     try {
@@ -168,11 +158,7 @@ export class StepTimer {
    * @param context - Optional context for start event
    * @returns Result of the function
    */
-  runSync<T>(
-    step: Step,
-    fn: () => T,
-    context?: Record<string, unknown>
-  ): T {
+  runSync<T>(step: Step, fn: () => T, context?: Record<string, unknown>): T {
     this.start(step, context);
 
     try {

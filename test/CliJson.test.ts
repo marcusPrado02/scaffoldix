@@ -139,10 +139,7 @@ describe("CliJson", () => {
     });
 
     it("includes newline at end when requested", () => {
-      const output = formatJsonError(
-        { message: "Error" },
-        { trailingNewline: true }
-      );
+      const output = formatJsonError({ message: "Error" }, { trailingNewline: true });
 
       expect(output.endsWith("\n")).toBe(true);
     });

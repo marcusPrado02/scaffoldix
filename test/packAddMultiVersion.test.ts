@@ -9,10 +9,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
-import {
-  handlePackAdd,
-  type PackAddDependencies,
-} from "../src/cli/handlers/packAddHandler.js";
+import { handlePackAdd, type PackAddDependencies } from "../src/cli/handlers/packAddHandler.js";
 import { RegistryService } from "../src/core/registry/RegistryService.js";
 import { PackResolver } from "../src/core/store/PackResolver.js";
 import { type StoreLogger } from "../src/core/store/StoreService.js";
@@ -48,7 +45,7 @@ async function createTestPack(
   baseDir: string,
   name: string,
   version: string,
-  extraContent?: string
+  extraContent?: string,
 ): Promise<string> {
   const packDir = path.join(baseDir, `${name.replace("/", "__")}-${version}`);
   await fs.mkdir(packDir, { recursive: true });
@@ -60,7 +57,7 @@ async function createTestPack(
   // Add version-specific content so hashes differ
   await fs.writeFile(
     path.join(templateDir, "README.md"),
-    `# ${name} v${version}\n${extraContent ?? ""}\n`
+    `# ${name} v${version}\n${extraContent ?? ""}\n`,
   );
 
   return packDir;
@@ -178,8 +175,14 @@ describe("pack add multi-version", () => {
     const result2 = await handlePackAdd({ packPath: packV2, cwd: "/tmp" }, deps);
 
     // Both destDirs should exist
-    const v1Exists = await fs.access(result1.destDir).then(() => true).catch(() => false);
-    const v2Exists = await fs.access(result2.destDir).then(() => true).catch(() => false);
+    const v1Exists = await fs
+      .access(result1.destDir)
+      .then(() => true)
+      .catch(() => false);
+    const v2Exists = await fs
+      .access(result2.destDir)
+      .then(() => true)
+      .catch(() => false);
 
     expect(v1Exists).toBe(true);
     expect(v2Exists).toBe(true);

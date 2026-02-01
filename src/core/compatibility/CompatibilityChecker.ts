@@ -140,7 +140,7 @@ export class CompatibilityChecker {
    */
   static check(
     cliVersion: string,
-    compatibility: CompatibilityConfig | undefined
+    compatibility: CompatibilityConfig | undefined,
   ): CompatibilityResult {
     // No constraints = compatible (backward compat)
     if (!compatibility) {

@@ -29,11 +29,13 @@ async function cleanupTestDir(dir: string): Promise<void> {
 /**
  * Creates a valid minimal manifest YAML string.
  */
-function createValidManifest(overrides: {
-  packName?: string;
-  packVersion?: string;
-  archetypes?: Array<{ id?: string; templateRoot?: string }>;
-} = {}): string {
+function createValidManifest(
+  overrides: {
+    packName?: string;
+    packVersion?: string;
+    archetypes?: Array<{ id?: string; templateRoot?: string }>;
+  } = {},
+): string {
   const packName = overrides.packName ?? "test-pack";
   const packVersion = overrides.packVersion ?? "1.0.0";
   const archetypes = overrides.archetypes ?? [{ id: "default", templateRoot: "templates" }];
@@ -61,7 +63,7 @@ ${archetypeYaml}
 async function writeManifest(
   dir: string,
   content: string,
-  filename: string = "archetype.yaml"
+  filename: string = "archetype.yaml",
 ): Promise<string> {
   const filePath = path.join(dir, filename);
   await fs.writeFile(filePath, content, "utf-8");
@@ -103,7 +105,11 @@ describe("ManifestLoader", () => {
     });
 
     it("loads valid manifest from pack.yaml when archetype.yaml missing", async () => {
-      await writeManifest(testDir, createValidManifest({ packName: "pack-yaml-pack" }), "pack.yaml");
+      await writeManifest(
+        testDir,
+        createValidManifest({ packName: "pack-yaml-pack" }),
+        "pack.yaml",
+      );
 
       const manifest = await loader.loadFromDir(testDir);
 
@@ -112,7 +118,11 @@ describe("ManifestLoader", () => {
     });
 
     it("prefers archetype.yaml over pack.yaml when both exist", async () => {
-      await writeManifest(testDir, createValidManifest({ packName: "from-archetype" }), "archetype.yaml");
+      await writeManifest(
+        testDir,
+        createValidManifest({ packName: "from-archetype" }),
+        "archetype.yaml",
+      );
       await writeManifest(testDir, createValidManifest({ packName: "from-pack" }), "pack.yaml");
 
       const manifest = await loader.loadFromDir(testDir);
@@ -235,14 +245,17 @@ archetypes:
 
   describe("invalid YAML syntax", () => {
     it("throws on syntactically invalid YAML", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: test
   version: 1.0.0
 archetypes:
   - id: broken
     templateRoot: [[[invalid yaml
-`);
+`,
+      );
 
       await expect(loader.loadFromDir(testDir)).rejects.toThrow(/yaml/i);
     });
@@ -273,11 +286,14 @@ archetypes:
     });
 
     it("throws on indentation errors", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
 name: bad-indent
   version: 1.0.0
-`);
+`,
+      );
 
       await expect(loader.loadFromDir(testDir)).rejects.toThrow();
     });
@@ -289,11 +305,14 @@ name: bad-indent
 
   describe("schema validation - missing fields", () => {
     it("throws when pack object is missing", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 archetypes:
   - id: default
     templateRoot: templates
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -306,13 +325,16 @@ archetypes:
     });
 
     it("throws when pack.name is missing", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   version: 1.0.0
 archetypes:
   - id: default
     templateRoot: templates
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -325,13 +347,16 @@ archetypes:
     });
 
     it("throws when pack.version is missing", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: test-pack
 archetypes:
   - id: default
     templateRoot: templates
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -344,11 +369,14 @@ archetypes:
     });
 
     it("throws when archetypes array is missing", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: test-pack
   version: 1.0.0
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -361,13 +389,16 @@ pack:
     });
 
     it("throws when archetypes entry is missing id", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: test-pack
   version: 1.0.0
 archetypes:
   - templateRoot: templates
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -380,13 +411,16 @@ archetypes:
     });
 
     it("throws when archetypes entry is missing templateRoot", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: test-pack
   version: 1.0.0
 archetypes:
   - id: default
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -405,14 +439,17 @@ archetypes:
 
   describe("schema validation - empty values", () => {
     it("throws when pack.name is empty string", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: ""
   version: 1.0.0
 archetypes:
   - id: default
     templateRoot: templates
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -425,14 +462,17 @@ archetypes:
     });
 
     it("throws when pack.name is whitespace only", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: "   "
   version: 1.0.0
 archetypes:
   - id: default
     templateRoot: templates
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -444,14 +484,17 @@ archetypes:
     });
 
     it("throws when pack.version is empty", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: test-pack
   version: ""
 archetypes:
   - id: default
     templateRoot: templates
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -464,12 +507,15 @@ archetypes:
     });
 
     it("throws when archetypes array is empty", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: test-pack
   version: 1.0.0
 archetypes: []
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -482,14 +528,17 @@ archetypes: []
     });
 
     it("throws when archetype id is empty", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: test-pack
   version: 1.0.0
 archetypes:
   - id: ""
     templateRoot: templates
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -502,14 +551,17 @@ archetypes:
     });
 
     it("throws when archetype templateRoot is empty", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: test-pack
   version: 1.0.0
 archetypes:
   - id: default
     templateRoot: ""
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -552,7 +604,9 @@ archetypes:
     });
 
     it("error includes field path in issues", async () => {
-      await writeManifest(testDir, `
+      await writeManifest(
+        testDir,
+        `
 pack:
   name: test
   version: 1.0.0
@@ -561,7 +615,8 @@ archetypes:
     templateRoot: path
   - id: ""
     templateRoot: also-valid
-`);
+`,
+      );
 
       try {
         await loader.loadFromDir(testDir);
@@ -676,7 +731,7 @@ archetypes:
         markerEnd: "// <SCAFFOLDIX:END:imports>"
         contentTemplate: 'import { User } from "./models/User";'
         idempotencyKey: add-user-import
-`
+`,
       );
 
       const manifest = await loader.loadFromDir(testDir);
@@ -704,7 +759,7 @@ archetypes:
         markerEnd: "// <CONFIG:END>"
         path: patches/config-content.hbs
         idempotencyKey: replace-config
-`
+`,
       );
 
       const manifest = await loader.loadFromDir(testDir);
@@ -728,7 +783,7 @@ archetypes:
         kind: append_if_missing
         contentTemplate: 'export * from "./newModule";'
         idempotencyKey: add-export
-`
+`,
       );
 
       const manifest = await loader.loadFromDir(testDir);
@@ -754,13 +809,13 @@ archetypes:
         contentTemplate: "// footer"
         idempotencyKey: add-footer
         description: Adds a footer comment to the index file
-`
+`,
       );
 
       const manifest = await loader.loadFromDir(testDir);
 
       expect(manifest.archetypes[0].patches![0].description).toBe(
-        "Adds a footer comment to the index file"
+        "Adds a footer comment to the index file",
       );
     });
 
@@ -780,7 +835,7 @@ archetypes:
         contentTemplate: content
         idempotencyKey: add-optional
         strict: false
-`
+`,
       );
 
       const manifest = await loader.loadFromDir(testDir);
@@ -813,7 +868,7 @@ archetypes:
         markerEnd: "// END"
         contentTemplate: c
         idempotencyKey: patch-c
-`
+`,
       );
 
       const manifest = await loader.loadFromDir(testDir);
@@ -982,7 +1037,7 @@ archetypes:
       - kind: append_if_missing
         contentTemplate: content
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1009,7 +1064,7 @@ archetypes:
       - file: test.ts
         contentTemplate: content
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1036,7 +1091,7 @@ archetypes:
       - file: test.ts
         kind: append_if_missing
         contentTemplate: content
-`
+`,
       );
 
       try {
@@ -1065,7 +1120,7 @@ archetypes:
         markerEnd: "// END"
         contentTemplate: content
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1094,7 +1149,7 @@ archetypes:
         markerStart: "// START"
         contentTemplate: content
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1122,7 +1177,7 @@ archetypes:
         kind: marker_replace
         contentTemplate: content
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1150,7 +1205,7 @@ archetypes:
         markerStart: "// START"
         contentTemplate: content
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1179,7 +1234,7 @@ archetypes:
         markerEnd: "// END"
         contentTemplate: content
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1205,7 +1260,7 @@ archetypes:
       - file: test.ts
         kind: append_if_missing
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1234,7 +1289,7 @@ archetypes:
         contentTemplate: inline content
         path: patches/content.hbs
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1262,7 +1317,7 @@ archetypes:
         kind: append_if_missing
         contentTemplate: content
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1289,7 +1344,7 @@ archetypes:
         kind: append_if_missing
         contentTemplate: content
         idempotencyKey: ""
-`
+`,
       );
 
       try {
@@ -1316,7 +1371,7 @@ archetypes:
         kind: invalid_kind
         contentTemplate: content
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1345,7 +1400,7 @@ archetypes:
       - file: test.ts
         kind: append_if_missing
         idempotencyKey: test
-`
+`,
       );
 
       try {
@@ -1355,7 +1410,7 @@ archetypes:
         const err = error as { details?: { issues?: Array<{ path: string }> } };
         // Should include path like "archetypes.1.patches.0"
         const hasNestedPath = err.details?.issues?.some(
-          (i) => i.path.includes("archetypes") && i.path.includes("patches")
+          (i) => i.path.includes("archetypes") && i.path.includes("patches"),
         );
         expect(hasNestedPath).toBe(true);
       }

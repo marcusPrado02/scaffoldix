@@ -90,11 +90,7 @@ export interface ResolveInputsParams {
  * @returns The coerced value
  * @throws ScaffoldError if coercion fails
  */
-function coerceValue(
-  value: unknown,
-  type: InputType,
-  inputName: string
-): unknown {
+function coerceValue(value: unknown, type: InputType, inputName: string): unknown {
   // Already the correct type
   if (type === "string") {
     return String(value);
@@ -108,7 +104,7 @@ function coerceValue(
     if (Number.isNaN(num)) {
       throw new ScaffoldError(
         `Input '${inputName}' cannot be converted to number: '${value}'`,
-        "INPUT_TYPE_ERROR"
+        "INPUT_TYPE_ERROR",
       );
     }
     return num;
@@ -127,7 +123,7 @@ function coerceValue(
     }
     throw new ScaffoldError(
       `Input '${inputName}' cannot be converted to boolean: '${value}'. Use 'true' or 'false'.`,
-      "INPUT_TYPE_ERROR"
+      "INPUT_TYPE_ERROR",
     );
   }
 
@@ -143,15 +139,11 @@ function coerceValue(
  * @param inputName - Input name for error messages
  * @throws ScaffoldError if value is not in options
  */
-function validateEnum(
-  value: unknown,
-  options: readonly string[],
-  inputName: string
-): void {
+function validateEnum(value: unknown, options: readonly string[], inputName: string): void {
   if (!options.includes(String(value))) {
     throw new ScaffoldError(
       `Input '${inputName}' value '${value}' is not valid. Allowed values: ${options.join(", ")}`,
-      "INPUT_ENUM_ERROR"
+      "INPUT_ENUM_ERROR",
     );
   }
 }
@@ -179,16 +171,8 @@ function validateEnum(
  * @returns Resolved input values
  * @throws ScaffoldError if required inputs are missing in non-interactive mode
  */
-export async function resolveInputs(
-  params: ResolveInputsParams
-): Promise<Record<string, unknown>> {
-  const {
-    inputsSchema,
-    nonInteractive,
-    prompt,
-    provided = {},
-    archetypeRef,
-  } = params;
+export async function resolveInputs(params: ResolveInputsParams): Promise<Record<string, unknown>> {
+  const { inputsSchema, nonInteractive, prompt, provided = {}, archetypeRef } = params;
 
   // No inputs defined - return provided values as-is (backward compatibility)
   if (!inputsSchema || inputsSchema.length === 0) {
@@ -231,7 +215,7 @@ export async function resolveInputs(
         if (!prompt) {
           throw new ScaffoldError(
             "Prompt adapter required for interactive mode with missing required inputs",
-            "PROMPT_ADAPTER_REQUIRED"
+            "PROMPT_ADAPTER_REQUIRED",
           );
         }
 
@@ -255,7 +239,7 @@ export async function resolveInputs(
       "MISSING_REQUIRED_INPUTS",
       archetypeRef ? { archetypeRef } : undefined, // details
       undefined, // data
-      "Run without --yes to be prompted for values, or add defaults to the manifest." // hint
+      "Run without --yes to be prompted for values, or add defaults to the manifest.", // hint
     );
   }
 

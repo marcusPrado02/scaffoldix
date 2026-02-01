@@ -76,7 +76,7 @@ describe("Renderer force mode", () => {
           data: { projectName: "Test", author: "Author" },
           dryRun: false,
           force: false,
-        })
+        }),
       ).rejects.toMatchObject({
         code: "RENDER_FILE_EXISTS",
       });
@@ -182,7 +182,7 @@ describe("Renderer force mode", () => {
           data: { projectName: "Test", author: "Author" },
           dryRun: false,
           // force not specified
-        })
+        }),
       ).rejects.toMatchObject({
         code: "RENDER_FILE_EXISTS",
       });
@@ -301,7 +301,7 @@ describe("Renderer force mode", () => {
           data: { projectName: "Test", author: "Author" },
           dryRun: true,
           force: false,
-        })
+        }),
       ).rejects.toMatchObject({
         code: "RENDER_FILE_EXISTS",
       });

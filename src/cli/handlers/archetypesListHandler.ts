@@ -94,7 +94,7 @@ function deriveStorePath(packsDir: string, packId: string, hash: string): string
  * @throws ScaffoldError on registry corruption
  */
 export async function handleArchetypesList(
-  deps: ArchetypesListDependencies
+  deps: ArchetypesListDependencies,
 ): Promise<ArchetypesListResult> {
   const { registryFile, packsDir } = deps;
 
@@ -128,7 +128,7 @@ export async function handleArchetypesList(
       await fs.access(storePath);
     } catch {
       warnings.push(
-        `Warning: pack '${pack.id}' is registered but missing from store: ${storePath}`
+        `Warning: pack '${pack.id}' is registered but missing from store: ${storePath}`,
       );
       continue;
     }
@@ -145,7 +145,7 @@ export async function handleArchetypesList(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       warnings.push(
-        `Warning: pack '${pack.id}' has invalid manifest at ${storePath}: ${errorMessage}`
+        `Warning: pack '${pack.id}' has invalid manifest at ${storePath}: ${errorMessage}`,
       );
       continue;
     }

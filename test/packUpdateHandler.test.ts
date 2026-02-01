@@ -58,7 +58,7 @@ function createTestLogger(): StoreLogger {
 async function createTestGitRepo(
   baseDir: string,
   packName: string,
-  version: string
+  version: string,
 ): Promise<TestGitRepo> {
   const repoPath = path.join(baseDir, `${packName}-repo`);
   await fs.mkdir(repoPath, { recursive: true });
@@ -158,9 +158,9 @@ describe("pack update <packId>", () => {
         logger: workspace.logger,
       };
 
-      await expect(
-        handlePackUpdate({ packId: "nonexistent-pack" }, deps)
-      ).rejects.toThrow(/not found/i);
+      await expect(handlePackUpdate({ packId: "nonexistent-pack" }, deps)).rejects.toThrow(
+        /not found/i,
+      );
 
       try {
         await handlePackUpdate({ packId: "nonexistent-pack" }, deps);
@@ -182,7 +182,7 @@ describe("pack update <packId>", () => {
 archetypes:
   - id: default
     templateRoot: templates
-`
+`,
       );
       const templateDir = path.join(localPackDir, "templates");
       await fs.mkdir(templateDir, { recursive: true });
@@ -191,7 +191,7 @@ archetypes:
       // Add the local pack
       await handlePackAdd(
         { packPath: localPackDir, cwd: workspace.baseDir },
-        { storeConfig: workspace.storeConfig, logger: workspace.logger }
+        { storeConfig: workspace.storeConfig, logger: workspace.logger },
       );
 
       // Try to update it
@@ -200,9 +200,9 @@ archetypes:
         logger: workspace.logger,
       };
 
-      await expect(
-        handlePackUpdate({ packId: "local-pack" }, deps)
-      ).rejects.toThrow(/not Git-based/i);
+      await expect(handlePackUpdate({ packId: "local-pack" }, deps)).rejects.toThrow(
+        /not Git-based/i,
+      );
 
       try {
         await handlePackUpdate({ packId: "local-pack" }, deps);
@@ -221,16 +221,16 @@ archetypes:
   describe("successful update", () => {
     it("updates pack when new commit is available", async () => {
       // Create initial git repo and install
-      const { repoPath, git, commitHash: commit1 } = await createTestGitRepo(
-        workspace.baseDir,
-        "update-test-pack",
-        "1.0.0"
-      );
+      const {
+        repoPath,
+        git,
+        commitHash: commit1,
+      } = await createTestGitRepo(workspace.baseDir, "update-test-pack", "1.0.0");
 
       // Install the pack via git
       await handlePackAdd(
         { packPath: repoPath, cwd: workspace.baseDir, isGitUrl: true },
-        { storeConfig: workspace.storeConfig, logger: workspace.logger }
+        { storeConfig: workspace.storeConfig, logger: workspace.logger },
       );
 
       // Verify initial installation
@@ -245,7 +245,7 @@ archetypes:
       // Make a new commit in the repo
       await fs.writeFile(
         path.join(repoPath, "templates", "hello.txt"),
-        "Hello updated from {{name}}!"
+        "Hello updated from {{name}}!",
       );
       await git.add(".");
       await git.commit("Update template content");
@@ -260,10 +260,7 @@ archetypes:
         logger: workspace.logger,
       };
 
-      const result = await handlePackUpdate(
-        { packId: "update-test-pack" },
-        deps
-      );
+      const result = await handlePackUpdate({ packId: "update-test-pack" }, deps);
 
       // Verify update result
       expect(result.packId).toBe("update-test-pack");
@@ -281,16 +278,16 @@ archetypes:
 
     it("updates pack version when manifest version changes", async () => {
       // Create initial git repo and install
-      const { repoPath, git, commitHash: commit1 } = await createTestGitRepo(
-        workspace.baseDir,
-        "version-update-pack",
-        "1.0.0"
-      );
+      const {
+        repoPath,
+        git,
+        commitHash: commit1,
+      } = await createTestGitRepo(workspace.baseDir, "version-update-pack", "1.0.0");
 
       // Install the pack via git
       await handlePackAdd(
         { packPath: repoPath, cwd: workspace.baseDir, isGitUrl: true },
-        { storeConfig: workspace.storeConfig, logger: workspace.logger }
+        { storeConfig: workspace.storeConfig, logger: workspace.logger },
       );
 
       // Verify initial version
@@ -308,7 +305,7 @@ archetypes:
 archetypes:
   - id: default
     templateRoot: templates
-`
+`,
       );
       await git.add(".");
       await git.commit("Bump version to 2.0.0");
@@ -321,10 +318,7 @@ archetypes:
         logger: workspace.logger,
       };
 
-      const result = await handlePackUpdate(
-        { packId: "version-update-pack" },
-        deps
-      );
+      const result = await handlePackUpdate({ packId: "version-update-pack" }, deps);
 
       expect(result.status).toBe("updated");
       expect(result.previousVersion).toBe("1.0.0");
@@ -340,13 +334,13 @@ archetypes:
       const { repoPath, commitHash } = await createTestGitRepo(
         workspace.baseDir,
         "no-change-pack",
-        "1.0.0"
+        "1.0.0",
       );
 
       // Install the pack via git
       await handlePackAdd(
         { packPath: repoPath, cwd: workspace.baseDir, isGitUrl: true },
-        { storeConfig: workspace.storeConfig, logger: workspace.logger }
+        { storeConfig: workspace.storeConfig, logger: workspace.logger },
       );
 
       // Update without any changes
@@ -364,11 +358,11 @@ archetypes:
 
     it("uses --ref flag to update to specific branch", async () => {
       // Create initial git repo and install
-      const { repoPath, git, commitHash: commit1 } = await createTestGitRepo(
-        workspace.baseDir,
-        "ref-update-pack",
-        "1.0.0"
-      );
+      const {
+        repoPath,
+        git,
+        commitHash: commit1,
+      } = await createTestGitRepo(workspace.baseDir, "ref-update-pack", "1.0.0");
 
       // Get the default branch name
       const branchInfo = await git.branch();
@@ -377,7 +371,7 @@ archetypes:
       // Install the pack via git (from default branch)
       await handlePackAdd(
         { packPath: repoPath, cwd: workspace.baseDir, isGitUrl: true },
-        { storeConfig: workspace.storeConfig, logger: workspace.logger }
+        { storeConfig: workspace.storeConfig, logger: workspace.logger },
       );
 
       // Create a feature branch with different content
@@ -391,7 +385,7 @@ archetypes:
 archetypes:
   - id: default
     templateRoot: templates
-`
+`,
       );
       await git.add(".");
       await git.commit("Version 2 on feature branch");
@@ -407,10 +401,7 @@ archetypes:
         logger: workspace.logger,
       };
 
-      const result = await handlePackUpdate(
-        { packId: "ref-update-pack", ref: "feature/v2" },
-        deps
-      );
+      const result = await handlePackUpdate({ packId: "ref-update-pack", ref: "feature/v2" }, deps);
 
       expect(result.status).toBe("updated");
       expect(result.newCommit).toBe(featureCommit);
@@ -425,16 +416,16 @@ archetypes:
   describe("history tracking", () => {
     it("preserves previous version in history after update", async () => {
       // Create initial git repo and install
-      const { repoPath, git, commitHash: commit1 } = await createTestGitRepo(
-        workspace.baseDir,
-        "history-pack",
-        "1.0.0"
-      );
+      const {
+        repoPath,
+        git,
+        commitHash: commit1,
+      } = await createTestGitRepo(workspace.baseDir, "history-pack", "1.0.0");
 
       // Install the pack via git
       await handlePackAdd(
         { packPath: repoPath, cwd: workspace.baseDir, isGitUrl: true },
-        { storeConfig: workspace.storeConfig, logger: workspace.logger }
+        { storeConfig: workspace.storeConfig, logger: workspace.logger },
       );
 
       // Make a new commit
@@ -447,7 +438,7 @@ archetypes:
 archetypes:
   - id: default
     templateRoot: templates
-`
+`,
       );
       await git.add(".");
       await git.commit("Bump to v2");
@@ -477,16 +468,16 @@ archetypes:
 
     it("maintains history order (oldest first) after multiple updates", async () => {
       // Create initial git repo and install
-      const { repoPath, git, commitHash: commit1 } = await createTestGitRepo(
-        workspace.baseDir,
-        "multi-history-pack",
-        "1.0.0"
-      );
+      const {
+        repoPath,
+        git,
+        commitHash: commit1,
+      } = await createTestGitRepo(workspace.baseDir, "multi-history-pack", "1.0.0");
 
       // Install the pack via git
       await handlePackAdd(
         { packPath: repoPath, cwd: workspace.baseDir, isGitUrl: true },
-        { storeConfig: workspace.storeConfig, logger: workspace.logger }
+        { storeConfig: workspace.storeConfig, logger: workspace.logger },
       );
 
       const deps: PackUpdateDependencies = {
@@ -504,7 +495,7 @@ archetypes:
 archetypes:
   - id: default
     templateRoot: templates
-`
+`,
       );
       await git.add(".");
       await git.commit("Bump to v2");
@@ -523,7 +514,7 @@ archetypes:
 archetypes:
   - id: default
     templateRoot: templates
-`
+`,
       );
       await git.add(".");
       await git.commit("Bump to v3");
@@ -551,16 +542,12 @@ archetypes:
   describe("cleanup", () => {
     it("cleans up temp directory after successful update", async () => {
       // Create initial git repo and install
-      const { repoPath, git } = await createTestGitRepo(
-        workspace.baseDir,
-        "cleanup-pack",
-        "1.0.0"
-      );
+      const { repoPath, git } = await createTestGitRepo(workspace.baseDir, "cleanup-pack", "1.0.0");
 
       // Install the pack via git
       await handlePackAdd(
         { packPath: repoPath, cwd: workspace.baseDir, isGitUrl: true },
-        { storeConfig: workspace.storeConfig, logger: workspace.logger }
+        { storeConfig: workspace.storeConfig, logger: workspace.logger },
       );
 
       // Make a new commit
@@ -594,13 +581,13 @@ archetypes:
       const { repoPath, git } = await createTestGitRepo(
         workspace.baseDir,
         "fail-cleanup-pack",
-        "1.0.0"
+        "1.0.0",
       );
 
       // Install the pack via git
       await handlePackAdd(
         { packPath: repoPath, cwd: workspace.baseDir, isGitUrl: true },
-        { storeConfig: workspace.storeConfig, logger: workspace.logger }
+        { storeConfig: workspace.storeConfig, logger: workspace.logger },
       );
 
       // Make the manifest invalid in the next commit

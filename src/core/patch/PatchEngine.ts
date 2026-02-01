@@ -220,7 +220,7 @@ export class PatchEngine {
           undefined,
           `The file '${absolutePath}' does not exist. Ensure the target file exists before applying patches.`,
           undefined,
-          true
+          true,
         );
       }
 
@@ -339,7 +339,7 @@ export class PatchEngine {
     op: MarkerInsertOperation,
     content: string,
     absolutePath: string,
-    strict: boolean
+    strict: boolean,
   ): Promise<string> {
     const { markerStart, markerEnd } = op;
 
@@ -357,7 +357,7 @@ export class PatchEngine {
           `The markerStart '${markerStart}' was not found in ${absolutePath}. ` +
             `Ensure the file contains the expected markers.`,
           undefined,
-          true
+          true,
         );
       }
       return content;
@@ -373,7 +373,7 @@ export class PatchEngine {
           `The markerEnd '${markerEnd}' was not found in ${absolutePath}. ` +
             `Ensure the file contains the expected markers.`,
           undefined,
-          true
+          true,
         );
       }
       return content;
@@ -389,7 +389,7 @@ export class PatchEngine {
           `The markerEnd appears before markerStart in ${absolutePath}. ` +
             `Ensure markers are in the correct order.`,
           undefined,
-          true
+          true,
         );
       }
       return content;
@@ -420,7 +420,7 @@ export class PatchEngine {
     op: MarkerReplaceOperation,
     content: string,
     absolutePath: string,
-    strict: boolean
+    strict: boolean,
   ): Promise<string> {
     const { markerStart, markerEnd } = op;
 
@@ -438,7 +438,7 @@ export class PatchEngine {
           `The markerStart '${markerStart}' was not found in ${absolutePath}. ` +
             `Ensure the file contains the expected markers.`,
           undefined,
-          true
+          true,
         );
       }
       return content;
@@ -454,7 +454,7 @@ export class PatchEngine {
           `The markerEnd '${markerEnd}' was not found in ${absolutePath}. ` +
             `Ensure the file contains the expected markers.`,
           undefined,
-          true
+          true,
         );
       }
       return content;
@@ -479,7 +479,7 @@ export class PatchEngine {
   private applyAppendIfMissing(
     op: AppendIfMissingOperation,
     content: string,
-    lineEnding: string
+    lineEnding: string,
   ): string {
     const stamp = this.buildStamp(op.idempotencyKey);
 
@@ -495,7 +495,7 @@ export class PatchEngine {
    */
   private async applyAppendToNewFile(
     op: AppendIfMissingOperation,
-    absolutePath: string
+    absolutePath: string,
   ): Promise<PatchApplyResult> {
     const stamp = this.buildStamp(op.idempotencyKey);
     const lineEnding = "\n"; // Default for new files
@@ -538,10 +538,9 @@ export class PatchEngine {
   private normalizeLineEndings(
     content: string,
     newline: PatchOptions["newline"],
-    originalEnding: string
+    originalEnding: string,
   ): string {
-    const targetEnding =
-      newline === "lf" ? "\n" : newline === "crlf" ? "\r\n" : originalEnding;
+    const targetEnding = newline === "lf" ? "\n" : newline === "crlf" ? "\r\n" : originalEnding;
 
     if (targetEnding === "\r\n") {
       // First normalize to LF, then convert to CRLF
