@@ -1,0 +1,72 @@
+# Patched Pack Example
+#
+# This pack demonstrates:
+# - Patch operations with markers
+# - Idempotency keys
+# - postGenerate hooks
+# - Quality checks
+#
+# The archetype generates a simple Node.js app with a plugin system.
+# Patches add plugins to the configuration.
+
+pack:
+  name: patched-pack
+  version: "1.0.0"
+
+archetypes:
+  - id: app-with-plugins
+    templateRoot: templates
+
+    inputs:
+      - name: appName
+        type: string
+        required: true
+        prompt: "Application name?"
+
+      - name: enableLogging
+        type: boolean
+        default: true
+        prompt: "Enable logging plugin?"
+
+      - name: enableMetrics
+        type: boolean
+        default: false
+        prompt: "Enable metrics plugin?"
+
+    patches:
+      # Add logging plugin if enabled
+      - kind: marker_insert
+        file: src/config.js
+        idempotencyKey: add-logging-plugin
+        markerStart: "// <scaffoldix:plugins>"
+        markerEnd: "// </scaffoldix:plugins>"
+        description: "Add logging plugin to configuration"
+        path: patches/logging-plugin.hbs
+
+      # Add metrics plugin if enabled
+      - kind: marker_insert
+        file: src/config.js
+        idempotencyKey: add-metrics-plugin
+        markerStart: "// <scaffoldix:plugins>"
+        markerEnd: "// </scaffoldix:plugins>"
+        description: "Add metrics plugin to configuration"
+        path: patches/metrics-plugin.hbs
+
+      # Add .env to gitignore
+      - kind: append_if_missing
+        file: .gitignore
+        idempotencyKey: ignore-env-files
+        contentTemplate: |
+
+          # Environment files
+          .env
+          .env.local
+          .env.*.local
+
+    postGenerate:
+      - npm install
+      - npm run format
+
+    checks:
+      - node --check src/config.js
+      - node --check src/index.js

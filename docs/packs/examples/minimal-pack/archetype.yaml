@@ -1,0 +1,37 @@
+# Minimal Pack Example
+#
+# This is the simplest possible Scaffoldix pack demonstrating:
+# - Basic pack structure
+# - Simple inputs
+# - Template rendering
+# - Quality checks
+#
+# Use this as a starting point for new packs.
+
+pack:
+  name: minimal-pack
+  version: "1.0.0"
+
+archetypes:
+  - id: hello-world
+    templateRoot: templates
+
+    inputs:
+      - name: projectName
+        type: string
+        required: true
+        prompt: "What is your project name?"
+
+      - name: author
+        type: string
+        default: "Anonymous"
+        prompt: "Author name?"
+
+      - name: useStrict
+        type: boolean
+        default: true
+        prompt: "Use strict mode?"
+
+    # Quality check to verify the generated file is valid
+    checks:
+      - node --check index.js
