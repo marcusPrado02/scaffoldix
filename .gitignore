@@ -17,6 +17,4 @@ dist/
 .env.*
 
 docs/tasks/
-docs/context.md
-docs/architecture.md
 coverage/
