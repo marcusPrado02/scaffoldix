@@ -26,6 +26,7 @@ import {
 } from "../handlers/generateHandler.js";
 import { getCliUx, createCliUx, setDefaultCliUx } from "../ux/CliUx.js";
 import { createCliSpinner } from "../ux/CliSpinner.js";
+import { createPromptRunner } from "../prompts/PromptRunner.js";
 
 /**
  * Builds the `generate` command.
@@ -75,6 +76,9 @@ export function buildGenerateCommand(_logger: Logger): Command {
             spinner.start(`Generating from ${ref}`);
           }
 
+          // Create prompt adapter for interactive mode
+          const promptAdapter = options.yes ? undefined : createPromptRunner();
+
           // Execute handler
           const result = await handleGenerate(
             {
@@ -83,6 +87,7 @@ export function buildGenerateCommand(_logger: Logger): Command {
               dryRun: options.dryRun,
               data: {}, // Provided values (from future --set flags)
               nonInteractive: options.yes,
+              prompt: promptAdapter,
               force: options.force,
             },
             {

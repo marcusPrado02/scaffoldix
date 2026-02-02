@@ -5,12 +5,22 @@
  * - Non-interactive mode (--yes) using defaults only
  * - Interactive mode with prompting for missing required inputs
  * - Type coercion (string to number/boolean)
- * - Enum validation
+ * - Enhanced validation (minLength, maxLength, regex, min, max, integer)
+ * - Conditional prompts (when clause)
+ * - Enum options as objects with value/label
  *
  * @module
  */
 
 import { ScaffoldError } from "../errors/errors.js";
+import {
+  validateInput,
+  isConditionMet,
+  getEnumValues,
+  type EnhancedInputDefinition,
+  type EnumOption,
+  type ValidationMessages,
+} from "../inputs/InputValidator.js";
 
 // =============================================================================
 // Types
@@ -23,6 +33,7 @@ export type InputType = "string" | "number" | "boolean" | "enum";
 
 /**
  * Definition of a single input from manifest schema.
+ * Re-exported for backward compatibility.
  */
 export interface InputDefinition {
   /** Unique name of the input */
@@ -40,8 +51,36 @@ export interface InputDefinition {
   /** Prompt text for interactive mode */
   readonly prompt?: string;
 
-  /** Valid options for enum type */
-  readonly options?: readonly string[];
+  /** Description/help text */
+  readonly description?: string;
+
+  // String validations
+  /** Minimum length for string inputs */
+  readonly minLength?: number;
+  /** Maximum length for string inputs */
+  readonly maxLength?: number;
+  /** Regex pattern for string validation */
+  readonly regex?: string;
+
+  // Number validations
+  /** Minimum value for number inputs */
+  readonly min?: number;
+  /** Maximum value for number inputs */
+  readonly max?: number;
+  /** Whether number must be an integer */
+  readonly integer?: boolean;
+
+  /** Valid options for enum type (string or object array) */
+  readonly options?: readonly EnumOption[];
+
+  /** Custom validation messages */
+  readonly messages?: ValidationMessages;
+
+  /** Conditional display condition */
+  readonly when?: {
+    readonly input: string;
+    readonly equals: string | number | boolean;
+  };
 }
 
 /**
@@ -132,17 +171,53 @@ function coerceValue(value: unknown, type: InputType, inputName: string): unknow
 }
 
 /**
- * Validates an enum value against allowed options.
+ * Validates a value against input definition constraints.
  *
- * @param value - The value to validate
- * @param options - Allowed enum options
- * @param inputName - Input name for error messages
- * @throws ScaffoldError if value is not in options
+ * @param value - The value to validate (already coerced)
+ * @param input - The input definition with validation rules
+ * @throws ScaffoldError if validation fails
  */
-function validateEnum(value: unknown, options: readonly string[], inputName: string): void {
-  if (!options.includes(String(value))) {
+function validateValue(value: unknown, input: InputDefinition): void {
+  // Convert InputDefinition to EnhancedInputDefinition for validation
+  const enhancedDef: EnhancedInputDefinition = {
+    name: input.name,
+    type: input.type,
+    required: input.required,
+    minLength: input.minLength,
+    maxLength: input.maxLength,
+    regex: input.regex,
+    min: input.min,
+    max: input.max,
+    integer: input.integer,
+    options: input.options,
+    messages: input.messages,
+  };
+
+  const result = validateInput(value, enhancedDef);
+
+  if (!result.valid) {
     throw new ScaffoldError(
-      `Input '${inputName}' value '${value}' is not valid. Allowed values: ${options.join(", ")}`,
+      result.message ?? `Input '${input.name}' validation failed`,
+      "INPUT_VALIDATION_FAILED",
+      { inputName: input.name, value },
+      undefined,
+      `Correct the value for '${input.name}' and try again.`,
+    );
+  }
+}
+
+/**
+ * Legacy enum validation (for backward compatibility with string[] options).
+ */
+function validateEnumLegacy(
+  value: unknown,
+  options: readonly EnumOption[],
+  inputName: string,
+): void {
+  const validValues = getEnumValues(options);
+  if (!validValues.includes(String(value))) {
+    throw new ScaffoldError(
+      `Input '${inputName}' value '${value}' is not valid. Allowed values: ${validValues.join(", ")}`,
       "INPUT_ENUM_ERROR",
     );
   }
@@ -161,6 +236,10 @@ function validateEnum(value: unknown, options: readonly string[], inputName: str
  * 3. Prompt user (interactive mode only)
  * 4. Omit optional inputs without defaults
  *
+ * ## Conditional Inputs (when clause)
+ * Inputs with a `when` clause are only included if the condition is met.
+ * The condition checks if another input equals a specific value.
+ *
  * ## Non-Interactive Mode (--yes)
  * When `nonInteractive` is true:
  * - Never calls prompt adapter
@@ -169,9 +248,11 @@ function validateEnum(value: unknown, options: readonly string[], inputName: str
  *
  * @param params - Resolution parameters
  * @returns Resolved input values
- * @throws ScaffoldError if required inputs are missing in non-interactive mode
+ * @throws ScaffoldError if required inputs are missing or validation fails
  */
-export async function resolveInputs(params: ResolveInputsParams): Promise<Record<string, unknown>> {
+export async function resolveInputs(
+  params: ResolveInputsParams,
+): Promise<Record<string, unknown>> {
   const { inputsSchema, nonInteractive, prompt, provided = {}, archetypeRef } = params;
 
   // No inputs defined - return provided values as-is (backward compatibility)
@@ -185,12 +266,24 @@ export async function resolveInputs(params: ResolveInputsParams): Promise<Record
   for (const input of inputsSchema) {
     const { name, type, required, default: defaultValue, options } = input;
 
+    // Check if conditional input should be skipped
+    if (input.when && !isConditionMet(input.when, result)) {
+      // Skip this input - condition not met
+      continue;
+    }
+
     // Check if value was provided
     if (name in provided) {
       const coerced = coerceValue(provided[name], type, name);
+
+      // Validate with enhanced validation
+      validateValue(coerced, input);
+
+      // Additional enum validation (backward compat)
       if (type === "enum" && options) {
-        validateEnum(coerced, options, name);
+        validateEnumLegacy(coerced, options, name);
       }
+
       result[name] = coerced;
       continue;
     }
@@ -198,9 +291,15 @@ export async function resolveInputs(params: ResolveInputsParams): Promise<Record
     // Check if default exists
     if (defaultValue !== undefined) {
       const coerced = coerceValue(defaultValue, type, name);
+
+      // Validate with enhanced validation
+      validateValue(coerced, input);
+
+      // Additional enum validation (backward compat)
       if (type === "enum" && options) {
-        validateEnum(coerced, options, name);
+        validateEnumLegacy(coerced, options, name);
       }
+
       result[name] = coerced;
       continue;
     }
@@ -221,9 +320,15 @@ export async function resolveInputs(params: ResolveInputsParams): Promise<Record
 
         const userValue = await prompt.prompt(input);
         const coerced = coerceValue(userValue, type, name);
+
+        // Validate with enhanced validation
+        validateValue(coerced, input);
+
+        // Additional enum validation (backward compat)
         if (type === "enum" && options) {
-          validateEnum(coerced, options, name);
+          validateEnumLegacy(coerced, options, name);
         }
+
         result[name] = coerced;
       }
     }

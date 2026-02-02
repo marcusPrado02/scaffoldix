@@ -1416,4 +1416,235 @@ archetypes:
       }
     });
   });
+
+  // ===========================================================================
+  // Input Schema Validation (T44)
+  // ===========================================================================
+
+  describe("input schema validation (T44)", () => {
+    it("rejects invalid regex pattern", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    inputs:
+      - name: email
+        type: string
+        regex: "[invalid(regex"
+`,
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; hint?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.hint).toMatch(/regex/i);
+      }
+    });
+
+    it("rejects enum without options", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    inputs:
+      - name: size
+        type: enum
+`,
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; hint?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.hint).toMatch(/enum.*option/i);
+      }
+    });
+
+    it("rejects enum default not in options", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    inputs:
+      - name: color
+        type: enum
+        options:
+          - red
+          - green
+          - blue
+        default: yellow
+`,
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; hint?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.hint).toMatch(/default.*yellow.*not in.*options/i);
+      }
+    });
+
+    it("rejects min > max for numbers", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    inputs:
+      - name: port
+        type: number
+        min: 10000
+        max: 1000
+`,
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; hint?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.hint).toMatch(/min.*greater.*max/i);
+      }
+    });
+
+    it("rejects minLength > maxLength for strings", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    inputs:
+      - name: projectName
+        type: string
+        minLength: 100
+        maxLength: 10
+`,
+      );
+
+      try {
+        await loader.loadFromDir(testDir);
+        expect.fail("Should have thrown");
+      } catch (error) {
+        const err = error as { code?: string; hint?: string };
+        expect(err.code).toBe("MANIFEST_SCHEMA_ERROR");
+        expect(err.hint).toMatch(/minLength.*greater.*maxLength/i);
+      }
+    });
+
+    it("accepts valid input schema with all fields", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    inputs:
+      - name: projectName
+        type: string
+        required: true
+        minLength: 3
+        maxLength: 50
+        regex: "^[a-z-]+$"
+        prompt: "Enter project name:"
+        description: "Lowercase with dashes"
+        messages:
+          regex: "Use lowercase letters and dashes only"
+      - name: port
+        type: number
+        min: 1024
+        max: 65535
+        integer: true
+        default: 3000
+      - name: framework
+        type: enum
+        options:
+          - value: react
+            label: React
+          - value: vue
+            label: Vue
+          - value: angular
+            label: Angular
+        default: react
+      - name: typescript
+        type: boolean
+        default: true
+      - name: database
+        type: enum
+        options:
+          - postgres
+          - mysql
+        when:
+          input: useDatabase
+          equals: true
+`,
+      );
+
+      const manifest = await loader.loadFromDir(testDir);
+      expect(manifest.archetypes[0].inputs).toHaveLength(5);
+      expect(manifest.archetypes[0].inputs![0].minLength).toBe(3);
+      expect(manifest.archetypes[0].inputs![1].integer).toBe(true);
+    });
+
+    it("accepts enum options as objects with value/label", async () => {
+      await writeManifest(
+        testDir,
+        `
+pack:
+  name: test-pack
+  version: 1.0.0
+archetypes:
+  - id: default
+    templateRoot: templates
+    inputs:
+      - name: color
+        type: enum
+        options:
+          - value: red
+            label: Red Color
+          - value: green
+            label: Green Color
+        default: red
+`,
+      );
+
+      const manifest = await loader.loadFromDir(testDir);
+      const colorInput = manifest.archetypes[0].inputs![0];
+      expect(colorInput.options).toHaveLength(2);
+      expect(colorInput.options![0]).toEqual({ value: "red", label: "Red Color" });
+    });
+  });
 });

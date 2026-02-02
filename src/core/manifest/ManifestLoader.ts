@@ -194,32 +194,167 @@ const PatchSchema = z
   .pipe(RawPatchSchema);
 
 /**
+ * Schema for custom validation messages.
+ */
+const ValidationMessagesSchema = z.object({
+  required: z.string().optional(),
+  invalid: z.string().optional(),
+  min: z.string().optional(),
+  max: z.string().optional(),
+  minLength: z.string().optional(),
+  maxLength: z.string().optional(),
+  regex: z.string().optional(),
+  integer: z.string().optional(),
+});
+
+/**
+ * Schema for enum option (can be string or object with value/label).
+ */
+const EnumOptionSchema = z.union([
+  z.string(),
+  z.object({
+    value: z.string(),
+    label: z.string().optional(),
+  }),
+]);
+
+/**
+ * Schema for conditional display (when clause).
+ */
+const WhenClauseSchema = z.object({
+  input: z.string(),
+  equals: z.union([z.string(), z.number(), z.boolean()]),
+});
+
+/**
+ * Helper to extract value from enum option.
+ */
+function getEnumOptionValue(option: string | { value: string; label?: string }): string {
+  return typeof option === "string" ? option : option.value;
+}
+
+/**
  * Schema for input definition in archetype.
  *
  * Defines inputs that can be collected from users or provided via CLI flags.
+ * Enhanced with validations (T44):
+ * - String: minLength, maxLength, regex
+ * - Number: min, max, integer
+ * - Enum: options as objects with value/label
+ * - Custom messages for validation errors
+ * - Conditional prompts with 'when' clause
  */
-const InputDefinitionSchema = z.object({
-  /** Unique name of the input (used as template variable) */
-  name: z
-    .string()
-    .transform((s) => s.trim())
-    .refine((s) => s.length > 0, { message: "Input name cannot be empty" }),
+const InputDefinitionSchema = z
+  .object({
+    /** Unique name of the input (used as template variable) */
+    name: z
+      .string()
+      .transform((s) => s.trim())
+      .refine((s) => s.length > 0, { message: "Input name cannot be empty" }),
 
-  /** Type of the input value */
-  type: z.enum(["string", "number", "boolean", "enum"]).default("string"),
+    /** Type of the input value */
+    type: z.enum(["string", "number", "boolean", "enum"]).default("string"),
 
-  /** Whether this input is required */
-  required: z.boolean().optional(),
+    /** Whether this input is required */
+    required: z.boolean().optional(),
 
-  /** Default value if not provided */
-  default: z.unknown().optional(),
+    /** Default value if not provided */
+    default: z.unknown().optional(),
 
-  /** Prompt text for interactive mode */
-  prompt: z.string().optional(),
+    /** Prompt text for interactive mode */
+    prompt: z.string().optional(),
 
-  /** Valid options for enum type */
-  options: z.array(z.string()).optional(),
-});
+    /** Description/help text */
+    description: z.string().optional(),
+
+    // String validations
+    /** Minimum length for string inputs */
+    minLength: z.number().int().min(0).optional(),
+    /** Maximum length for string inputs */
+    maxLength: z.number().int().min(0).optional(),
+    /** Regex pattern for string validation */
+    regex: z.string().optional(),
+
+    // Number validations
+    /** Minimum value for number inputs */
+    min: z.number().optional(),
+    /** Maximum value for number inputs */
+    max: z.number().optional(),
+    /** Whether number must be an integer */
+    integer: z.boolean().optional(),
+
+    /** Valid options for enum type (string or object array) */
+    options: z.array(EnumOptionSchema).optional(),
+
+    /** Custom validation messages */
+    messages: ValidationMessagesSchema.optional(),
+
+    /** Conditional display condition */
+    when: WhenClauseSchema.optional(),
+  })
+  .superRefine((data, ctx) => {
+    // Validate regex is compilable
+    if (data.regex !== undefined) {
+      try {
+        new RegExp(data.regex);
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid regex pattern: ${data.regex}`,
+          path: ["regex"],
+        });
+      }
+    }
+
+    // Validate minLength <= maxLength for strings
+    if (
+      data.type === "string" &&
+      data.minLength !== undefined &&
+      data.maxLength !== undefined &&
+      data.minLength > data.maxLength
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `minLength (${data.minLength}) cannot be greater than maxLength (${data.maxLength})`,
+        path: ["minLength"],
+      });
+    }
+
+    // Validate min <= max for numbers
+    if (
+      data.type === "number" &&
+      data.min !== undefined &&
+      data.max !== undefined &&
+      data.min > data.max
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `min (${data.min}) cannot be greater than max (${data.max})`,
+        path: ["min"],
+      });
+    }
+
+    // Validate enum has options
+    if (data.type === "enum" && (!data.options || data.options.length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enum type requires at least one option",
+        path: ["options"],
+      });
+    }
+
+    // Validate enum default is in options
+    if (data.type === "enum" && data.default !== undefined && data.options) {
+      const validValues = data.options.map(getEnumOptionValue);
+      if (!validValues.includes(String(data.default))) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Default value '${data.default}' is not in enum options: ${validValues.join(", ")}`,
+          path: ["default"],
+        });
+      }
+    }
+  });
 
 /**
  * Schema for a single archetype definition.

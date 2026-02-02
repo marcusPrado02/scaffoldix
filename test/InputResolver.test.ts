@@ -437,7 +437,8 @@ describe("InputResolver", () => {
           nonInteractive: true,
         }),
       ).rejects.toMatchObject({
-        code: "INPUT_ENUM_ERROR",
+        // T44: All validation errors use INPUT_VALIDATION_FAILED
+        code: "INPUT_VALIDATION_FAILED",
       });
     });
 
