@@ -158,6 +158,26 @@ export interface StorePaths {
    * @example `<storeDir>/registry.json`
    */
   readonly registryFile: string;
+
+  /**
+   * Root directory for cache storage.
+   *
+   * Used for caching computed data that can be regenerated if lost.
+   * This is always a direct child of `storeDir`.
+   *
+   * @example `<storeDir>/cache/`
+   */
+  readonly cacheDir: string;
+
+  /**
+   * Directory for pack index cache.
+   *
+   * Stores cached PackIndex entries to speed up pack listing and lookups.
+   * Each pack gets a JSON file with its cached metadata.
+   *
+   * @example `<storeDir>/cache/packs/`
+   */
+  readonly packsCacheDir: string;
 }
 
 /**
@@ -218,11 +238,17 @@ function resolveStorePaths(): StorePaths {
   // Registry file lives at the root of the store
   const registryFile = path.join(storeDir, "registry.json");
 
+  // Cache directories
+  const cacheDir = path.join(storeDir, "cache");
+  const packsCacheDir = path.join(cacheDir, "packs");
+
   // Return frozen object to prevent accidental mutation
   return Object.freeze({
     storeDir,
     packsDir,
     registryFile,
+    cacheDir,
+    packsCacheDir,
   });
 }
 
@@ -344,10 +370,13 @@ export function initStorePaths(options: InitStoreOptions = {}): StorePaths {
 
   if (ensureDirectories) {
     // Create directories in dependency order:
-    // 1. storeDir must exist before packsDir can be created
+    // 1. storeDir must exist before children can be created
     // 2. registryFile is NOT created here (RegistryService's responsibility)
+    // 3. cacheDir must exist before packsCacheDir
     ensureDirectory(paths.storeDir);
     ensureDirectory(paths.packsDir);
+    ensureDirectory(paths.cacheDir);
+    ensureDirectory(paths.packsCacheDir);
   }
 
   // Cache for subsequent calls

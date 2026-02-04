@@ -708,6 +708,46 @@ archetypes: []`,
       expect(stderr).toHaveLength(0);
     });
 
+it("uses cache for repeated lookups", async () => {
+      const { storeDir, packsDir, deps, registryFile } = await createTestDependencies();
+      trackDir(storeDir);
+
+      const hash1 = "c1".repeat(32);
+
+      const registry = createRegistry([
+        {
+          id: "cached-pack",
+          version: "1.0.0",
+          origin: { type: "local", localPath: "/cached" },
+          hash: hash1,
+        },
+      ]);
+      await writeRegistry(registryFile, registry);
+
+      await createPackInStore(packsDir, "cached-pack", hash1, ["cached-arch"]);
+
+      // Add cache directory to dependencies
+      const cacheDir = path.join(storeDir, "cache", "packs");
+      await fs.mkdir(cacheDir, { recursive: true });
+
+      const depsWithCache = {
+        ...deps,
+        packsCacheDir: cacheDir,
+      };
+
+      // First call should populate cache
+      const result1 = await handleArchetypesList(depsWithCache);
+      expect(result1.archetypes).toContain("cached-pack:cached-arch");
+
+      // Cache file should exist
+      const cacheFiles = await fs.readdir(cacheDir);
+      expect(cacheFiles.length).toBeGreaterThan(0);
+
+      // Second call should use cache (same result)
+      const result2 = await handleArchetypesList(depsWithCache);
+      expect(result2.archetypes).toEqual(result1.archetypes);
+    });
+
     it("full flow: valid + invalid packs, archetypes from valid only", async () => {
       const { storeDir, packsDir, deps, registryFile } = await createTestDependencies();
       trackDir(storeDir);

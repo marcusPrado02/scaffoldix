@@ -43,6 +43,7 @@ export function buildArchetypesCommand(_logger: Logger): Command {
         const result = await handleArchetypesList({
           registryFile: storePaths.registryFile,
           packsDir: storePaths.packsDir,
+          packsCacheDir: storePaths.packsCacheDir,
         });
 
         if (options.json) {

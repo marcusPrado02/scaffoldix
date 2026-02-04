@@ -14,6 +14,8 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { RegistryService } from "../../core/registry/RegistryService.js";
 import { ManifestLoader } from "../../core/manifest/ManifestLoader.js";
+import { PackIndexCache, createPackIndex } from "../../core/cache/PackIndexCache.js";
+import { computeManifestHash } from "../../core/cache/manifestHash.js";
 
 // =============================================================================
 // Types
@@ -28,6 +30,9 @@ export interface ArchetypesListDependencies {
 
   /** Absolute path to the packs directory */
   readonly packsDir: string;
+
+  /** Optional cache directory for pack index caching */
+  readonly packsCacheDir?: string;
 }
 
 /**
@@ -96,7 +101,7 @@ function deriveStorePath(packsDir: string, packId: string, hash: string): string
 export async function handleArchetypesList(
   deps: ArchetypesListDependencies,
 ): Promise<ArchetypesListResult> {
-  const { registryFile, packsDir } = deps;
+  const { registryFile, packsDir, packsCacheDir } = deps;
 
   // 1. Load registry (throws on corruption)
   const registryService = new RegistryService(registryFile);
@@ -119,6 +124,9 @@ export async function handleArchetypesList(
   const allArchetypes: string[] = [];
   const warnings: string[] = [];
 
+  // Initialize cache if cache directory provided
+  const cache = packsCacheDir ? new PackIndexCache(packsCacheDir) : undefined;
+
   // 2. Process each pack
   for (const pack of sortedPacks) {
     const storePath = deriveStorePath(packsDir, pack.id, pack.hash);
@@ -133,21 +141,54 @@ export async function handleArchetypesList(
       continue;
     }
 
-    // 2b. Load manifest
-    const manifestLoader = new ManifestLoader();
-    try {
-      const manifest = await manifestLoader.loadFromDir(storePath);
+    // 2b. Try to load from cache first (if cache is enabled)
+    const manifestPath = path.join(storePath, "pack.yaml");
+    let archetypeIds: string[] | undefined;
 
-      // 2c. Extract archetype IDs (use exact ID from manifest)
-      for (const archetype of manifest.archetypes) {
-        allArchetypes.push(`${pack.id}:${archetype.id}`);
+    if (cache) {
+      try {
+        const manifestHash = await computeManifestHash(manifestPath);
+        const cached = await cache.get(pack.id, manifestHash);
+
+        if (cached) {
+          // Cache hit - use cached archetype IDs
+          archetypeIds = cached.archetypes.map((a) => a.id);
+        } else {
+          // Cache miss - load manifest and populate cache
+          const manifestLoader = new ManifestLoader();
+          const manifest = await manifestLoader.loadFromDir(storePath);
+          archetypeIds = manifest.archetypes.map((a) => a.id);
+
+          // Store in cache for next time
+          const packIndex = createPackIndex(manifest, manifestHash);
+          await cache.set(pack.id, manifestHash, packIndex);
+        }
+      } catch (err) {
+        // If cache operations fail, fall through to direct load
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        warnings.push(
+          `Warning: pack '${pack.id}' has invalid manifest at ${storePath}: ${errorMessage}`,
+        );
+        continue;
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      warnings.push(
-        `Warning: pack '${pack.id}' has invalid manifest at ${storePath}: ${errorMessage}`,
-      );
-      continue;
+    } else {
+      // No cache - load manifest directly
+      const manifestLoader = new ManifestLoader();
+      try {
+        const manifest = await manifestLoader.loadFromDir(storePath);
+        archetypeIds = manifest.archetypes.map((a) => a.id);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        warnings.push(
+          `Warning: pack '${pack.id}' has invalid manifest at ${storePath}: ${errorMessage}`,
+        );
+        continue;
+      }
+    }
+
+    // 2c. Add archetype IDs to list
+    for (const archetypeId of archetypeIds) {
+      allArchetypes.push(`${pack.id}:${archetypeId}`);
     }
   }
 
