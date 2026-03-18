@@ -246,6 +246,40 @@ async function getFileMode(filePath: string): Promise<number> {
   return stat.mode;
 }
 
+/**
+ * Loads ignore patterns from a `.scaffoldixignore` file in the template directory.
+ * Returns an empty array if the file doesn't exist.
+ *
+ * The file follows .gitignore syntax (one glob pattern per line, # = comment).
+ */
+async function loadIgnorePatterns(templateDir: string): Promise<string[]> {
+  const ignorePath = path.join(templateDir, ".scaffoldixignore");
+  try {
+    const content = await fs.readFile(ignorePath, "utf-8");
+    return content
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith("#"));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Checks whether a file should be forced to binary copy mode via a `.binary` marker file.
+ * If `<srcRelativePath>.binary` exists next to the file, treat as binary.
+ * This allows marking specific text files as "copy without template processing".
+ */
+async function hasBinaryMarker(templateDir: string, srcRelativePath: string): Promise<boolean> {
+  const markerPath = path.join(templateDir, srcRelativePath + ".binary");
+  try {
+    await fs.access(markerPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // =============================================================================
 // Main API
 // =============================================================================
@@ -293,12 +327,16 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
     );
   }
 
-  // Enumerate all files in template directory
+  // Load .scaffoldixignore patterns if present
+  const ignorePatterns = await loadIgnorePatterns(templateDir);
+
+  // Enumerate all files in template directory (respecting .scaffoldixignore)
   const files = await fg("**/*", {
     cwd: templateDir,
     dot: true,
     onlyFiles: true,
     followSymbolicLinks: false,
+    ignore: [...ignorePatterns, ".scaffoldixignore"],
   });
 
   const filesPlanned: FileEntry[] = [];
@@ -341,8 +379,9 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
       );
     }
 
-    // Detect if file is binary
-    const binary = await isBinaryFile(srcAbsolutePath);
+    // Detect if file is binary (NUL bytes or explicit .binary marker)
+    const forceBinary = await hasBinaryMarker(templateDir, srcRelativePath);
+    const binary = forceBinary || await isBinaryFile(srcAbsolutePath);
 
     // Get file mode for preserving permissions
     const fileMode = await getFileMode(srcAbsolutePath);
