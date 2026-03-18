@@ -810,6 +810,26 @@ export async function handleGenerate(
         }
       },
     });
+
+    // 7c. Render extraTemplateRoots if defined (multi-root templates)
+    const extraRoots = (archetype as { extraTemplateRoots?: Array<{ templateRoot: string; targetSubDir: string }> }).extraTemplateRoots;
+    if (extraRoots && extraRoots.length > 0) {
+      for (const extra of extraRoots) {
+        const extraTemplateDir = path.join(storePath, extra.templateRoot);
+        const extraTargetDir = path.join(stagingDir, extra.targetSubDir);
+        const extraResult = await renderArchetype({
+          templateDir: extraTemplateDir,
+          targetDir: extraTargetDir,
+          data: resolvedData,
+          renameRules,
+          dryRun: false,
+          force,
+        });
+        renderResult.filesWritten.push(...extraResult.filesWritten);
+        renderResult.filesPlanned.push(...extraResult.filesPlanned);
+      }
+    }
+
     trace.end("render templates");
 
     // 8. Apply patches in STAGING

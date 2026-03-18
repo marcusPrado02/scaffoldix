@@ -425,6 +425,28 @@ const ArchetypeSchema = z.object({
     .refine((s) => s.length > 0, { message: "Archetype templateRoot cannot be empty" }),
 
   /**
+   * Optional list of additional template roots, each writing to a different target.
+   * Useful for packs that need to generate files in multiple project directories
+   * (e.g., both `src/` and `test/`).
+   *
+   * Each entry specifies a templateRoot and a targetSubDir relative to the main target:
+   *
+   * @example
+   * ```yaml
+   * archetypes:
+   *   - id: feature
+   *     templateRoot: templates/src
+   *     extraTemplateRoots:
+   *       - templateRoot: templates/test
+   *         targetSubDir: test
+   * ```
+   */
+  extraTemplateRoots: z.array(z.object({
+    templateRoot: z.string().min(1),
+    targetSubDir: z.string().min(1),
+  })).optional(),
+
+  /**
    * Optional list of patch operations to apply after template rendering.
    * Patches modify existing files in the target project.
    */
