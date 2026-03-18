@@ -19,7 +19,8 @@ async function main() {
     .version(CLI_VERSION)
     .option("--verbose", "Show additional context and details", false)
     .option("--debug", "Show all output including debug traces", false)
-    .option("--silent", "Suppress all output except errors", false);
+    .option("--silent", "Suppress all output except errors", false)
+    .option("--json", "Output all results as machine-readable JSON", false);
 
   // Hook to set up CliUx before any command runs
   program.hook("preAction", (thisCommand) => {
@@ -32,6 +33,11 @@ async function main() {
 
     const ux = createCliUx({ level });
     setDefaultCliUx(ux);
+
+    // Propagate global --json flag to sub-commands via env variable
+    if (opts.json) {
+      process.env.SCAFFOLDIX_JSON_OUTPUT = "1";
+    }
   });
 
   // Compatibility: create logger from CliUx level (for commands still using Logger)
