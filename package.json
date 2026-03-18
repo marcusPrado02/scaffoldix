@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "prettier --check . && tsc --noEmit",
     "format": "prettier -w .",
-    "mutation": "stryker run stryker.config.json"
+    "mutation": "stryker run stryker.config.json",
+    "bench": "vitest bench test/bench/"
   },
   "keywords": [],
   "author": "",
