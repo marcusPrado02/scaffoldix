@@ -103,12 +103,35 @@ export interface AppendIfMissingOperation extends PatchOperationBase {
 }
 
 /**
+ * Replace content matching a regex pattern.
+ *
+ * Uses JavaScript regex syntax. The first capture group (if any) can be
+ * referenced in `replacement` with `$1`, `$2`, etc.
+ */
+export interface RegexReplaceOperation extends PatchOperationBase {
+  readonly kind: "regex_replace";
+
+  /** JavaScript regular expression pattern (string form, no slashes). */
+  readonly pattern: string;
+
+  /** Replacement string (supports $1, $2, ... capture group references). */
+  readonly replacement: string;
+
+  /**
+   * Flags for the regex (e.g., "g" for global, "i" for case-insensitive, "m" for multiline).
+   * Defaults to "g" (replace all occurrences).
+   */
+  readonly flags?: string;
+}
+
+/**
  * Union type of all supported patch operations.
  */
 export type PatchOperation =
   | MarkerInsertOperation
   | MarkerReplaceOperation
-  | AppendIfMissingOperation;
+  | AppendIfMissingOperation
+  | RegexReplaceOperation;
 
 /**
  * Options for applying patches.
@@ -267,6 +290,10 @@ export class PatchEngine {
 
       case "append_if_missing":
         content = this.applyAppendIfMissing(op, content, originalLineEnding);
+        break;
+
+      case "regex_replace":
+        content = this.applyRegexReplace(op, content, absolutePath);
         break;
 
       default:
@@ -488,6 +515,38 @@ export class PatchEngine {
     const trailingNewline = needsTrailingNewline ? lineEnding : "";
 
     return `${content}${trailingNewline}${stamp}${lineEnding}${op.content}${lineEnding}`;
+  }
+
+  /**
+   * Applies regex_replace operation.
+   * Replaces all matches of the pattern with the replacement string.
+   * Idempotency is handled by checking for the stamp before applying.
+   */
+  private applyRegexReplace(
+    op: RegexReplaceOperation,
+    content: string,
+    absolutePath: string,
+  ): string {
+    const stamp = this.buildStamp(op.idempotencyKey);
+
+    let regex: RegExp;
+    try {
+      regex = new RegExp(op.pattern, op.flags ?? "g");
+    } catch (err) {
+      throw new ScaffoldError(
+        `Invalid regex pattern in patch: ${op.pattern}`,
+        "PATCH_INVALID_REGEX",
+        { file: absolutePath, pattern: op.pattern },
+        undefined,
+        `The pattern "${op.pattern}" is not a valid regular expression. ${err instanceof Error ? err.message : ""}`,
+        err instanceof Error ? err : undefined,
+        true,
+      );
+    }
+
+    const replaced = content.replace(regex, op.replacement);
+    // Append stamp at the end so idempotency check works
+    return `${replaced}\n${stamp}`;
   }
 
   /**

@@ -154,10 +154,24 @@ const AppendIfMissingSchema = z
 /**
  * Raw patch schema without marker validation for append_if_missing.
  */
+/**
+ * Schema for regex_replace patch operation.
+ * Replaces content matching a regular expression pattern.
+ */
+const RegexReplaceSchema = z.object({
+  kind: z.literal("regex_replace"),
+  file: nonEmptyString("Patch file"),
+  idempotencyKey: nonEmptyString("Patch idempotencyKey"),
+  pattern: nonEmptyString("Patch pattern"),
+  replacement: z.string(),
+  flags: z.string().optional(),
+});
+
 const RawPatchSchema = z.discriminatedUnion("kind", [
   MarkerInsertSchema,
   MarkerReplaceSchema,
   AppendIfMissingSchema,
+  RegexReplaceSchema,
 ]);
 
 /**
