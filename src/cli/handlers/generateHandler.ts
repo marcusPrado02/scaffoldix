@@ -989,6 +989,7 @@ export async function handleGenerate(
         logger: checkLogger,
         parallel: (archetype as { parallelChecks?: boolean }).parallelChecks ?? false,
         timeoutMs: parseDurationMs((archetype as { checksTimeout?: string }).checksTimeout),
+        retries: (archetype as { checksRetries?: number }).checksRetries ?? 0,
       });
       trace.end("run checks");
     }

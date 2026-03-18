@@ -76,6 +76,13 @@ export interface RunChecksParams {
    * Default: no timeout.
    */
   readonly timeoutMs?: number;
+
+  /**
+   * Number of times to retry a failed check before giving up.
+   * Retries use exponential backoff (base 2s, capped at 30s).
+   * Default: 0 (no retries).
+   */
+  readonly retries?: number;
 }
 
 /**
@@ -152,7 +159,7 @@ export class CheckRunner {
    * @throws ScaffoldError if any check fails
    */
   async runChecks(params: RunChecksParams): Promise<CheckRunSummary> {
-    const { commands, cwd, logger, parallel = false, timeoutMs } = params;
+    const { commands, cwd, logger, parallel = false, timeoutMs, retries = 0 } = params;
 
     // Handle empty/undefined commands
     if (!commands || commands.length === 0) {
@@ -170,10 +177,10 @@ export class CheckRunner {
     const total = commands.length;
 
     if (parallel) {
-      return this.runChecksParallel(commands, total, cwd, logger, timeoutMs);
+      return this.runChecksParallel(commands, total, cwd, logger, timeoutMs, retries);
     }
 
-    return this.runChecksSequential(commands, total, cwd, logger, timeoutMs);
+    return this.runChecksSequential(commands, total, cwd, logger, timeoutMs, retries);
   }
 
   /**
@@ -185,6 +192,7 @@ export class CheckRunner {
     cwd: string,
     logger: CheckLogger,
     timeoutMs?: number,
+    retries = 0,
   ): Promise<CheckRunSummary> {
     const results: CheckResult[] = [];
     let totalDurationMs = 0;
@@ -197,7 +205,7 @@ export class CheckRunner {
 
       logger.info(`Running check (${checkNumber}/${total}): ${command}`);
 
-      const result = await this.executeCheck(command, cwd, logger, timeoutMs);
+      const result = await this.retryExecuteCheck(command, cwd, logger, timeoutMs, retries);
       results.push(result);
       totalDurationMs += result.durationMs;
 
@@ -264,13 +272,14 @@ export class CheckRunner {
     cwd: string,
     logger: CheckLogger,
     timeoutMs?: number,
+    retries = 0,
   ): Promise<CheckRunSummary> {
     logger.info(`Running ${total} check${total === 1 ? "" : "s"} (parallel)...`);
 
     // Launch all checks concurrently
     const promises = commands.map((command, i) => {
       logger.info(`Starting check (${i + 1}/${total}): ${command}`);
-      return this.executeCheck(command, cwd, logger, timeoutMs).then((result) => {
+      return this.retryExecuteCheck(command, cwd, logger, timeoutMs, retries).then((result) => {
         if (result.success) {
           logger.info(`Check passed in ${this.formatDuration(result.durationMs)}: ${command}`);
         } else {
@@ -339,6 +348,42 @@ export class CheckRunner {
    * @param logger - Logger for streaming output
    * @returns Check execution result with captured output
    */
+  /**
+   * Executes a check with exponential backoff retries on failure.
+   *
+   * Retry delays: 2s, 4s, 8s, 16s, 30s (capped).
+   */
+  private async retryExecuteCheck(
+    command: string,
+    cwd: string,
+    logger: CheckLogger,
+    timeoutMs?: number,
+    retries = 0,
+  ): Promise<CheckResult> {
+    let lastResult: CheckResult | undefined;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      if (attempt > 0) {
+        const delayMs = Math.min(2000 * Math.pow(2, attempt - 1), 30_000);
+        logger.info(
+          `Retry ${attempt}/${retries} for "${command}" in ${Math.round(delayMs / 1000)}s...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+
+      lastResult = await this.executeCheck(command, cwd, logger, timeoutMs);
+
+      if (lastResult.success) {
+        if (attempt > 0) {
+          logger.info(`Check succeeded on retry ${attempt}: ${command}`);
+        }
+        return lastResult;
+      }
+    }
+
+    return lastResult!;
+  }
+
   private async executeCheck(
     command: string,
     cwd: string,

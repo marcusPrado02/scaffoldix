@@ -558,6 +558,13 @@ const ArchetypeSchema = z.object({
   checksTimeout: z.string().optional(),
 
   /**
+   * Number of times to retry a failed check before giving up.
+   * Retries use exponential backoff (base 2s, capped at 30s).
+   * Default: 0 (no retries).
+   */
+  checksRetries: z.number().int().min(0).max(10).optional(),
+
+  /**
    * Timeout for each postGenerate hook command as a human-readable duration string.
    * Examples: "60s", "5m". Default: no timeout.
    */
