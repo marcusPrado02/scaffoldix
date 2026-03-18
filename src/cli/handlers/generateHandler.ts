@@ -52,6 +52,7 @@ import { StagingManager } from "../../core/staging/StagingManager.js";
 import { resolveInputs, type InputDefinition } from "../../core/generate/InputResolver.js";
 import { expandWithTransforms } from "../../core/inputs/Transformers.js";
 import { EngineTrace, type TraceJson } from "../../core/observability/EngineTrace.js";
+import { parseDurationMs } from "../../core/utils/parseDuration.js";
 import { PreviewPlanner, type PreviewReport } from "../../core/preview/PreviewPlanner.js";
 import { printDryRunPreview } from "../printers/DryRunPreviewPrinter.js";
 
@@ -930,6 +931,7 @@ export async function handleGenerate(
         commands: postGenerateHooks,
         cwd: stagingDir, // Hooks in staging
         logger: hookLogger,
+        timeoutMs: parseDurationMs((archetype as { hooksTimeout?: string }).hooksTimeout),
       });
       trace.end("run hooks");
     }
@@ -949,6 +951,7 @@ export async function handleGenerate(
         cwd: stagingDir, // Checks in staging
         logger: checkLogger,
         parallel: (archetype as { parallelChecks?: boolean }).parallelChecks ?? false,
+        timeoutMs: parseDurationMs((archetype as { checksTimeout?: string }).checksTimeout),
       });
       trace.end("run checks");
     }

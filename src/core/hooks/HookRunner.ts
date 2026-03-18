@@ -55,6 +55,13 @@ export interface RunHooksParams {
 
   /** Logger for output */
   readonly logger: HookLogger;
+
+  /**
+   * Timeout in milliseconds for each individual hook command.
+   * The process is killed (SIGTERM) if it exceeds this duration.
+   * Default: no timeout.
+   */
+  readonly timeoutMs?: number;
 }
 
 /**
@@ -131,7 +138,7 @@ export class HookRunner {
    * @throws ScaffoldError if any hook fails
    */
   async runPostGenerate(params: RunHooksParams): Promise<HookRunSummary> {
-    const { commands, cwd, env, logger } = params;
+    const { commands, cwd, env, logger, timeoutMs } = params;
 
     // Handle empty/undefined commands
     if (!commands || commands.length === 0) {
@@ -158,7 +165,7 @@ export class HookRunner {
 
       logger.info(`Running postGenerate hook (${hookNumber}/${total}): ${command}`);
 
-      const result = await this.executeCommand(command, cwd, env, logger);
+      const result = await this.executeCommand(command, cwd, env, logger, timeoutMs);
       results.push(result);
       totalDurationMs += result.durationMs;
 
@@ -226,6 +233,7 @@ export class HookRunner {
     cwd: string,
     env: Record<string, string> | undefined,
     logger: HookLogger,
+    timeoutMs?: number,
   ): Promise<HookResult> {
     const startTime = Date.now();
 
@@ -238,6 +246,8 @@ export class HookRunner {
       stderr: "pipe",
       // Don't throw on non-zero exit - we handle it manually
       reject: false,
+      // Optional timeout: kill process after given ms
+      ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}),
     };
 
     try {
@@ -303,12 +313,19 @@ export class HookRunner {
       };
     } catch (error) {
       const durationMs = Date.now() - startTime;
-      const message = error instanceof Error ? error.message : String(error);
+      const isTimeout =
+        error instanceof Error &&
+        (error.message.includes("timed out") || (error as { timedOut?: boolean }).timedOut === true);
+      const message = isTimeout
+        ? `Hook timed out after ${timeoutMs}ms: ${command}`
+        : error instanceof Error
+          ? error.message
+          : String(error);
 
       return {
         command,
         success: false,
-        exitCode: 1,
+        exitCode: isTimeout ? 124 : 1, // 124 = standard timeout exit code
         durationMs,
         error: message,
       };

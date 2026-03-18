@@ -537,6 +537,18 @@ const ArchetypeSchema = z.object({
   parallelChecks: z.boolean().optional(),
 
   /**
+   * Timeout for each check command as a human-readable duration string.
+   * Examples: "30s", "2m", "90s". Default: no timeout.
+   */
+  checksTimeout: z.string().optional(),
+
+  /**
+   * Timeout for each postGenerate hook command as a human-readable duration string.
+   * Examples: "60s", "5m". Default: no timeout.
+   */
+  hooksTimeout: z.string().optional(),
+
+  /**
    * Optional list of input definitions for the archetype.
    * Inputs are collected from users during generation (or from defaults in --yes mode).
    *

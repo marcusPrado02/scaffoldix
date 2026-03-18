@@ -69,6 +69,13 @@ export interface RunChecksParams {
    * Default: false (sequential, fail-fast).
    */
   readonly parallel?: boolean;
+
+  /**
+   * Timeout in milliseconds for each individual check command.
+   * The process is killed (SIGTERM) if it exceeds this duration.
+   * Default: no timeout.
+   */
+  readonly timeoutMs?: number;
 }
 
 /**
@@ -145,7 +152,7 @@ export class CheckRunner {
    * @throws ScaffoldError if any check fails
    */
   async runChecks(params: RunChecksParams): Promise<CheckRunSummary> {
-    const { commands, cwd, logger, parallel = false } = params;
+    const { commands, cwd, logger, parallel = false, timeoutMs } = params;
 
     // Handle empty/undefined commands
     if (!commands || commands.length === 0) {
@@ -163,10 +170,10 @@ export class CheckRunner {
     const total = commands.length;
 
     if (parallel) {
-      return this.runChecksParallel(commands, total, cwd, logger);
+      return this.runChecksParallel(commands, total, cwd, logger, timeoutMs);
     }
 
-    return this.runChecksSequential(commands, total, cwd, logger);
+    return this.runChecksSequential(commands, total, cwd, logger, timeoutMs);
   }
 
   /**
@@ -177,6 +184,7 @@ export class CheckRunner {
     total: number,
     cwd: string,
     logger: CheckLogger,
+    timeoutMs?: number,
   ): Promise<CheckRunSummary> {
     const results: CheckResult[] = [];
     let totalDurationMs = 0;
@@ -189,7 +197,7 @@ export class CheckRunner {
 
       logger.info(`Running check (${checkNumber}/${total}): ${command}`);
 
-      const result = await this.executeCheck(command, cwd, logger);
+      const result = await this.executeCheck(command, cwd, logger, timeoutMs);
       results.push(result);
       totalDurationMs += result.durationMs;
 
@@ -255,13 +263,14 @@ export class CheckRunner {
     total: number,
     cwd: string,
     logger: CheckLogger,
+    timeoutMs?: number,
   ): Promise<CheckRunSummary> {
     logger.info(`Running ${total} check${total === 1 ? "" : "s"} (parallel)...`);
 
     // Launch all checks concurrently
     const promises = commands.map((command, i) => {
       logger.info(`Starting check (${i + 1}/${total}): ${command}`);
-      return this.executeCheck(command, cwd, logger).then((result) => {
+      return this.executeCheck(command, cwd, logger, timeoutMs).then((result) => {
         if (result.success) {
           logger.info(`Check passed in ${this.formatDuration(result.durationMs)}: ${command}`);
         } else {
@@ -334,6 +343,7 @@ export class CheckRunner {
     command: string,
     cwd: string,
     logger: CheckLogger,
+    timeoutMs?: number,
   ): Promise<CheckResult> {
     const startTime = Date.now();
 
@@ -346,6 +356,8 @@ export class CheckRunner {
       all: true,
       // Don't throw on non-zero exit - we handle it manually
       reject: false,
+      // Optional timeout: kill process after given ms
+      ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}),
     };
 
     try {
@@ -416,12 +428,19 @@ export class CheckRunner {
       };
     } catch (error) {
       const durationMs = Date.now() - startTime;
-      const message = error instanceof Error ? error.message : String(error);
+      const isTimeout =
+        error instanceof Error &&
+        (error.message.includes("timed out") || (error as { timedOut?: boolean }).timedOut === true);
+      const message = isTimeout
+        ? `Check timed out after ${timeoutMs}ms: ${command}`
+        : error instanceof Error
+          ? error.message
+          : String(error);
 
       return {
         command,
         success: false,
-        exitCode: 1,
+        exitCode: isTimeout ? 124 : 1, // 124 = standard timeout exit code
         durationMs,
         capturedOutput: message,
       };
