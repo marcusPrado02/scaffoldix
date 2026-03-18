@@ -38,6 +38,7 @@ import {
 import { buildPackUpdateCommand } from "./update.js";
 import { buildPackSearchCommand } from "./search.js";
 import { buildPackValidateCommand } from "./validate.js";
+import { buildPackPublishCommand } from "./publish.js";
 
 /**
  * Adapter to make Logger compatible with StoreLogger interface.
@@ -276,6 +277,7 @@ export function buildPackCommand(logger: Logger): Command {
   packCommand.addCommand(buildPackUpdateCommand());
   packCommand.addCommand(buildPackSearchCommand());
   packCommand.addCommand(buildPackValidateCommand());
+  packCommand.addCommand(buildPackPublishCommand());
 
   return packCommand;
 }
