@@ -100,6 +100,63 @@ function compareSemver(a: string, b: string): number {
 }
 
 // =============================================================================
+// Semver Range Matching
+// =============================================================================
+
+/**
+ * Checks if a version satisfies a semver range string.
+ *
+ * Supported range operators:
+ *   ^1.2.3  — compatible (same major, >= minor/patch)
+ *   ~1.2.3  — approximately (same major.minor, >= patch)
+ *   >=1.2.3 — greater than or equal
+ *   >1.2.3  — strictly greater
+ *   <=1.2.3 — less than or equal
+ *   <1.2.3  — strictly less
+ *   1.2.3   — exact match (same as =1.2.3)
+ *   *       — any version
+ *   latest  — alias for *
+ */
+export function satisfiesSemverRange(version: string, range: string): boolean {
+  const trimmed = range.trim();
+
+  if (trimmed === "*" || trimmed === "latest" || trimmed === "") return true;
+
+  // ^major.minor.patch — compatible with: same major, >= minor.patch
+  const caretMatch = trimmed.match(/^\^(\d+\.\d+\.\d+.*)$/);
+  if (caretMatch) {
+    const base = parseSemver(caretMatch[1]);
+    const v = parseSemver(version);
+    if (base.major !== v.major) return false;
+    return compareSemver(version, caretMatch[1]) >= 0;
+  }
+
+  // ~major.minor.patch — same major.minor, >= patch
+  const tildeMatch = trimmed.match(/^~(\d+\.\d+\.\d+.*)$/);
+  if (tildeMatch) {
+    const base = parseSemver(tildeMatch[1]);
+    const v = parseSemver(version);
+    if (base.major !== v.major || base.minor !== v.minor) return false;
+    return compareSemver(version, tildeMatch[1]) >= 0;
+  }
+
+  // >=, >, <=, < operators
+  const opMatch = trimmed.match(/^(>=|>|<=|<)(.+)$/);
+  if (opMatch) {
+    const [, op, ver] = opMatch;
+    const cmp = compareSemver(version, ver.trim());
+    if (op === ">=") return cmp >= 0;
+    if (op === ">") return cmp > 0;
+    if (op === "<=") return cmp <= 0;
+    if (op === "<") return cmp < 0;
+  }
+
+  // Exact match (possibly with = prefix)
+  const exactVer = trimmed.replace(/^=/, "");
+  return compareSemver(version, exactVer) === 0;
+}
+
+// =============================================================================
 // PackResolver Class
 // =============================================================================
 
@@ -195,6 +252,59 @@ export class PackResolver {
       hash: match.hash,
       installedAt: match.installedAt,
     };
+  }
+
+  /**
+   * Resolves a pack to the best matching version for a semver range.
+   *
+   * Supports ranges like: ^1.0.0, ~1.2.3, >=2.0.0, latest, *
+   *
+   * @param packId - Pack identifier
+   * @param range - Semver range string
+   * @returns Resolved pack matching the range (highest satisfying version)
+   * @throws ScaffoldError if no installed version satisfies the range
+   */
+  async resolveRange(packId: string, range: string): Promise<ResolvedPack> {
+    const entry = await this.registryService.getPack(packId);
+    if (!entry) {
+      throw new ScaffoldError(
+        `Pack '${packId}' not found`,
+        "PACK_NOT_FOUND",
+        { packId },
+        undefined,
+        `Pack '${packId}' is not installed. Run \`scaffoldix pack list\` to see installed packs.`,
+        undefined,
+        true,
+      );
+    }
+
+    const installs = await this.registryService.getPackInstalls(packId);
+    if (!installs || installs.length === 0) {
+      return { packId, version: entry.version, origin: entry.origin, hash: entry.hash, installedAt: entry.installedAt };
+    }
+
+    // Find all versions satisfying the range
+    const matching = installs
+      .filter((i) => satisfiesSemverRange(i.version, range))
+      .sort((a, b) => compareSemver(b.version, a.version)); // highest first
+
+    if (matching.length === 0) {
+      const available = installs.map((i) => i.version).sort((a, b) => compareSemver(b, a));
+      throw new ScaffoldError(
+        `No installed version of '${packId}' satisfies range '${range}'`,
+        "VERSION_RANGE_NOT_SATISFIED",
+        { packId, range, availableVersions: available },
+        undefined,
+        `No installed version satisfies "${range}". ` +
+          `Available versions: ${available.join(", ")}. ` +
+          `Install a compatible version with \`scaffoldix pack add <source>\`.`,
+        undefined,
+        true,
+      );
+    }
+
+    const best = matching[0];
+    return { packId, version: best.version, origin: best.origin, hash: best.hash, installedAt: best.installedAt };
   }
 
   /**
