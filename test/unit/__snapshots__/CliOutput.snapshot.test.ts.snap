@@ -1,0 +1,167 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`formatCheckReport snapshots > all passed 1`] = `"Checks: total=3 passed=3 failed=0 duration=999ms"`;
+
+exports[`formatCheckReport snapshots > one failed 1`] = `"Checks: total=2 passed=1 failed=1 duration=5.00s"`;
+
+exports[`formatGenerateOutput snapshots > dry-run with patches skipped for dry-run 1`] = `
+"Dry run: no files were written.
+
+Generated from: my-pack:component
+Target: /project/src
+2 files would be created
+
+  (planned) Component.tsx
+  (planned) Component.test.tsx
+
+Dry run: patches were not applied."
+`;
+
+exports[`formatGenerateOutput snapshots > dry-run with planned files 1`] = `
+"Dry run: no files were written.
+
+Generated from: my-pack:component
+Target: /project/src
+2 files would be created
+
+  (planned) Component.tsx
+  (planned) Component.test.tsx"
+`;
+
+exports[`formatGenerateOutput snapshots > generation with check report 1`] = `
+"Generated from: my-pack:component
+Target: /project/src
+2 files created
+
+  Component.tsx
+  Component.test.tsx
+
+Checks: total=3 passed=3 failed=0 duration=5.68s"
+`;
+
+exports[`formatGenerateOutput snapshots > generation with checks skipped by flag 1`] = `
+"Generated from: my-pack:component
+Target: /project/src
+2 files created
+
+  Component.tsx
+  Component.test.tsx
+
+Checks skipped (--skip-checks)."
+`;
+
+exports[`formatGenerateOutput snapshots > generation with hook report 1`] = `
+"Generated from: my-pack:component
+Target: /project/src
+2 files created
+
+  Component.tsx
+  Component.test.tsx
+
+Hooks: total=2 succeeded=2 failed=0 duration=1.23s"
+`;
+
+exports[`formatGenerateOutput snapshots > generation with overwritten files (force mode) 1`] = `
+"Generated from: my-pack:component
+Target: /project/src
+2 files created
+
+Force mode active — overwriting existing files:
+  Overwriting: Component.tsx
+
+  Component.tsx
+  Component.test.tsx"
+`;
+
+exports[`formatGenerateOutput snapshots > generation with patch report 1`] = `
+"Generated from: my-pack:component
+Target: /project/src
+2 files created
+
+  Component.tsx
+  Component.test.tsx
+
+Patches: total=2 applied=1 skipped=1 failed=0
+  [APPLIED] marker_insert src/app.ts (add-import)
+  [SKIPPED] append_if_missing README.md (add-badge) (already applied)"
+`;
+
+exports[`formatGenerateOutput snapshots > generation with patches skipped by flag 1`] = `
+"Generated from: my-pack:component
+Target: /project/src
+2 files created
+
+  Component.tsx
+  Component.test.tsx
+
+Patches skipped (--skip-patches)."
+`;
+
+exports[`formatGenerateOutput snapshots > large file list (> 20) shows truncated output 1`] = `
+"Generated from: my-pack:component
+Target: /project/src
+25 files created
+
+  file0.ts
+  file1.ts
+  file2.ts
+  file3.ts
+  file4.ts
+  file5.ts
+  file6.ts
+  file7.ts
+  file8.ts
+  file9.ts
+  ... and 10 more
+  file20.ts
+  file21.ts
+  file22.ts
+  file23.ts
+  file24.ts"
+`;
+
+exports[`formatGenerateOutput snapshots > normal generation with 2 files 1`] = `
+"Generated from: my-pack:component
+Target: /project/src
+2 files created
+
+  Component.tsx
+  Component.test.tsx"
+`;
+
+exports[`formatHookReport snapshots > all succeeded under 1s 1`] = `"Hooks: total=2 succeeded=2 failed=0 duration=456ms"`;
+
+exports[`formatHookReport snapshots > partial failure over 1s 1`] = `"Hooks: total=3 succeeded=2 failed=1 duration=2.35s"`;
+
+exports[`formatPatchReport snapshots > all applied 1`] = `
+"Patches: total=2 applied=2 skipped=0 failed=0
+  [APPLIED] marker_insert app.ts (k1)
+  [APPLIED] marker_replace app.ts (k2)"
+`;
+
+exports[`formatPatchReport snapshots > empty entries 1`] = `"Patches: total=0 applied=0 skipped=0 failed=0"`;
+
+exports[`formatPatchReport snapshots > mixed applied/skipped/failed 1`] = `
+"Patches: total=3 applied=1 skipped=1 failed=1
+  [APPLIED] marker_insert a.ts (k1)
+  [SKIPPED] append_if_missing b.ts (k2) (already applied)
+  [FAILED] marker_replace c.ts (k3) (marker not found)"
+`;
+
+exports[`formatTraceOutput snapshots > formats multi-phase trace with alignment 1`] = `
+"  resolve pack      12ms
+  load manifest     34ms
+  render templates  1.23s
+  apply patches     567ms
+  ────────────────────────────
+  Completed in 1.85s"
+`;
+
+exports[`formatTraceOutput snapshots > handles in-progress phase (no durationMs) 1`] = `
+"  resolve pack      5ms
+  render templates  (in progress)
+  ────────────────────────────
+  Completed in 5ms"
+`;
+
+exports[`formatTraceOutput snapshots > returns empty array for empty trace 1`] = `[]`;
