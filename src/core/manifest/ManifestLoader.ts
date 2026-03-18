@@ -291,6 +291,23 @@ const InputDefinitionSchema = z
 
     /** Conditional display condition */
     when: WhenClauseSchema.optional(),
+
+    /**
+     * Optional list of built-in transform names to apply to this input's value.
+     * Derived variables are added to the template data as `${name}_${transform}`.
+     *
+     * Available transforms: camelCase, PascalCase, kebab-case, snake_case,
+     *   UPPER_SNAKE, lower, upper, title, dot.case, path/case
+     *
+     * @example
+     * ```yaml
+     * inputs:
+     *   - name: entityName
+     *     transforms: [PascalCase, kebab-case, snake_case]
+     * # Adds: entityName_PascalCase, entityName_kebab_case, entityName_snake_case
+     * ```
+     */
+    transforms: z.array(z.string()).optional(),
   })
   .superRefine((data, ctx) => {
     // Validate regex is compilable
