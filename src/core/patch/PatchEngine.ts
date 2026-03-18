@@ -42,6 +42,43 @@ import { ScaffoldError } from "../errors/errors.js";
 const STAMP_PREFIX = "SCAFFOLDIX_PATCH:";
 
 // =============================================================================
+// Deep Merge Utility
+// =============================================================================
+
+/**
+ * Recursively deep-merges `incoming` into `existing`.
+ * - Plain objects are merged recursively (incoming wins on conflicts).
+ * - Arrays in incoming replace arrays in existing.
+ * - All other values are replaced by incoming.
+ */
+function deepMerge(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...existing };
+
+  for (const [key, value] of Object.entries(incoming)) {
+    if (
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      typeof existing[key] === "object" &&
+      existing[key] !== null &&
+      !Array.isArray(existing[key])
+    ) {
+      result[key] = deepMerge(
+        existing[key] as Record<string, unknown>,
+        value as Record<string, unknown>,
+      );
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -125,13 +162,42 @@ export interface RegexReplaceOperation extends PatchOperationBase {
 }
 
 /**
+ * Deep merge content into an existing JSON file.
+ * The file is parsed as JSON, the content is deep-merged on top, and the
+ * result is written back formatted with 2-space indentation.
+ */
+export interface JsonMergeOperation extends PatchOperationBase {
+  readonly kind: "json_merge";
+
+  /**
+   * JSON string to deep-merge into the existing file.
+   * Arrays are replaced (not appended) by default.
+   */
+  readonly content: string;
+}
+
+/**
+ * Deep merge content into an existing YAML file.
+ * The file is parsed as YAML, the content is deep-merged on top, and
+ * the result is written back as YAML.
+ */
+export interface YamlMergeOperation extends PatchOperationBase {
+  readonly kind: "yaml_merge";
+
+  /** YAML string to deep-merge into the existing file. */
+  readonly content: string;
+}
+
+/**
  * Union type of all supported patch operations.
  */
 export type PatchOperation =
   | MarkerInsertOperation
   | MarkerReplaceOperation
   | AppendIfMissingOperation
-  | RegexReplaceOperation;
+  | RegexReplaceOperation
+  | JsonMergeOperation
+  | YamlMergeOperation;
 
 /**
  * Options for applying patches.
@@ -294,6 +360,14 @@ export class PatchEngine {
 
       case "regex_replace":
         content = this.applyRegexReplace(op, content, absolutePath);
+        break;
+
+      case "json_merge":
+        content = await this.applyJsonMerge(op, content, absolutePath);
+        break;
+
+      case "yaml_merge":
+        content = await this.applyYamlMerge(op, content, absolutePath);
         break;
 
       default:
@@ -515,6 +589,92 @@ export class PatchEngine {
     const trailingNewline = needsTrailingNewline ? lineEnding : "";
 
     return `${content}${trailingNewline}${stamp}${lineEnding}${op.content}${lineEnding}`;
+  }
+
+  /**
+   * Deep-merges JSON content into an existing JSON file.
+   */
+  private async applyJsonMerge(
+    op: JsonMergeOperation,
+    content: string,
+    absolutePath: string,
+  ): Promise<string> {
+    let existing: unknown;
+    try {
+      existing = JSON.parse(content);
+    } catch {
+      throw new ScaffoldError(
+        `json_merge: target file is not valid JSON: ${op.file}`,
+        "PATCH_JSON_PARSE_ERROR",
+        { file: absolutePath },
+        undefined,
+        `The file "${op.file}" must contain valid JSON for json_merge to work.`,
+        undefined,
+        true,
+      );
+    }
+
+    let incoming: unknown;
+    try {
+      incoming = JSON.parse(op.content);
+    } catch {
+      throw new ScaffoldError(
+        `json_merge: patch content is not valid JSON`,
+        "PATCH_JSON_CONTENT_ERROR",
+        { file: absolutePath, content: op.content.slice(0, 100) },
+        undefined,
+        `The json_merge content for "${op.file}" must be valid JSON.`,
+        undefined,
+        true,
+      );
+    }
+
+    const merged = deepMerge(existing as Record<string, unknown>, incoming as Record<string, unknown>);
+    return JSON.stringify(merged, null, 2) + "\n";
+  }
+
+  /**
+   * Deep-merges YAML content into an existing YAML file.
+   */
+  private async applyYamlMerge(
+    op: YamlMergeOperation,
+    content: string,
+    absolutePath: string,
+  ): Promise<string> {
+    const { parse: parseYaml, stringify: stringifyYaml } = await import("yaml");
+
+    let existing: unknown;
+    try {
+      existing = parseYaml(content);
+    } catch (err) {
+      throw new ScaffoldError(
+        `yaml_merge: target file is not valid YAML: ${op.file}`,
+        "PATCH_YAML_PARSE_ERROR",
+        { file: absolutePath },
+        undefined,
+        `The file "${op.file}" must contain valid YAML for yaml_merge to work.`,
+        err instanceof Error ? err : undefined,
+        true,
+      );
+    }
+
+    let incoming: unknown;
+    try {
+      incoming = parseYaml(op.content);
+    } catch (err) {
+      throw new ScaffoldError(
+        `yaml_merge: patch content is not valid YAML`,
+        "PATCH_YAML_CONTENT_ERROR",
+        { file: absolutePath },
+        undefined,
+        `The yaml_merge content for "${op.file}" must be valid YAML.`,
+        err instanceof Error ? err : undefined,
+        true,
+      );
+    }
+
+    const merged = deepMerge(existing as Record<string, unknown>, incoming as Record<string, unknown>);
+    return stringifyYaml(merged, { indent: 2 });
   }
 
   /**

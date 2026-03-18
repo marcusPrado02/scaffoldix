@@ -167,11 +167,33 @@ const RegexReplaceSchema = z.object({
   flags: z.string().optional(),
 });
 
+/**
+ * Schema for json_merge patch operation.
+ */
+const JsonMergeSchema = z.object({
+  kind: z.literal("json_merge"),
+  file: nonEmptyString("Patch file"),
+  idempotencyKey: nonEmptyString("Patch idempotencyKey"),
+  content: z.string(),
+});
+
+/**
+ * Schema for yaml_merge patch operation.
+ */
+const YamlMergeSchema = z.object({
+  kind: z.literal("yaml_merge"),
+  file: nonEmptyString("Patch file"),
+  idempotencyKey: nonEmptyString("Patch idempotencyKey"),
+  content: z.string(),
+});
+
 const RawPatchSchema = z.discriminatedUnion("kind", [
   MarkerInsertSchema,
   MarkerReplaceSchema,
   AppendIfMissingSchema,
   RegexReplaceSchema,
+  JsonMergeSchema,
+  YamlMergeSchema,
 ]);
 
 /**
