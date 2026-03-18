@@ -81,12 +81,40 @@ export interface GitFetchResult {
  * - http://... (insecure git servers)
  * - git@host:path (SSH shorthand)
  * - ssh://... (explicit SSH URLs)
+ * - github:org/repo (GitHub shorthand)
+ * - gitlab:org/repo (GitLab shorthand)
+ * - bitbucket:org/repo (Bitbucket shorthand)
  */
 const GIT_URL_PATTERNS = [
-  /^https?:\/\//i, // HTTP(S) URLs
-  /^git@[^:]+:/i, // SSH shorthand (git@host:path)
-  /^ssh:\/\//i, // Explicit SSH URLs
+  /^https?:\/\//i,    // HTTP(S) URLs
+  /^git@[^:]+:/i,     // SSH shorthand (git@host:path)
+  /^ssh:\/\//i,       // Explicit SSH URLs
+  /^github:/i,        // github:org/repo shorthand
+  /^gitlab:/i,        // gitlab:org/repo shorthand
+  /^bitbucket:/i,     // bitbucket:org/repo shorthand
 ];
+
+/**
+ * Resolves shorthand git references to full HTTPS URLs.
+ *
+ * @example
+ * resolveGitUrl("github:org/repo")     → "https://github.com/org/repo"
+ * resolveGitUrl("gitlab:org/repo")     → "https://gitlab.com/org/repo"
+ * resolveGitUrl("bitbucket:org/repo")  → "https://bitbucket.org/org/repo"
+ * resolveGitUrl("https://...")         → "https://..."  (passthrough)
+ */
+export function resolveGitUrl(input: string): string {
+  const githubMatch = input.match(/^github:(.+)/i);
+  if (githubMatch) return `https://github.com/${githubMatch[1]}`;
+
+  const gitlabMatch = input.match(/^gitlab:(.+)/i);
+  if (gitlabMatch) return `https://gitlab.com/${gitlabMatch[1]}`;
+
+  const bbMatch = input.match(/^bitbucket:(.+)/i);
+  if (bbMatch) return `https://bitbucket.org/${bbMatch[1]}`;
+
+  return input;
+}
 
 // =============================================================================
 // GitPackFetcher
@@ -141,16 +169,19 @@ export class GitPackFetcher {
   async fetch(url: string, options: GitFetchOptions = {}): Promise<GitFetchResult> {
     const { ref } = options;
 
+    // Resolve shorthand URLs (github:org/repo → https://github.com/org/repo)
+    const resolvedUrl = resolveGitUrl(url);
+
     // Create unique temp directory
     const tempDir = await this.createTempDir();
 
     try {
-      // Clone the repository
-      await this.cloneRepo(url, tempDir, ref);
+      // Clone the repository (use resolved URL)
+      await this.cloneRepo(resolvedUrl, tempDir, ref);
 
       // Checkout ref if specified
       if (ref) {
-        await this.checkoutRef(tempDir, ref, url);
+        await this.checkoutRef(tempDir, ref, resolvedUrl);
       }
 
       // Get the resolved commit hash
@@ -158,7 +189,7 @@ export class GitPackFetcher {
 
       return {
         packDir: tempDir,
-        url,
+        url: resolvedUrl,
         commit,
         ref,
       };
