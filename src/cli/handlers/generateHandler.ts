@@ -845,10 +845,17 @@ export async function handleGenerate(
     if (hasPatches && skipPatches) {
       console.log(`[staging] Skipping ${patches.length} patch(es) (--skip-patches)`);
     } else if (hasPatches) {
-      trace.start("apply patches", { count: patches.length });
+      // Sort patches by explicit 'order' field (stable, lower = first, undefined = Infinity)
+      const orderedPatches = [...patches].sort((a, b) => {
+        const ao = (a as { order?: number }).order ?? Infinity;
+        const bo = (b as { order?: number }).order ?? Infinity;
+        return ao - bo;
+      });
+
+      trace.start("apply patches", { count: orderedPatches.length });
       console.log(`[staging] Applying patches...`);
       patchReport = await applyPatches({
-        patches,
+        patches: orderedPatches,
         data: resolvedData,
         packStorePath: storePath,
         targetDir: stagingDir, // Patches in staging

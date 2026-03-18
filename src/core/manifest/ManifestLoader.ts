@@ -103,6 +103,8 @@ const MarkerInsertSchema = z
     description: z.string().optional(),
     strict: z.boolean().optional(),
     when: z.string().optional(),
+    /** Explicit execution order (lower runs first). Defaults to index order. */
+    order: z.number().int().optional(),
   })
   .refine(validateContentSource, {
     message: "Provide exactly one of contentTemplate or path",
@@ -125,6 +127,8 @@ const MarkerReplaceSchema = z
     description: z.string().optional(),
     strict: z.boolean().optional(),
     when: z.string().optional(),
+    /** Explicit execution order (lower runs first). Defaults to index order. */
+    order: z.number().int().optional(),
   })
   .refine(validateContentSource, {
     message: "Provide exactly one of contentTemplate or path",
@@ -146,6 +150,8 @@ const AppendIfMissingSchema = z
     description: z.string().optional(),
     strict: z.boolean().optional(),
     when: z.string().optional(),
+    /** Explicit execution order (lower runs first). Defaults to index order. */
+    order: z.number().int().optional(),
   })
   .refine(validateContentSource, {
     message: "Provide exactly one of contentTemplate or path",
@@ -165,6 +171,8 @@ const RegexReplaceSchema = z.object({
   pattern: nonEmptyString("Patch pattern"),
   replacement: z.string(),
   flags: z.string().optional(),
+  /** Explicit execution order (lower runs first). Defaults to index order. */
+  order: z.number().int().optional(),
 });
 
 /**
@@ -175,6 +183,8 @@ const JsonMergeSchema = z.object({
   file: nonEmptyString("Patch file"),
   idempotencyKey: nonEmptyString("Patch idempotencyKey"),
   content: z.string(),
+  /** Explicit execution order (lower runs first). Defaults to index order. */
+  order: z.number().int().optional(),
 });
 
 /**
@@ -185,6 +195,8 @@ const YamlMergeSchema = z.object({
   file: nonEmptyString("Patch file"),
   idempotencyKey: nonEmptyString("Patch idempotencyKey"),
   content: z.string(),
+  /** Explicit execution order (lower runs first). Defaults to index order. */
+  order: z.number().int().optional(),
 });
 
 const RawPatchSchema = z.discriminatedUnion("kind", [
