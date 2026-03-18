@@ -44,6 +44,7 @@ export function buildGenerateCommand(_logger: Logger): Command {
     .option("--yes", "Non-interactive mode: use defaults without prompting", false)
     .option("--force", "Overwrite existing files without prompting", false)
     .option("--skip-patches", "Apply only templates; skip all patch operations", false)
+    .option("--skip-checks", "Skip all quality check commands after generation", false)
     .option("--verbose", "Show detailed timing trace for each phase", false)
     .action(
       async (
@@ -54,6 +55,7 @@ export function buildGenerateCommand(_logger: Logger): Command {
           yes: boolean;
           force: boolean;
           skipPatches: boolean;
+          skipChecks: boolean;
           verbose: boolean;
         },
       ) => {
@@ -92,6 +94,7 @@ export function buildGenerateCommand(_logger: Logger): Command {
               prompt: promptAdapter,
               force: options.force,
               skipPatches: options.skipPatches,
+              skipChecks: options.skipChecks,
             },
             {
               registryFile: storePaths.registryFile,

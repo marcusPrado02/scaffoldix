@@ -101,6 +101,9 @@ export interface GenerateInput {
 
   /** If true, skip all patch operations (--skip-patches) */
   readonly skipPatches?: boolean;
+
+  /** If true, skip all check commands (--skip-checks) */
+  readonly skipChecks?: boolean;
 }
 
 /**
@@ -242,6 +245,9 @@ export interface GenerateResult {
 
   /** Whether checks were skipped due to dry-run */
   readonly checksSkippedForDryRun?: boolean;
+
+  /** Whether checks were skipped due to --skip-checks flag */
+  readonly checksSkippedByFlag?: boolean;
 
   /** Files that were overwritten (only when force=true, non-dry-run) */
   readonly filesOverwritten?: FileEntry[];
@@ -522,7 +528,7 @@ export async function handleGenerate(
   input: GenerateInput,
   deps: GenerateDependencies,
 ): Promise<GenerateResult> {
-  const { ref, targetDir, dryRun, data, renameRules, version, force = false, skipPatches = false } = input;
+  const { ref, targetDir, dryRun, data, renameRules, version, force = false, skipPatches = false, skipChecks = false } = input;
   const { registryFile, packsDir, storeDir } = deps;
 
   // Initialize trace for observability
@@ -969,7 +975,9 @@ export async function handleGenerate(
     const checks = archetype.checks;
     const hasChecks = checks && checks.length > 0;
 
-    if (hasChecks) {
+    if (hasChecks && skipChecks) {
+      console.log(`[staging] Skipping ${checks.length} check(s) (--skip-checks)`);
+    } else if (hasChecks) {
       trace.start("run checks", { count: checks.length });
       console.log(`[staging] Running quality checks...`);
       const checkRunner = new CheckRunner();
@@ -1120,6 +1128,7 @@ export async function handleGenerate(
     patchReport,
     patchesSkippedForDryRun: false,
     patchesSkippedByFlag: skipPatches && archetype.patches && archetype.patches.length > 0,
+    checksSkippedByFlag: skipChecks && archetype.checks && archetype.checks.length > 0,
     hookReport,
     hooksSkippedForDryRun: false,
     checkReport,
@@ -1217,6 +1226,9 @@ export function formatGenerateOutput(result: GenerateResult): string[] {
   if (result.checksSkippedForDryRun) {
     lines.push("");
     lines.push("Dry run: checks were not executed.");
+  } else if (result.checksSkippedByFlag) {
+    lines.push("");
+    lines.push("Checks skipped (--skip-checks).");
   } else if (result.checkReport) {
     lines.push("");
     lines.push(formatCheckReport(result.checkReport));
