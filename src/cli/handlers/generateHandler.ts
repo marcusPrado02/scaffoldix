@@ -234,6 +234,9 @@ export interface GenerateResult {
   /** Whether hooks were skipped due to dry-run */
   readonly hooksSkippedForDryRun?: boolean;
 
+  /** Whether pre-generate hooks were skipped due to dry-run */
+  readonly preHooksSkippedForDryRun?: boolean;
+
   /** Check execution report (non-dry-run only) */
   readonly checkReport?: CheckReport;
 
@@ -734,6 +737,8 @@ export async function handleGenerate(
 
     const patches = archetype.patches;
     const hasPatches = patches && patches.length > 0;
+    const preGenerateHooksDry = (archetype as { preGenerate?: string[] }).preGenerate;
+    const hasPreHooks = preGenerateHooksDry && preGenerateHooksDry.length > 0;
     const postGenerateHooks = archetype.postGenerate;
     const hasHooks = postGenerateHooks && postGenerateHooks.length > 0;
     const checks = archetype.checks;
@@ -747,6 +752,7 @@ export async function handleGenerate(
       filesWritten: [],
       filesPlanned,
       patchesSkippedForDryRun: hasPatches,
+      preHooksSkippedForDryRun: hasPreHooks,
       hooksSkippedForDryRun: hasHooks,
       checksSkippedForDryRun: hasChecks,
       filesOverwritten: [],
@@ -754,6 +760,29 @@ export async function handleGenerate(
       previewReport,
       trace: trace.toJSON(),
     };
+  }
+
+  // ===========================================================================
+  // Pre-generate hooks: run in targetDir BEFORE staging is created
+  // Aborts generation if any hook fails (no files have been written yet)
+  // ===========================================================================
+
+  const preGenerateHooks = (archetype as { preGenerate?: string[] }).preGenerate;
+  const hasPreGenerateHooks = preGenerateHooks && preGenerateHooks.length > 0;
+
+  if (hasPreGenerateHooks && !dryRun) {
+    trace.start("run pre-generate hooks", { count: preGenerateHooks.length });
+    console.log(`[generate] Running ${preGenerateHooks.length} preGenerate hook(s)...`);
+    const preHookRunner = new HookRunner();
+    const preHookLogger = createHookLogger();
+
+    await preHookRunner.runPostGenerate({
+      commands: preGenerateHooks,
+      cwd: targetDir,
+      logger: preHookLogger,
+      timeoutMs: parseDurationMs((archetype as { hooksTimeout?: string }).hooksTimeout),
+    });
+    trace.end("run pre-generate hooks");
   }
 
   // ===========================================================================

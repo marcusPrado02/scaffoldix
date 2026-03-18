@@ -495,6 +495,21 @@ const ArchetypeSchema = z.object({
   })).optional(),
 
   /**
+   * Optional list of shell commands to run before template rendering begins.
+   * Commands execute in the target directory and can be used to check
+   * prerequisites, set up dependencies, or validate the environment.
+   * If any command fails, generation is aborted before any files are written.
+   *
+   * @example
+   * ```yaml
+   * preGenerate:
+   *   - node --version
+   *   - which mvn
+   * ```
+   */
+  preGenerate: z.array(z.string()).optional(),
+
+  /**
    * Optional list of patch operations to apply after template rendering.
    * Patches modify existing files in the target project.
    */
@@ -812,6 +827,9 @@ export class ManifestLoader {
         ...parent,
         ...archetype,
         extends: undefined,
+        preGenerate: [...(parent.preGenerate ?? []), ...(archetype.preGenerate ?? [])].length > 0
+          ? [...(parent.preGenerate ?? []), ...(archetype.preGenerate ?? [])]
+          : undefined,
         patches: [...(parent.patches ?? []), ...(archetype.patches ?? [])].length > 0
           ? [...(parent.patches ?? []), ...(archetype.patches ?? [])]
           : undefined,
