@@ -1,0 +1,39 @@
+pack:
+  name: "{{packName}}"
+  version: "0.1.0"
+  description: "{{packDescription}}"
+
+archetypes:
+  - id: default
+    description: "Default archetype for {{packName}}"
+    templateRoot: templates/default
+
+    # Declare inputs that users will be prompted for during `scaffoldix generate`
+    inputs:
+      - name: entityName
+        prompt: "Entity name (PascalCase, e.g. User):"
+        type: string
+        required: true
+        transforms:
+          - PascalCase   # entityName -> EntityName
+          - camelCase    # entityNameCamelCase
+          - kebab-case   # entity-name-kebab-case
+          - snake_case   # entity_name_snake_case
+
+    # Optional: patch existing files after templates are written
+    # patches:
+    #   - kind: marker_insert
+    #     file: src/index.ts
+    #     idempotencyKey: register-{{entityName}}
+    #     markerStart: "// <SCAFFOLDIX:START:registrations>"
+    #     markerEnd: "// <SCAFFOLDIX:END:registrations>"
+    #     contentTemplate: 'import { {{entityName}}Service } from "./{{entityName}}Service";'
+
+    # Optional: run commands after generation completes
+    # postGenerate:
+    #   - npm install
+
+    # Optional: run quality checks that must pass
+    # checks:
+    #   - npm run build
+    #   - npm test
