@@ -8,6 +8,7 @@ import { buildDoctorCommand } from "./commands/doctor.js";
 import { buildCompletionCommand } from "./commands/completion.js";
 import { buildInitCommand } from "./commands/init.js";
 import { buildHistoryCommand } from "./commands/history.js";
+import { buildRollbackCommand } from "./commands/rollback.js";
 import { createCliUx, setDefaultCliUx, parseLogLevel, getCliUx } from "./ux/CliUx.js";
 import { CLI_VERSION } from "./version.js";
 
@@ -43,6 +44,7 @@ async function main() {
   program.addCommand(buildCompletionCommand());
   program.addCommand(buildInitCommand());
   program.addCommand(buildHistoryCommand());
+  program.addCommand(buildRollbackCommand());
 
   try {
     await program.parseAsync(process.argv);
