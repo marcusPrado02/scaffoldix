@@ -144,6 +144,29 @@ async function isBinaryFile(filePath: string): Promise<boolean> {
 }
 
 /**
+ * Sanitizes a generated filename to remove characters that are unsafe
+ * across common filesystems (Windows, macOS, Linux).
+ *
+ * Preserves: alphanumeric, hyphens, underscores, dots, slashes, @ symbols.
+ * Replaces forbidden characters with underscores.
+ */
+function sanitizeFilename(relativePath: string): string {
+  // Split into path segments and sanitize each segment independently
+  return relativePath
+    .split("/")
+    .map((segment) =>
+      segment
+        // Replace Windows-forbidden characters in filenames: < > : " | ? *
+        .replace(/[<>:"|?*]/g, "_")
+        // Replace null bytes
+        .replace(/\0/g, "_")
+        // Trim leading/trailing dots and spaces (Windows compatibility)
+        .replace(/^[\s.]+|[\s.]+$/g, (m) => "_".repeat(m.length)),
+    )
+    .join("/");
+}
+
+/**
  * Applies rename rules to a path, replacing all placeholders.
  * Replacements are applied in order of key length (longest first)
  * to avoid partial matches.
@@ -351,8 +374,9 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
   for (const srcRelativePath of files) {
     const srcAbsolutePath = path.join(templateDir, srcRelativePath);
 
-    // Apply rename rules to get destination path
-    const destRelativePath = applyRenameRules(srcRelativePath, renameRules);
+    // Apply rename rules to get destination path, then sanitize
+    const renamedPath = applyRenameRules(srcRelativePath, renameRules);
+    const destRelativePath = sanitizeFilename(renamedPath);
 
     // Validate path safety
     validateSafePath(destRelativePath, targetDir, srcRelativePath);
