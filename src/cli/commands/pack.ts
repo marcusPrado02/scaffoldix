@@ -36,6 +36,7 @@ import {
   type PackRemoveDependencies,
 } from "../handlers/packRemoveHandler.js";
 import { buildPackUpdateCommand } from "./update.js";
+import { buildPackSearchCommand } from "./search.js";
 
 /**
  * Adapter to make Logger compatible with StoreLogger interface.
@@ -272,6 +273,7 @@ export function buildPackCommand(logger: Logger): Command {
   // pack update <packId>
   // ─────────────────────────────────────────────────────────────────────────
   packCommand.addCommand(buildPackUpdateCommand());
+  packCommand.addCommand(buildPackSearchCommand());
 
   return packCommand;
 }
