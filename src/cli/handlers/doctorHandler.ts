@@ -25,6 +25,11 @@ import type { StorePaths } from "../../core/utils/paths.js";
  */
 export const MIN_NODE_VERSION = 18;
 
+/**
+ * Minimum recommended pnpm major version.
+ */
+export const MIN_PNPM_VERSION = 8;
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -72,6 +77,15 @@ export interface PnpmCheckResult {
 }
 
 /**
+ * Result of git availability check.
+ */
+export interface GitCheckResult {
+  readonly available: boolean;
+  readonly version?: string;
+  readonly error?: string;
+}
+
+/**
  * Dependencies for the doctor handler.
  * Using dependency injection for testability.
  */
@@ -84,6 +98,9 @@ export interface DoctorDependencies {
 
   /** Function to check pnpm availability */
   readonly checkPnpm: () => Promise<PnpmCheckResult>;
+
+  /** Function to check git availability */
+  readonly checkGit: () => Promise<GitCheckResult>;
 
   /** Function to test write access to a directory */
   readonly testWriteAccess: (dir: string) => Promise<void>;
@@ -126,7 +143,7 @@ function checkNodeVersion(getVersion: () => string): DoctorCheckResult {
 }
 
 /**
- * Checks if pnpm is available.
+ * Checks if pnpm is available and meets the minimum version.
  */
 async function checkPnpmAvailability(
   checkPnpm: () => Promise<PnpmCheckResult>,
@@ -134,19 +151,29 @@ async function checkPnpmAvailability(
   try {
     const result = await checkPnpm();
 
-    if (result.available) {
+    if (!result.available) {
       return {
         name: "pnpm",
-        status: "OK",
-        details: result.version ?? "available",
+        status: "ERROR",
+        details: result.error ?? "not found",
+        fix: "Install pnpm (corepack enable pnpm, or npm i -g pnpm).",
+      };
+    }
+
+    const majorVersion = parseInt((result.version ?? "0").split(".")[0], 10);
+    if (majorVersion < MIN_PNPM_VERSION) {
+      return {
+        name: "pnpm",
+        status: "WARN",
+        details: `v${result.version} (recommended >= ${MIN_PNPM_VERSION})`,
+        fix: `Upgrade pnpm to >= ${MIN_PNPM_VERSION}: corepack enable pnpm && corepack use pnpm@latest`,
       };
     }
 
     return {
       name: "pnpm",
-      status: "ERROR",
-      details: result.error ?? "not found",
-      fix: "Install pnpm (corepack enable pnpm, or npm i -g pnpm).",
+      status: "OK",
+      details: `v${result.version}`,
     };
   } catch (error) {
     return {
@@ -154,6 +181,39 @@ async function checkPnpmAvailability(
       status: "ERROR",
       details: "check failed",
       fix: "Install pnpm (corepack enable pnpm, or npm i -g pnpm).",
+    };
+  }
+}
+
+/**
+ * Checks if git is available.
+ */
+async function checkGitAvailability(
+  checkGit: () => Promise<GitCheckResult>,
+): Promise<DoctorCheckResult> {
+  try {
+    const result = await checkGit();
+
+    if (result.available) {
+      return {
+        name: "git",
+        status: "OK",
+        details: result.version ?? "available",
+      };
+    }
+
+    return {
+      name: "git",
+      status: "WARN",
+      details: result.error ?? "not found",
+      fix: "Install git from https://git-scm.com. Required for installing packs from git URLs.",
+    };
+  } catch {
+    return {
+      name: "git",
+      status: "WARN",
+      details: "check failed",
+      fix: "Install git from https://git-scm.com.",
     };
   }
 }
@@ -231,7 +291,7 @@ async function checkRegistryIntegrity(registryFile: string): Promise<DoctorCheck
  * @returns Complete diagnostic results
  */
 export async function handleDoctor(deps: DoctorDependencies): Promise<DoctorResult> {
-  const { storePaths, getNodeVersion, checkPnpm, testWriteAccess } = deps;
+  const { storePaths, getNodeVersion, checkPnpm, checkGit, testWriteAccess } = deps;
 
   // Run all checks, collecting results
   const checks: DoctorCheckResult[] = [];
@@ -242,10 +302,13 @@ export async function handleDoctor(deps: DoctorDependencies): Promise<DoctorResu
   // 2. pnpm availability check (async)
   checks.push(await checkPnpmAvailability(checkPnpm));
 
-  // 3. Store write permissions check (async)
+  // 3. git availability check (async)
+  checks.push(await checkGitAvailability(checkGit));
+
+  // 4. Store write permissions check (async)
   checks.push(await checkStoreWritable(storePaths.storeDir, testWriteAccess));
 
-  // 4. Registry integrity check (async)
+  // 5. Registry integrity check (async)
   checks.push(await checkRegistryIntegrity(storePaths.registryFile));
 
   // Determine if any errors
@@ -281,6 +344,21 @@ export function createDefaultDoctorDependencies(storePaths: StorePaths): DoctorD
           stdio: ["pipe", "pipe", "pipe"],
         });
         return { available: true, version: result.trim() };
+      } catch {
+        return { available: false, error: "not found" };
+      }
+    },
+    checkGit: async () => {
+      try {
+        const { execFileSync } = await import("node:child_process");
+        const result = execFileSync("git", ["--version"], {
+          encoding: "utf-8",
+          timeout: 10000,
+          stdio: ["pipe", "pipe", "pipe"],
+        });
+        // e.g. "git version 2.39.1"
+        const version = result.trim().replace(/^git version /, "");
+        return { available: true, version };
       } catch {
         return { available: false, error: "not found" };
       }
