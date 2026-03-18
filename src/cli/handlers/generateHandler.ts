@@ -19,6 +19,7 @@ import { ManifestLoader, type PackManifest } from "../../core/manifest/ManifestL
 import { CompatibilityChecker } from "../../core/compatibility/CompatibilityChecker.js";
 import { CLI_VERSION } from "../version.js";
 import { HelpersLoader } from "../../core/render/HelpersLoader.js";
+import { PartialsLoader } from "../../core/render/PartialsLoader.js";
 import {
   renderArchetype,
   computeRenderPlan,
@@ -775,6 +776,14 @@ export async function handleGenerate(
     if (helpersResult.loaded.length > 0) {
       logger.debug(`Loaded ${helpersResult.loaded.length} custom Handlebars helper(s)`, {
         helpers: helpersResult.loaded.map((h) => h.name),
+      });
+    }
+
+    // 7b. Load Handlebars partials from pack's partials/ directory
+    const partialsResult = await PartialsLoader.loadFromPack(manifest.packRootDir);
+    if (partialsResult.loaded.length > 0) {
+      logger.debug(`Loaded ${partialsResult.loaded.length} Handlebars partial(s)`, {
+        partials: partialsResult.loaded.map((p) => p.name),
       });
     }
 
