@@ -387,6 +387,20 @@ const ArchetypeSchema = z.object({
    */
   extends: z.string().optional(),
 
+  /**
+   * Optional deprecation notice.
+   * When set, users will see a warning when this archetype is used.
+   *
+   * @example
+   * ```yaml
+   * archetypes:
+   *   - id: old-entity
+   *     deprecated: "Use entity-v2 instead. This archetype will be removed in v2.0.0."
+   *     templateRoot: templates/old-entity
+   * ```
+   */
+  deprecated: z.string().optional(),
+
   /** Path to the template root directory, relative to pack root */
   templateRoot: z
     .string()

@@ -590,6 +590,14 @@ export async function handleGenerate(
   }
   trace.end("find archetype");
 
+  // Warn if archetype is deprecated
+  if ((archetype as { deprecated?: string }).deprecated) {
+    const ux = (await import("../ux/CliUx.js").then(m => m.getCliUx))();
+    ux.warn(
+      `Archetype "${archetypeId}" is deprecated: ${(archetype as { deprecated?: string }).deprecated}`,
+    );
+  }
+
   // 4b. Resolve inputs from archetype schema
   trace.start("resolve inputs", { archetypeId });
   const inputsSchema: InputDefinition[] | undefined = archetype.inputs?.map((inp) => ({
