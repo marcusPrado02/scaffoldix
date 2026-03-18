@@ -99,6 +99,13 @@ export interface RenderParams {
    * when a target file already exists.
    */
   readonly force?: boolean;
+
+  /**
+   * Optional progress callback invoked after each file is processed.
+   * Receives the current count and total count so callers can display
+   * a progress bar or spinner update.
+   */
+  readonly onProgress?: (current: number, total: number, file: string) => void;
 }
 
 // =============================================================================
@@ -269,7 +276,7 @@ async function getFileMode(filePath: string): Promise<number> {
  * @throws ScaffoldError on validation or rendering failures
  */
 export async function renderArchetype(params: RenderParams): Promise<RenderResult> {
-  const { templateDir, targetDir, data, renameRules, dryRun = false, force = false } = params;
+  const { templateDir, targetDir, data, renameRules, dryRun = false, force = false, onProgress } = params;
 
   // Validate template directory exists
   try {
@@ -298,6 +305,9 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
   const filesWritten: FileEntry[] = [];
   const filesOverwritten: FileEntry[] = [];
   const filesWouldOverwrite: FileEntry[] = [];
+
+  const total = files.length;
+  let current = 0;
 
   // Process each file
   for (const srcRelativePath of files) {
@@ -353,8 +363,10 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
       }
     }
 
-    // If dry run, don't write anything
+    // If dry run, report progress and move on
     if (dryRun) {
+      current++;
+      onProgress?.(current, total, destRelativePath);
       continue;
     }
 
@@ -380,6 +392,10 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
     }
 
     filesWritten.push(entry);
+
+    // Report progress after each file is fully processed
+    current++;
+    onProgress?.(current, total, destRelativePath);
   }
 
   return {

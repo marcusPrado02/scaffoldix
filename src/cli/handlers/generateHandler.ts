@@ -763,7 +763,6 @@ export async function handleGenerate(
   try {
     // 7. Render templates to STAGING directory
     trace.start("render templates");
-    console.log(`[staging] Rendering templates...`);
     renderResult = await renderArchetype({
       templateDir,
       targetDir: stagingDir, // Render to staging, not target
@@ -771,6 +770,15 @@ export async function handleGenerate(
       renameRules,
       dryRun: false,
       force,
+      onProgress: (current, total, file) => {
+        // Only show progress for larger packs (> 5 files) to avoid noise
+        if (total > 5 && process.stderr.isTTY) {
+          const pct = Math.round((current / total) * 100);
+          const bar = "█".repeat(Math.floor(pct / 5)) + "░".repeat(20 - Math.floor(pct / 5));
+          process.stderr.write(`\r  [${bar}] ${pct}% (${current}/${total}) ${file.slice(0, 40)}`);
+          if (current === total) process.stderr.write("\r" + " ".repeat(80) + "\r");
+        }
+      },
     });
     trace.end("render templates");
 
