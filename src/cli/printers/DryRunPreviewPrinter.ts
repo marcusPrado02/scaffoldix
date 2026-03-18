@@ -24,6 +24,7 @@
  * @module
  */
 
+import pc from "picocolors";
 import type { PreviewReport, PreviewFile } from "../../core/preview/PreviewPlanner.js";
 
 // =============================================================================
@@ -54,6 +55,22 @@ const SYMBOLS = {
   noop: "=",
 } as const;
 
+/** Apply color to a file line based on its action type. */
+function colorLine(symbol: string, filePath: string, useColors: boolean): string {
+  if (!useColors) return `  ${symbol} ${filePath}`;
+  if (symbol === SYMBOLS.create) return pc.green(`  ${symbol} ${filePath}`);
+  if (symbol === SYMBOLS.modify) return pc.yellow(`  ${symbol} ${filePath}`);
+  return pc.dim(`  ${symbol} ${filePath}`);
+}
+
+/** Apply color to a section header based on its action type. */
+function colorHeader(text: string, kind: "create" | "modify" | "noop", useColors: boolean): string {
+  if (!useColors) return text;
+  if (kind === "create") return pc.bold(pc.green(text));
+  if (kind === "modify") return pc.bold(pc.yellow(text));
+  return pc.dim(text);
+}
+
 // =============================================================================
 // DryRunPreviewPrinter Class
 // =============================================================================
@@ -64,10 +81,12 @@ const SYMBOLS = {
 export class DryRunPreviewPrinter {
   private readonly output: (line: string) => void;
   private readonly showNoop: boolean;
+  private readonly useColors: boolean;
 
   constructor(options: PrintPreviewOptions = {}) {
     this.output = options.output ?? console.log.bind(console);
     this.showNoop = options.showNoop ?? false;
+    this.useColors = options.useColors ?? process.stdout.isTTY === true;
   }
 
   /**
@@ -118,27 +137,27 @@ export class DryRunPreviewPrinter {
 
     // CREATE section
     if (report.creates.length > 0) {
-      lines.push(`CREATE (${report.creates.length})`);
+      lines.push(colorHeader(`CREATE (${report.creates.length})`, "create", this.useColors));
       for (const file of report.creates) {
-        lines.push(`  ${SYMBOLS.create} ${file.relativePath}`);
+        lines.push(colorLine(SYMBOLS.create, file.relativePath, this.useColors));
       }
       lines.push("");
     }
 
     // MODIFY section
     if (report.modifies.length > 0) {
-      lines.push(`MODIFY (${report.modifies.length})`);
+      lines.push(colorHeader(`MODIFY (${report.modifies.length})`, "modify", this.useColors));
       for (const file of report.modifies) {
-        lines.push(`  ${SYMBOLS.modify} ${file.relativePath}`);
+        lines.push(colorLine(SYMBOLS.modify, file.relativePath, this.useColors));
       }
       lines.push("");
     }
 
     // NOOP section (if showNoop is enabled)
     if (this.showNoop && report.noops.length > 0) {
-      lines.push(`UNCHANGED (${report.noops.length})`);
+      lines.push(colorHeader(`UNCHANGED (${report.noops.length})`, "noop", this.useColors));
       for (const file of report.noops) {
-        lines.push(`  ${SYMBOLS.noop} ${file.relativePath}`);
+        lines.push(colorLine(SYMBOLS.noop, file.relativePath, this.useColors));
       }
       lines.push("");
     }
@@ -185,27 +204,27 @@ export class DryRunPreviewPrinter {
   private printFileGroups(report: PreviewReport): void {
     // CREATE section
     if (report.creates.length > 0) {
-      this.output(`CREATE (${report.creates.length})`);
+      this.output(colorHeader(`CREATE (${report.creates.length})`, "create", this.useColors));
       for (const file of report.creates) {
-        this.output(`  ${SYMBOLS.create} ${file.relativePath}`);
+        this.output(colorLine(SYMBOLS.create, file.relativePath, this.useColors));
       }
       this.output("");
     }
 
     // MODIFY section
     if (report.modifies.length > 0) {
-      this.output(`MODIFY (${report.modifies.length})`);
+      this.output(colorHeader(`MODIFY (${report.modifies.length})`, "modify", this.useColors));
       for (const file of report.modifies) {
-        this.output(`  ${SYMBOLS.modify} ${file.relativePath}`);
+        this.output(colorLine(SYMBOLS.modify, file.relativePath, this.useColors));
       }
       this.output("");
     }
 
     // NOOP section (if showNoop is enabled)
     if (this.showNoop && report.noops.length > 0) {
-      this.output(`UNCHANGED (${report.noops.length})`);
+      this.output(colorHeader(`UNCHANGED (${report.noops.length})`, "noop", this.useColors));
       for (const file of report.noops) {
-        this.output(`  ${SYMBOLS.noop} ${file.relativePath}`);
+        this.output(colorLine(SYMBOLS.noop, file.relativePath, this.useColors));
       }
       this.output("");
     }
