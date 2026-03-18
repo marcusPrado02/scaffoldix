@@ -18,6 +18,7 @@ import { PackResolver } from "../../core/store/PackResolver.js";
 import { ManifestLoader, type PackManifest } from "../../core/manifest/ManifestLoader.js";
 import { CompatibilityChecker } from "../../core/compatibility/CompatibilityChecker.js";
 import { CLI_VERSION } from "../version.js";
+import { HelpersLoader } from "../../core/render/HelpersLoader.js";
 import {
   renderArchetype,
   computeRenderPlan,
@@ -769,7 +770,15 @@ export async function handleGenerate(
   };
 
   try {
-    // 7. Render templates to STAGING directory
+    // 7a. Load custom Handlebars helpers from pack's helpers/ directory
+    const helpersResult = await HelpersLoader.loadFromPack(manifest.packRootDir);
+    if (helpersResult.loaded.length > 0) {
+      logger.debug(`Loaded ${helpersResult.loaded.length} custom Handlebars helper(s)`, {
+        helpers: helpersResult.loaded.map((h) => h.name),
+      });
+    }
+
+    // 7b. Render templates to STAGING directory
     trace.start("render templates");
     renderResult = await renderArchetype({
       templateDir,
