@@ -368,6 +368,25 @@ const ArchetypeSchema = z.object({
     .transform((s) => s.trim())
     .refine((s) => s.length > 0, { message: "Archetype id cannot be empty" }),
 
+  /**
+   * Optional parent archetype ID to inherit from.
+   * When set, this archetype's fields are merged on top of the parent.
+   * Parent must be defined in the same pack manifest.
+   *
+   * @example
+   * ```yaml
+   * archetypes:
+   *   - id: base
+   *     templateRoot: templates/base
+   *     checks: [npm test]
+   *   - id: extended
+   *     extends: base
+   *     templateRoot: templates/extended   # override
+   *     # inherits checks: [npm test] from base
+   * ```
+   */
+  extends: z.string().optional(),
+
   /** Path to the template root directory, relative to pack root */
   templateRoot: z
     .string()
@@ -610,12 +629,85 @@ export class ManifestLoader {
     // Validate schema
     const validated = this.validateSchema(parsed, manifestPath, packRootDir);
 
+    // Resolve archetype inheritance (extends)
+    const resolvedArchetypes = this.resolveInheritance(validated.archetypes, manifestPath);
+
     // Return with metadata
     return {
       ...validated,
+      archetypes: resolvedArchetypes,
       manifestPath,
       packRootDir,
     };
+  }
+
+  /**
+   * Resolves archetype inheritance by merging parent fields into children.
+   *
+   * Children override individual fields from the parent; arrays are merged
+   * (child items appended after parent items). The `extends` field itself
+   * is stripped from the resolved archetype.
+   */
+  private resolveInheritance(
+    archetypes: Archetype[],
+    manifestPath: string,
+  ): Archetype[] {
+    const byId = new Map(archetypes.map((a) => [a.id, a]));
+
+    return archetypes.map((archetype) => {
+      if (!archetype.extends) return archetype;
+
+      const parentId = archetype.extends;
+      const parent = byId.get(parentId);
+
+      if (!parent) {
+        throw new ScaffoldError(
+          `Archetype "${archetype.id}" extends unknown archetype "${parentId}"`,
+          "MANIFEST_EXTENDS_NOT_FOUND",
+          { archetypeId: archetype.id, parentId, manifestPath },
+          undefined,
+          `Archetype "${archetype.id}" in ${manifestPath} references extends: "${parentId}", ` +
+            `but no archetype with that id exists in this pack. ` +
+            `Available ids: ${[...byId.keys()].filter((k) => k !== archetype.id).join(", ")}`,
+          undefined,
+          true,
+        );
+      }
+
+      if (parent.extends) {
+        throw new ScaffoldError(
+          `Archetype inheritance cannot be chained (${archetype.id} → ${parentId} → ${parent.extends})`,
+          "MANIFEST_EXTENDS_CHAIN",
+          { archetypeId: archetype.id, parentId, grandParentId: parent.extends },
+          undefined,
+          `Only one level of archetype inheritance is supported. ` +
+            `Archetype "${parentId}" already extends "${parent.extends}".`,
+          undefined,
+          true,
+        );
+      }
+
+      // Merge: child fields take precedence; arrays are concatenated (parent first)
+      const resolved: Archetype = {
+        ...parent,
+        ...archetype,
+        extends: undefined,
+        patches: [...(parent.patches ?? []), ...(archetype.patches ?? [])].length > 0
+          ? [...(parent.patches ?? []), ...(archetype.patches ?? [])]
+          : undefined,
+        checks: [...(parent.checks ?? []), ...(archetype.checks ?? [])].length > 0
+          ? [...(parent.checks ?? []), ...(archetype.checks ?? [])]
+          : undefined,
+        postGenerate: [...(parent.postGenerate ?? []), ...(archetype.postGenerate ?? [])].length > 0
+          ? [...(parent.postGenerate ?? []), ...(archetype.postGenerate ?? [])]
+          : undefined,
+        inputs: [...(parent.inputs ?? []), ...(archetype.inputs ?? [])].length > 0
+          ? [...(parent.inputs ?? []), ...(archetype.inputs ?? [])]
+          : undefined,
+      };
+
+      return resolved;
+    });
   }
 
   /**
