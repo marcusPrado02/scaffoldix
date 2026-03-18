@@ -22,6 +22,7 @@ import {
   type StoreLogger,
 } from "../../core/store/StoreService.js";
 import { GitPackFetcher } from "../../core/store/GitPackFetcher.js";
+import { NpmPackFetcher } from "../../core/store/NpmPackFetcher.js";
 import { CompatibilityChecker } from "../../core/compatibility/CompatibilityChecker.js";
 import { CLI_VERSION } from "../version.js";
 
@@ -133,6 +134,11 @@ export async function handlePackAdd(
   const { packPath, cwd, ref } = input;
   const { storeConfig, logger } = deps;
 
+  // Check if this is an npm reference (npm:<spec>)
+  if (NpmPackFetcher.isNpmRef(packPath)) {
+    return handleNpmPackAdd(packPath, storeConfig, logger);
+  }
+
   // Determine if this is a git URL
   const isGitUrl = input.isGitUrl ?? GitPackFetcher.isGitUrl(packPath);
 
@@ -141,6 +147,47 @@ export async function handlePackAdd(
   }
 
   return handleLocalPackAdd(packPath, cwd, storeConfig, logger);
+}
+
+/**
+ * Handles adding a pack from the npm registry.
+ */
+async function handleNpmPackAdd(
+  npmRef: string,
+  storeConfig: StoreServiceConfig,
+  logger: StoreLogger,
+): Promise<PackAddResult> {
+  const fetcher = new NpmPackFetcher(storeConfig.storeDir);
+  logger.debug("Fetching npm package", { npmRef });
+
+  const fetchResult = await fetcher.fetch(npmRef);
+
+  try {
+    const manifestLoader = new ManifestLoader();
+    const manifest = await manifestLoader.loadFromDir(fetchResult.packDir);
+    validateCompatibility(manifest);
+
+    const storeService = new StoreService(storeConfig, logger);
+    const installResult = await storeService.installLocalPack({
+      sourcePath: fetchResult.packDir,
+      origin: {
+        type: "npm",
+        packageName: fetchResult.packageName,
+        packageVersion: fetchResult.packageVersion,
+      },
+    });
+
+    return {
+      packId: installResult.packId,
+      version: installResult.version,
+      hash: installResult.hash,
+      destDir: installResult.destDir,
+      sourcePath: npmRef,
+      status: installResult.status,
+    };
+  } finally {
+    await fetcher.cleanup(fetchResult);
+  }
 }
 
 /**
