@@ -35,6 +35,7 @@ import {
 } from "../../core/state/ProjectStateManager.js";
 import { PatchEngine, type PatchApplySummary } from "../../core/patch/PatchEngine.js";
 import { PatchResolver } from "../../core/patch/PatchResolver.js";
+import { detectPatchConflicts } from "../../core/patch/PatchConflictDetector.js";
 import {
   HookRunner,
   type HookRunSummary,
@@ -851,6 +852,32 @@ export async function handleGenerate(
         const bo = (b as { order?: number }).order ?? Infinity;
         return ao - bo;
       });
+
+      // Detect conflicts before applying (fail fast with actionable message)
+      const conflictReport = detectPatchConflicts(
+        orderedPatches.map((p) => ({
+          kind: p.kind,
+          file: p.file,
+          idempotencyKey: p.idempotencyKey,
+          markerStart: (p as { markerStart?: string }).markerStart,
+        })),
+      );
+
+      if (conflictReport.hasConflicts) {
+        const conflictSummary = conflictReport.conflicts
+          .map((c) => `  [${c.type}] ${c.message}`)
+          .join("\n");
+        throw new ScaffoldError(
+          `Patch conflict detected in archetype "${archetypeId}"`,
+          "PATCH_CONFLICT",
+          { packId, archetypeId, conflicts: conflictReport.conflicts },
+          undefined,
+          `The following patch conflicts were detected:\n${conflictSummary}\n` +
+            `Fix the archetype manifest to remove duplicate idempotency keys or overlapping markers.`,
+          undefined,
+          true,
+        );
+      }
 
       trace.start("apply patches", { count: orderedPatches.length });
       console.log(`[staging] Applying patches...`);
