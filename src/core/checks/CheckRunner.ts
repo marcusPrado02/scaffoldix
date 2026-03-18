@@ -152,11 +152,22 @@ export interface CheckRunSummary {
  */
 export class CheckRunner {
   /**
-   * Runs checks sequentially as mandatory quality gates.
+   * Runs quality-gate check commands, either sequentially or in parallel
+   * depending on `params.parallel`.
    *
-   * @param params - Commands, cwd, and logger
-   * @returns Summary of check executions
-   * @throws ScaffoldError if any check fails
+   * In **sequential** mode (default) the runner stops at the first failure
+   * (fail-fast) and throws a `ScaffoldError` immediately.
+   *
+   * In **parallel** mode all commands launch concurrently via `Promise.all`.
+   * Every command runs to completion even if others have already failed.
+   * A single `ScaffoldError` summarising all failures is thrown after all
+   * results have been collected.
+   *
+   * Both modes honour `params.timeoutMs` and `params.retries`.
+   *
+   * @param params - Commands, working directory, logger, and options
+   * @returns Resolved summary when all checks pass
+   * @throws ScaffoldError with code `"CHECK_FAILED"` on any failure
    */
   async runChecks(params: RunChecksParams): Promise<CheckRunSummary> {
     const { commands, cwd, logger, parallel = false, timeoutMs, retries = 0 } = params;

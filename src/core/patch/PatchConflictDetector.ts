@@ -73,10 +73,33 @@ export interface PatchConflictReport {
 // =============================================================================
 
 /**
- * Analyzes a list of patch operations for conflicts.
+ * Analyzes an ordered list of patch operations for conflicts.
  *
- * @param patches - Ordered list of patches to analyse
- * @returns Conflict report
+ * Two types of conflicts are detected:
+ *
+ * 1. **`duplicate_idempotency_key`** — two patches share the same
+ *    `idempotencyKey`.  The second patch will always be skipped because the
+ *    stamp is already present after the first patch runs.
+ *
+ * 2. **`marker_conflict`** — two `marker_insert` or `marker_replace` patches
+ *    target the same `file` + `markerStart` combination.  Because both read
+ *    the file independently, the second write may corrupt or undo the first.
+ *
+ * The function is pure (no I/O) and runs in O(n) time using Maps.
+ *
+ * @param patches - Ordered list of patches to analyse.  The order matters:
+ *   index positions reported in conflicts reflect the position in this array.
+ * @returns A {@link PatchConflictReport} with `hasConflicts` and a `conflicts`
+ *   array.  When there are no conflicts the array is empty and `hasConflicts`
+ *   is `false`.
+ *
+ * @example
+ * const report = detectPatchConflicts(archetype.patches);
+ * if (report.hasConflicts) {
+ *   for (const c of report.conflicts) {
+ *     console.error(c.message);
+ *   }
+ * }
  */
 export function detectPatchConflicts(patches: AnalyzablePatch[]): PatchConflictReport {
   const conflicts: PatchConflict[] = [];
