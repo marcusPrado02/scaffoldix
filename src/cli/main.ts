@@ -5,6 +5,7 @@ import { buildPackCommand } from "./commands/pack.js";
 import { buildGenerateCommand } from "./commands/generate.js";
 import { buildArchetypesCommand } from "./commands/archetypes.js";
 import { buildDoctorCommand } from "./commands/doctor.js";
+import { buildCompletionCommand } from "./commands/completion.js";
 import { createCliUx, setDefaultCliUx, parseLogLevel, getCliUx } from "./ux/CliUx.js";
 import { CLI_VERSION } from "./version.js";
 
@@ -37,6 +38,7 @@ async function main() {
   program.addCommand(buildGenerateCommand(logger));
   program.addCommand(buildArchetypesCommand(logger));
   program.addCommand(buildDoctorCommand());
+  program.addCommand(buildCompletionCommand());
 
   try {
     await program.parseAsync(process.argv);
