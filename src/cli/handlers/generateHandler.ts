@@ -96,6 +96,9 @@ export interface GenerateInput {
 
   /** Whether to overwrite existing files (--force) */
   readonly force?: boolean;
+
+  /** If true, skip all patch operations (--skip-patches) */
+  readonly skipPatches?: boolean;
 }
 
 /**
@@ -219,6 +222,9 @@ export interface GenerateResult {
 
   /** Whether patches were skipped due to dry-run */
   readonly patchesSkippedForDryRun?: boolean;
+
+  /** Whether patches were skipped due to --skip-patches flag */
+  readonly patchesSkippedByFlag?: boolean;
 
   /** Hook execution report (non-dry-run only) */
   readonly hookReport?: HookReport;
@@ -511,7 +517,7 @@ export async function handleGenerate(
   input: GenerateInput,
   deps: GenerateDependencies,
 ): Promise<GenerateResult> {
-  const { ref, targetDir, dryRun, data, renameRules, version, force = false } = input;
+  const { ref, targetDir, dryRun, data, renameRules, version, force = false, skipPatches = false } = input;
   const { registryFile, packsDir, storeDir } = deps;
 
   // Initialize trace for observability
@@ -836,7 +842,9 @@ export async function handleGenerate(
     const patches = archetype.patches;
     const hasPatches = patches && patches.length > 0;
 
-    if (hasPatches) {
+    if (hasPatches && skipPatches) {
+      console.log(`[staging] Skipping ${patches.length} patch(es) (--skip-patches)`);
+    } else if (hasPatches) {
       trace.start("apply patches", { count: patches.length });
       console.log(`[staging] Applying patches...`);
       patchReport = await applyPatches({
@@ -1044,6 +1052,7 @@ export async function handleGenerate(
     filesPlanned: [],
     patchReport,
     patchesSkippedForDryRun: false,
+    patchesSkippedByFlag: skipPatches && archetype.patches && archetype.patches.length > 0,
     hookReport,
     hooksSkippedForDryRun: false,
     checkReport,
@@ -1120,6 +1129,9 @@ export function formatGenerateOutput(result: GenerateResult): string[] {
   if (result.patchesSkippedForDryRun) {
     lines.push("");
     lines.push("Dry run: patches were not applied.");
+  } else if (result.patchesSkippedByFlag) {
+    lines.push("");
+    lines.push("Patches skipped (--skip-patches).");
   } else if (result.patchReport) {
     lines.push("");
     lines.push(formatPatchReport(result.patchReport));
