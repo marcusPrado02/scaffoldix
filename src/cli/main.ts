@@ -7,6 +7,7 @@ import { buildArchetypesCommand } from "./commands/archetypes.js";
 import { buildDoctorCommand } from "./commands/doctor.js";
 import { buildCompletionCommand } from "./commands/completion.js";
 import { buildInitCommand } from "./commands/init.js";
+import { buildHistoryCommand } from "./commands/history.js";
 import { createCliUx, setDefaultCliUx, parseLogLevel, getCliUx } from "./ux/CliUx.js";
 import { CLI_VERSION } from "./version.js";
 
@@ -41,6 +42,7 @@ async function main() {
   program.addCommand(buildDoctorCommand());
   program.addCommand(buildCompletionCommand());
   program.addCommand(buildInitCommand());
+  program.addCommand(buildHistoryCommand());
 
   try {
     await program.parseAsync(process.argv);
