@@ -948,6 +948,7 @@ export async function handleGenerate(
         commands: checks,
         cwd: stagingDir, // Checks in staging
         logger: checkLogger,
+        parallel: (archetype as { parallelChecks?: boolean }).parallelChecks ?? false,
       });
       trace.end("run checks");
     }

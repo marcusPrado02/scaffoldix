@@ -61,6 +61,14 @@ export interface RunChecksParams {
 
   /** Logger for output */
   readonly logger: CheckLogger;
+
+  /**
+   * If true, run all checks concurrently instead of sequentially.
+   * All checks run even if some fail; results are collected and reported together.
+   * Useful when checks are independent (e.g. lint + type-check + test in parallel).
+   * Default: false (sequential, fail-fast).
+   */
+  readonly parallel?: boolean;
 }
 
 /**
@@ -137,7 +145,7 @@ export class CheckRunner {
    * @throws ScaffoldError if any check fails
    */
   async runChecks(params: RunChecksParams): Promise<CheckRunSummary> {
-    const { commands, cwd, logger } = params;
+    const { commands, cwd, logger, parallel = false } = params;
 
     // Handle empty/undefined commands
     if (!commands || commands.length === 0) {
@@ -152,11 +160,28 @@ export class CheckRunner {
       };
     }
 
-    const results: CheckResult[] = [];
-    let totalDurationMs = 0;
     const total = commands.length;
 
-    logger.info(`Running ${total} check${total === 1 ? "" : "s"}...`);
+    if (parallel) {
+      return this.runChecksParallel(commands, total, cwd, logger);
+    }
+
+    return this.runChecksSequential(commands, total, cwd, logger);
+  }
+
+  /**
+   * Runs checks sequentially with fail-fast semantics.
+   */
+  private async runChecksSequential(
+    commands: readonly string[],
+    total: number,
+    cwd: string,
+    logger: CheckLogger,
+  ): Promise<CheckRunSummary> {
+    const results: CheckResult[] = [];
+    let totalDurationMs = 0;
+
+    logger.info(`Running ${total} check${total === 1 ? "" : "s"} (sequential)...`);
 
     for (let i = 0; i < commands.length; i++) {
       const command = commands[i];
@@ -174,19 +199,16 @@ export class CheckRunner {
         logger.error(`Check FAILED in ${this.formatDuration(result.durationMs)}: ${command}`);
         logger.error(`Exit code: ${result.exitCode}`);
 
-        // Log full output block for debugging
         if (result.capturedOutput) {
           logger.error("--- Command Output ---");
           if (logger.outputBlock) {
             logger.outputBlock(result.capturedOutput);
           } else {
-            // Fallback: log via error
             logger.error(result.capturedOutput);
           }
           logger.error("--- End Output ---");
         }
 
-        // Abort on failure with actionable error
         throw new ScaffoldError(
           `Quality check failed`,
           "CHECK_FAILED",
@@ -219,6 +241,80 @@ export class CheckRunner {
       passed,
       failed,
       success: failed === 0,
+      totalDurationMs,
+      results,
+    };
+  }
+
+  /**
+   * Runs all checks concurrently. All checks run even if some fail.
+   * Throws after collecting all results if any check failed.
+   */
+  private async runChecksParallel(
+    commands: readonly string[],
+    total: number,
+    cwd: string,
+    logger: CheckLogger,
+  ): Promise<CheckRunSummary> {
+    logger.info(`Running ${total} check${total === 1 ? "" : "s"} (parallel)...`);
+
+    // Launch all checks concurrently
+    const promises = commands.map((command, i) => {
+      logger.info(`Starting check (${i + 1}/${total}): ${command}`);
+      return this.executeCheck(command, cwd, logger).then((result) => {
+        if (result.success) {
+          logger.info(`Check passed in ${this.formatDuration(result.durationMs)}: ${command}`);
+        } else {
+          logger.error(`Check FAILED in ${this.formatDuration(result.durationMs)}: ${command}`);
+        }
+        return result;
+      });
+    });
+
+    const results = await Promise.all(promises);
+    const totalDurationMs = Math.max(...results.map((r) => r.durationMs));
+
+    const passed = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    if (failed > 0) {
+      const failedResults = results.filter((r) => !r.success);
+      const failedSummary = failedResults
+        .map((r) => `"${r.command}" (exit ${r.exitCode})`)
+        .join(", ");
+
+      for (const r of failedResults) {
+        if (r.capturedOutput) {
+          logger.error(`--- Output for: ${r.command} ---`);
+          if (logger.outputBlock) {
+            logger.outputBlock(r.capturedOutput);
+          } else {
+            logger.error(r.capturedOutput);
+          }
+        }
+      }
+
+      throw new ScaffoldError(
+        `${failed} quality check${failed === 1 ? "" : "s"} failed`,
+        "CHECK_FAILED",
+        { failed, total, failedCommands: failedResults.map((r) => r.command), cwd },
+        undefined,
+        `${failed} of ${total} parallel check${failed === 1 ? "" : "s"} failed: ${failedSummary}. ` +
+          `Run each command manually in "${cwd}" to debug.`,
+        undefined,
+        true,
+      );
+    }
+
+    logger.info(
+      `All ${total} parallel check${total === 1 ? "" : "s"} passed in ${this.formatDuration(totalDurationMs)}`,
+    );
+
+    return {
+      total,
+      passed,
+      failed,
+      success: true,
       totalDurationMs,
       results,
     };

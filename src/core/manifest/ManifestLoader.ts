@@ -530,6 +530,13 @@ const ArchetypeSchema = z.object({
   checks: z.array(z.string()).optional(),
 
   /**
+   * If true, checks run concurrently instead of sequentially.
+   * All checks execute even if some fail; failures are reported together.
+   * Default: false (sequential, fail-fast).
+   */
+  parallelChecks: z.boolean().optional(),
+
+  /**
    * Optional list of input definitions for the archetype.
    * Inputs are collected from users during generation (or from defaults in --yes mode).
    *
