@@ -271,9 +271,15 @@ Scaffoldix follows SemVer with these definitions:
 2. All error paths MUST be tested
 3. Regression tests MUST exist for known bugs
 4. Coverage MUST NOT decrease (enforced by CI thresholds)
+5. CLI output formatters MUST have snapshot tests (update snapshots intentionally with `vitest -u`)
+6. Public `core/` module interfaces MUST have contract tests
 
 Test locations:
 
 - `test/unit/` — Unit tests for isolated modules
-- `test/` — Integration tests for handlers
+- `test/unit/__snapshots__/` — Snapshot files for CLI output formatters
+- `test/` — Integration tests for handlers (real filesystem, no mocks)
+- `test/integration.e2e.test.ts` — End-to-end tests (full CLI pipeline in temp directories)
+- `test/contract/` — Contract tests pinning observable behavior of public core APIs
 - `test/regression/` — Regression tests for specific failure scenarios
+- `test/bench/` — Performance benchmarks for the rendering pipeline

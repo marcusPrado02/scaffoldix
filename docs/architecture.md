@@ -247,9 +247,12 @@ ManifestSchema
 **Patch types:**
 | Type | Purpose |
 |------|---------|
-| `marker_insert` | Insert content between markers |
-| `marker_replace` | Replace content between markers |
-| `append_if_missing` | Add content if not present |
+| `marker_insert` | Insert content immediately after `markerStart` |
+| `marker_replace` | Replace all content between markers |
+| `append_if_missing` | Append content to end of file if not already present |
+| `regex_replace` | Pattern-based replacement using regular expressions |
+| `json_merge` | Deep-merge JSON object into an existing JSON file |
+| `yaml_merge` | Idempotent deep-merge into an existing YAML file |
 
 **Idempotency mechanism:**
 
@@ -319,11 +322,15 @@ State v2 ──────────► Engine 0.3+
 
 ### Test Categories
 
-| Category    | Location           | Purpose                 |
-| ----------- | ------------------ | ----------------------- |
-| Unit        | `test/unit/`       | Isolated module testing |
-| Integration | `test/`            | Handler-level flows     |
-| Regression  | `test/regression/` | Known failure scenarios |
+| Category    | Location                     | Purpose                                      |
+| ----------- | ---------------------------- | -------------------------------------------- |
+| Unit        | `test/unit/`                 | Isolated module testing                      |
+| Snapshot    | `test/unit/__snapshots__/`   | Lock CLI output formatting against regressions |
+| Integration | `test/`                      | Handler-level flows (real filesystem, no mocks) |
+| E2E         | `test/integration.e2e.test.ts` | Full CLI pipeline in temp directories      |
+| Contract    | `test/contract/`             | Pin observable behavior of public core APIs  |
+| Regression  | `test/regression/`           | Known failure scenarios from past bugs       |
+| Benchmarks  | `test/bench/`                | Performance baselines for rendering pipeline |
 
 ### Test Principles
 
@@ -344,14 +351,6 @@ Enforced thresholds (prevent regression):
 ---
 
 ## Future Considerations
-
-### Planned Extensions
-
-| Feature              | Architectural Impact             |
-| -------------------- | -------------------------------- |
-| Pack versioning      | Multi-version storage in store   |
-| Remote pack registry | New fetch adapter, caching layer |
-| Interactive patches  | New patch type with user input   |
 
 ### Intentionally Deferred
 

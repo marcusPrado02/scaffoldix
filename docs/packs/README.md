@@ -55,11 +55,21 @@ Example: A "java-microservices" pack might contain archetypes for:
 
 ## Quick Start
 
-1. Create a directory for your pack
-2. Create `archetype.yaml` with pack metadata and archetypes
-3. Create templates in the `templates/` directory
-4. Add quality checks to verify generated output
-5. Install locally: `scaffoldix pack add /path/to/your-pack`
-6. Generate: `scaffoldix generate your-pack archetype-id`
+1. Bootstrap from the starter: `cp -r starters/pack-starter my-pack`
+2. Edit `my-pack/archetype.yaml` with your pack metadata and archetypes
+3. Add templates to `my-pack/templates/<archetype-id>/`
+4. Validate before installing: `scaffoldix pack validate ./my-pack`
+5. Install locally: `scaffoldix pack add ./my-pack`
+6. Generate: `scaffoldix generate my-pack:<archetype-id> --target ./output`
 
 See the [Pack Authoring Guide](./pack-authoring-guide.md) for detailed instructions.
+
+## Pack Distribution
+
+| Method | Command | Notes |
+|--------|---------|-------|
+| Local path | `scaffoldix pack add ./my-pack` | Development and testing |
+| GitHub | `scaffoldix pack add github:org/repo` | Public repos |
+| npm | `scaffoldix pack add npm:@scope/pack-name` | Published packages |
+| Verify integrity | `scaffoldix pack verify my-pack` | SHA-256 check |
+| Publish to npm | `scaffoldix pack publish` | Adds `scaffoldix-pack` keyword |

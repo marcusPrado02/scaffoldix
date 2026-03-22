@@ -9,7 +9,7 @@ The CI pipeline runs the following steps in order:
 1. **Install** - `pnpm install --frozen-lockfile`
 2. **Build** - `pnpm run build` (TypeScript compilation via tsup)
 3. **Lint** - `pnpm run lint` (Prettier format check + TypeScript type check)
-4. **Test** - `pnpm run test` (Vitest test suite)
+4. **Test** - `pnpm run test` (Vitest — unit, integration, e2e, contract, snapshot)
 
 Any failure in these steps will fail the CI check and block merging.
 
@@ -45,6 +45,24 @@ If the lint check fails due to formatting issues:
 
 ```bash
 pnpm run format
+```
+
+### Mutation Testing
+
+Mutation testing measures test suite quality by introducing code mutations and checking whether tests catch them. Run locally (not in CI — it is slow):
+
+```bash
+pnpm stryker run
+```
+
+Thresholds (enforced): statements ≥ 80%, branches ≥ 60%.
+
+### Performance Benchmarks
+
+Benchmarks measure rendering pipeline throughput to catch performance regressions:
+
+```bash
+pnpm vitest bench
 ```
 
 ## CI Configuration

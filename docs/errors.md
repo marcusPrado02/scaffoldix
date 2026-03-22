@@ -24,6 +24,7 @@ Error codes are **stable public API contracts**:
 | 60-69 | State      | Project state errors                |
 | 70-79 | Filesystem | Filesystem operation errors         |
 | 80-89 | Git        | Git operation errors                |
+| 90-99 | Registry   | Registry read/write errors          |
 
 ## Common Errors
 
@@ -261,6 +262,98 @@ Error codes are **stable public API contracts**:
 1. Back up the current state file
 2. Delete `.scaffoldix/state.json`
 3. Re-run generation (loses history)
+
+---
+
+### PACK_STORE_MISSING
+
+**Exit Code:** 13
+
+**When it happens:** A pack is registered but its files are missing from the local store.
+
+**Typical cause:**
+
+- Store directory was manually deleted
+- Pack was moved or corrupted after install
+
+**How to fix:**
+
+1. Reinstall the pack: `scaffoldix pack add <source>`
+2. Or remove and re-add: `scaffoldix pack remove <packId> && scaffoldix pack add <source>`
+
+---
+
+### PACK_MANIFEST_CORRUPT
+
+**Exit Code:** 14
+
+**When it happens:** The pack's manifest file is missing or cannot be parsed.
+
+**Typical cause:**
+
+- `pack.yaml` / `archetype.yaml` was deleted inside the store
+- File is not valid YAML
+
+**How to fix:**
+
+1. Reinstall the pack: `scaffoldix pack add <source>`
+
+---
+
+### PATCH_CONFLICT
+
+**Exit Code:** 43
+
+**When it happens:** Two archetypes attempt to patch the same marker in the same file.
+
+**Typical cause:**
+
+- Multiple packs installed that both target the same marker
+- Same archetype applied twice
+
+**How to fix:**
+
+1. Review the patch operations in each archetype
+2. Use unique `idempotencyKey` values per patch
+3. Use `--skip-patches` if patches are not needed for this generation
+
+---
+
+### REGISTRY_INVALID_JSON
+
+**Exit Code:** 90
+
+**When it happens:** The registry file (`~/.scaffoldix/registry.json`) contains invalid JSON.
+
+**Typical cause:**
+
+- File was manually edited and corrupted
+- Interrupted write operation
+
+**How to fix:**
+
+1. Back up the file
+2. Delete `~/.scaffoldix/registry.json`
+3. Re-add all packs with `scaffoldix pack add`
+
+---
+
+### REGISTRY_INVALID_SCHEMA
+
+**Exit Code:** 91
+
+**When it happens:** The registry file has valid JSON but does not match the expected schema.
+
+**Typical cause:**
+
+- Downgrading Scaffoldix to an older version
+- Manual edits to registry structure
+
+**How to fix:**
+
+1. Back up the file
+2. Delete `~/.scaffoldix/registry.json`
+3. Re-add all packs with `scaffoldix pack add`
 
 ---
 

@@ -6,11 +6,14 @@
  * intentionally approved by updating snapshots.
  *
  * Covered formatters:
- * - formatGenerateOutput  (GenerateResult → string[])
- * - formatPatchReport     (PatchReport → string)
- * - formatHookReport      (HookReport → string)
- * - formatCheckReport     (CheckReport → string)
- * - formatTraceOutput     (TraceJson → string[])
+ * - formatGenerateOutput      (GenerateResult → string[])
+ * - formatPatchReport         (PatchReport → string)
+ * - formatHookReport          (HookReport → string)
+ * - formatCheckReport         (CheckReport → string)
+ * - formatTraceOutput         (TraceJson → string[])
+ * - formatPackListOutput      (PackListResult → string[])
+ * - formatPackInfoOutput      (PackInfoResult → string[])
+ * - formatArchetypesListOutput (ArchetypesListResult → { stdout, stderr })
  *
  * @module
  */
@@ -28,6 +31,18 @@ import {
   type CheckReport,
 } from "../../src/cli/handlers/generateHandler.js";
 import type { TraceJson } from "../../src/core/observability/EngineTrace.js";
+import {
+  formatPackListOutput,
+  type PackListResult,
+} from "../../src/cli/handlers/packListHandler.js";
+import {
+  formatPackInfoOutput,
+  type PackInfoResult,
+} from "../../src/cli/handlers/packInfoHandler.js";
+import {
+  formatArchetypesListOutput,
+  type ArchetypesListResult,
+} from "../../src/cli/handlers/archetypesListHandler.js";
 
 // =============================================================================
 // formatGenerateOutput snapshots
@@ -313,5 +328,178 @@ describe("formatTraceOutput snapshots", () => {
     };
     const lines = formatTraceOutput(trace);
     expect(lines.join("\n")).toMatchSnapshot();
+  });
+});
+
+// =============================================================================
+// formatPackListOutput snapshots
+// =============================================================================
+
+describe("formatPackListOutput snapshots", () => {
+  it("empty list — no registry", () => {
+    const result: PackListResult = {
+      packs: [],
+      registryExists: false,
+    };
+    expect(formatPackListOutput(result).join("\n")).toMatchSnapshot();
+  });
+
+  it("single local pack", () => {
+    const result: PackListResult = {
+      packs: [
+        {
+          packId: "my-pack",
+          version: "1.0.0",
+          origin: "local:/home/user/my-pack",
+          installedAt: "2024-01-15T10:30:00.000Z",
+        },
+      ],
+      registryExists: true,
+    };
+    expect(formatPackListOutput(result).join("\n")).toMatchSnapshot();
+  });
+
+  it("multiple packs with varied origins — columns are aligned", () => {
+    const result: PackListResult = {
+      packs: [
+        {
+          packId: "alpha",
+          version: "1.0.0",
+          origin: "local:/a",
+          installedAt: "2024-01-01T00:00:00.000Z",
+        },
+        {
+          packId: "longer-pack-name",
+          version: "10.20.30",
+          origin: "git:https://github.com/org/repo#main",
+          installedAt: "2024-06-15T14:30:00.000Z",
+        },
+        {
+          packId: "scoped",
+          version: "2.0.0",
+          origin: "npm:@org/scoped-pack",
+          installedAt: "2024-03-10T08:00:00.000Z",
+        },
+      ],
+      registryExists: true,
+    };
+    expect(formatPackListOutput(result).join("\n")).toMatchSnapshot();
+  });
+});
+
+// =============================================================================
+// formatPackInfoOutput snapshots
+// =============================================================================
+
+describe("formatPackInfoOutput snapshots", () => {
+  it("local pack with two archetypes", () => {
+    const result: PackInfoResult = {
+      packId: "my-pack",
+      version: "1.2.3",
+      origin: "local:/home/user/pack",
+      originRaw: { type: "local", localPath: "/home/user/pack" },
+      storePath: "/home/user/.local/share/scaffoldix/packs/my-pack/abc123",
+      installedAt: "2024-06-15T14:30:00.000Z",
+      hash: "abc123def456abc123def456abc123def456abc123def456abc123def456abc1",
+      archetypes: ["api", "web"],
+    };
+    expect(formatPackInfoOutput(result).join("\n")).toMatchSnapshot();
+  });
+
+  it("git pack with single archetype", () => {
+    const result: PackInfoResult = {
+      packId: "git-pack",
+      version: "3.0.0",
+      origin: "git:https://github.com/org/repo#v3.0.0",
+      originRaw: { type: "git", gitUrl: "https://github.com/org/repo", ref: "v3.0.0" },
+      storePath: "/store/git-pack/deadbeef",
+      installedAt: "2024-09-01T12:00:00.000Z",
+      hash: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+      archetypes: ["default"],
+    };
+    expect(formatPackInfoOutput(result).join("\n")).toMatchSnapshot();
+  });
+
+  it("npm scoped pack with many archetypes", () => {
+    const result: PackInfoResult = {
+      packId: "@myorg/full-stack",
+      version: "5.1.0",
+      origin: "npm:@myorg/full-stack",
+      originRaw: { type: "npm", packageName: "@myorg/full-stack" },
+      storePath: "/store/@myorg__full-stack/cafebabe",
+      installedAt: "2024-11-20T09:45:00.000Z",
+      hash: "cafebabecafebabecafebabecafebabecafebabecafebabecafebabecafebabe",
+      archetypes: ["backend", "frontend", "database", "infra"],
+    };
+    expect(formatPackInfoOutput(result).join("\n")).toMatchSnapshot();
+  });
+});
+
+// =============================================================================
+// formatArchetypesListOutput snapshots
+// =============================================================================
+
+describe("formatArchetypesListOutput snapshots", () => {
+  it("no packs installed", () => {
+    const result: ArchetypesListResult = {
+      archetypes: [],
+      noPacksInstalled: true,
+      warnings: [],
+    };
+    const { stdout, stderr } = formatArchetypesListOutput(result);
+    expect({ stdout: stdout.join("\n"), stderr: stderr.join("\n") }).toMatchSnapshot();
+  });
+
+  it("single archetype, no warnings", () => {
+    const result: ArchetypesListResult = {
+      archetypes: ["my-pack:default"],
+      noPacksInstalled: false,
+      warnings: [],
+    };
+    const { stdout, stderr } = formatArchetypesListOutput(result);
+    expect({ stdout: stdout.join("\n"), stderr: stderr.join("\n") }).toMatchSnapshot();
+  });
+
+  it("multiple archetypes from multiple packs, no warnings", () => {
+    const result: ArchetypesListResult = {
+      archetypes: [
+        "api-kit:controller",
+        "api-kit:service",
+        "react-starter:component",
+        "react-starter:hook",
+        "react-starter:page",
+        "shared-utils:util",
+      ],
+      noPacksInstalled: false,
+      warnings: [],
+    };
+    const { stdout, stderr } = formatArchetypesListOutput(result);
+    expect({ stdout: stdout.join("\n"), stderr: stderr.join("\n") }).toMatchSnapshot();
+  });
+
+  it("archetypes with warnings for degraded packs", () => {
+    const result: ArchetypesListResult = {
+      archetypes: ["valid-pack:component"],
+      noPacksInstalled: false,
+      warnings: [
+        "Warning: pack 'missing-pack' missing from store",
+        "Warning: pack 'corrupt-pack' has invalid manifest",
+      ],
+    };
+    const { stdout, stderr } = formatArchetypesListOutput(result);
+    expect({ stdout: stdout.join("\n"), stderr: stderr.join("\n") }).toMatchSnapshot();
+  });
+
+  it("all packs invalid — zero archetypes with warnings", () => {
+    const result: ArchetypesListResult = {
+      archetypes: [],
+      noPacksInstalled: false,
+      warnings: [
+        "Warning: pack 'pack-a' missing from store",
+        "Warning: pack 'pack-b' has invalid manifest",
+      ],
+    };
+    const { stdout, stderr } = formatArchetypesListOutput(result);
+    expect({ stdout: stdout.join("\n"), stderr: stderr.join("\n") }).toMatchSnapshot();
   });
 });
