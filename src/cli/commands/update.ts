@@ -54,102 +54,100 @@ Examples:
   scaffoldix pack update my-pack --ref v1.2.0
   scaffoldix pack update my-pack --path ./my-pack-v2`,
     )
-    .action(
-      async (packId: string, options: { path?: string; ref?: string; yes: boolean }) => {
-        const ux = getCliUx();
+    .action(async (packId: string, options: { path?: string; ref?: string; yes: boolean }) => {
+      const ux = getCliUx();
 
-        try {
-          const storePaths = initStorePaths();
-          const storeLogger = createStoreLogger(logger);
+      try {
+        const storePaths = initStorePaths();
+        const storeLogger = createStoreLogger(logger);
 
-          // Load registry to get current pack info
-          const registry = new RegistryService(storePaths.registryFile);
-          const packEntry = await registry.getPack(packId);
+        // Load registry to get current pack info
+        const registry = new RegistryService(storePaths.registryFile);
+        const packEntry = await registry.getPack(packId);
 
-          if (!packEntry) {
-            throw new ScaffoldError(
-              `Pack '${packId}' is not installed`,
-              "PACK_NOT_FOUND",
-              { packId },
-              undefined,
-              `Run \`scaffoldix pack list\` to see installed packs.`,
-              undefined,
-              true,
-            );
-          }
-
-          // Determine source: override path > original origin
-          let sourcePath: string;
-          let isGitUrl = false;
-
-          if (options.path) {
-            sourcePath = options.path;
-          } else if (packEntry.origin.type === "git") {
-            sourcePath = packEntry.origin.gitUrl;
-            isGitUrl = true;
-          } else if (packEntry.origin.type === "local") {
-            sourcePath = packEntry.origin.path;
-          } else {
-            throw new ScaffoldError(
-              `Cannot update pack '${packId}': unsupported origin type '${packEntry.origin.type}'`,
-              "PACK_UPDATE_UNSUPPORTED_ORIGIN",
-              { packId, originType: packEntry.origin.type },
-              undefined,
-              `Provide --path to specify the new source location.`,
-              undefined,
-              true,
-            );
-          }
-
-          // Confirm update unless --yes
-          if (!options.yes) {
-            const { confirm } = await import("@clack/prompts");
-            const ok = await confirm({
-              message: `Update pack "${packId}@${packEntry.version}" from ${sourcePath}?`,
-            });
-            if (!ok) {
-              ux.info("Cancelled.");
-              return;
-            }
-          }
-
-          ux.info(`Updating pack ${packId}@${packEntry.version}...`);
-
-          const storeConfig = {
-            storeDir: storePaths.storeDir,
-            packsDir: storePaths.packsDir,
-            registryFile: storePaths.registryFile,
-          };
-
-          // Remove old version
-          const removeDeps: PackRemoveDependencies = {
-            registryFile: storePaths.registryFile,
-            packsDir: storePaths.packsDir,
-            logger: storeLogger,
-          };
-          await handlePackRemove({ packId }, removeDeps);
-
-          // Install new version
-          const addDeps: PackAddDependencies = {
-            storeConfig,
-            logger: storeLogger,
-          };
-          const result = await handlePackAdd(
-            { packPath: sourcePath, cwd: process.cwd(), isGitUrl, ref: options.ref },
-            addDeps,
+        if (!packEntry) {
+          throw new ScaffoldError(
+            `Pack '${packId}' is not installed`,
+            "PACK_NOT_FOUND",
+            { packId },
+            undefined,
+            `Run \`scaffoldix pack list\` to see installed packs.`,
+            undefined,
+            true,
           );
-
-          ux.success(`Updated pack ${result.packId} to v${result.version}`);
-          ux.detail(`From: ${result.sourcePath}`);
-          ux.detail(`Hash: ${result.hash}`);
-        } catch (err) {
-          const msg = toUserMessage(err);
-          ux.error(msg.message, {
-            code: msg.code,
-            hint: err instanceof ScaffoldError ? err.hint : undefined,
-          });
-          process.exitCode = 1;
         }
-      },
-    );
+
+        // Determine source: override path > original origin
+        let sourcePath: string;
+        let isGitUrl = false;
+
+        if (options.path) {
+          sourcePath = options.path;
+        } else if (packEntry.origin.type === "git") {
+          sourcePath = packEntry.origin.gitUrl;
+          isGitUrl = true;
+        } else if (packEntry.origin.type === "local") {
+          sourcePath = packEntry.origin.localPath;
+        } else {
+          throw new ScaffoldError(
+            `Cannot update pack '${packId}': unsupported origin type '${packEntry.origin.type}'`,
+            "PACK_UPDATE_UNSUPPORTED_ORIGIN",
+            { packId, originType: packEntry.origin.type },
+            undefined,
+            `Provide --path to specify the new source location.`,
+            undefined,
+            true,
+          );
+        }
+
+        // Confirm update unless --yes
+        if (!options.yes) {
+          const { confirm } = await import("@clack/prompts");
+          const ok = await confirm({
+            message: `Update pack "${packId}@${packEntry.version}" from ${sourcePath}?`,
+          });
+          if (!ok) {
+            ux.info("Cancelled.");
+            return;
+          }
+        }
+
+        ux.info(`Updating pack ${packId}@${packEntry.version}...`);
+
+        const storeConfig = {
+          storeDir: storePaths.storeDir,
+          packsDir: storePaths.packsDir,
+          registryFile: storePaths.registryFile,
+        };
+
+        // Remove old version
+        const removeDeps: PackRemoveDependencies = {
+          registryFile: storePaths.registryFile,
+          packsDir: storePaths.packsDir,
+          logger: storeLogger,
+        };
+        await handlePackRemove({ packId }, removeDeps);
+
+        // Install new version
+        const addDeps: PackAddDependencies = {
+          storeConfig,
+          logger: storeLogger,
+        };
+        const result = await handlePackAdd(
+          { packPath: sourcePath, cwd: process.cwd(), isGitUrl, ref: options.ref },
+          addDeps,
+        );
+
+        ux.success(`Updated pack ${result.packId} to v${result.version}`);
+        ux.detail(`From: ${result.sourcePath}`);
+        ux.detail(`Hash: ${result.hash}`);
+      } catch (err) {
+        const msg = toUserMessage(err);
+        ux.error(msg.message, {
+          code: msg.code,
+          hint: err instanceof ScaffoldError ? err.hint : undefined,
+        });
+        process.exitCode = 1;
+      }
+    });
 }

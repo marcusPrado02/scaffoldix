@@ -216,7 +216,14 @@ const RawPatchSchema = z.discriminatedUnion("kind", [
  */
 const PatchSchema = z
   .object({
-    kind: z.enum(["marker_insert", "marker_replace", "append_if_missing"]),
+    kind: z.enum([
+      "marker_insert",
+      "marker_replace",
+      "append_if_missing",
+      "regex_replace",
+      "json_merge",
+      "yaml_merge",
+    ]),
     markerStart: z.string().optional(),
     markerEnd: z.string().optional(),
   })
@@ -489,10 +496,14 @@ const ArchetypeSchema = z.object({
    *         targetSubDir: test
    * ```
    */
-  extraTemplateRoots: z.array(z.object({
-    templateRoot: z.string().min(1),
-    targetSubDir: z.string().min(1),
-  })).optional(),
+  extraTemplateRoots: z
+    .array(
+      z.object({
+        templateRoot: z.string().min(1),
+        targetSubDir: z.string().min(1),
+      }),
+    )
+    .optional(),
 
   /**
    * Optional list of shell commands to run before template rendering begins.
@@ -670,11 +681,26 @@ export type MarkerReplacePatch = z.infer<typeof MarkerReplaceSchema>;
  */
 export type AppendIfMissingPatch = z.infer<typeof AppendIfMissingSchema>;
 
+/** Replaces content matched by a regex pattern. */
+export type RegexReplacePatch = z.infer<typeof RegexReplaceSchema>;
+
+/** Deep-merges a JSON object into the target file. */
+export type JsonMergePatch = z.infer<typeof JsonMergeSchema>;
+
+/** Deep-merges a YAML object into the target file. */
+export type YamlMergePatch = z.infer<typeof YamlMergeSchema>;
+
 /**
  * Union type of all patch operations.
  * Discriminated on the `kind` field.
  */
-export type PatchOperation = MarkerInsertPatch | MarkerReplacePatch | AppendIfMissingPatch;
+export type PatchOperation =
+  | MarkerInsertPatch
+  | MarkerReplacePatch
+  | AppendIfMissingPatch
+  | RegexReplacePatch
+  | JsonMergePatch
+  | YamlMergePatch;
 
 /** A single archetype definition */
 export type Archetype = z.infer<typeof ArchetypeSchema>;
@@ -790,10 +816,7 @@ export class ManifestLoader {
    * (child items appended after parent items). The `extends` field itself
    * is stripped from the resolved archetype.
    */
-  private resolveInheritance(
-    archetypes: Archetype[],
-    manifestPath: string,
-  ): Archetype[] {
+  private resolveInheritance(archetypes: Archetype[], manifestPath: string): Archetype[] {
     const byId = new Map(archetypes.map((a) => [a.id, a]));
 
     return archetypes.map((archetype) => {
@@ -834,21 +857,26 @@ export class ManifestLoader {
         ...parent,
         ...archetype,
         extends: undefined,
-        preGenerate: [...(parent.preGenerate ?? []), ...(archetype.preGenerate ?? [])].length > 0
-          ? [...(parent.preGenerate ?? []), ...(archetype.preGenerate ?? [])]
-          : undefined,
-        patches: [...(parent.patches ?? []), ...(archetype.patches ?? [])].length > 0
-          ? [...(parent.patches ?? []), ...(archetype.patches ?? [])]
-          : undefined,
-        checks: [...(parent.checks ?? []), ...(archetype.checks ?? [])].length > 0
-          ? [...(parent.checks ?? []), ...(archetype.checks ?? [])]
-          : undefined,
-        postGenerate: [...(parent.postGenerate ?? []), ...(archetype.postGenerate ?? [])].length > 0
-          ? [...(parent.postGenerate ?? []), ...(archetype.postGenerate ?? [])]
-          : undefined,
-        inputs: [...(parent.inputs ?? []), ...(archetype.inputs ?? [])].length > 0
-          ? [...(parent.inputs ?? []), ...(archetype.inputs ?? [])]
-          : undefined,
+        preGenerate:
+          [...(parent.preGenerate ?? []), ...(archetype.preGenerate ?? [])].length > 0
+            ? [...(parent.preGenerate ?? []), ...(archetype.preGenerate ?? [])]
+            : undefined,
+        patches:
+          [...(parent.patches ?? []), ...(archetype.patches ?? [])].length > 0
+            ? [...(parent.patches ?? []), ...(archetype.patches ?? [])]
+            : undefined,
+        checks:
+          [...(parent.checks ?? []), ...(archetype.checks ?? [])].length > 0
+            ? [...(parent.checks ?? []), ...(archetype.checks ?? [])]
+            : undefined,
+        postGenerate:
+          [...(parent.postGenerate ?? []), ...(archetype.postGenerate ?? [])].length > 0
+            ? [...(parent.postGenerate ?? []), ...(archetype.postGenerate ?? [])]
+            : undefined,
+        inputs:
+          [...(parent.inputs ?? []), ...(archetype.inputs ?? [])].length > 0
+            ? [...(parent.inputs ?? []), ...(archetype.inputs ?? [])]
+            : undefined,
       };
 
       return resolved;

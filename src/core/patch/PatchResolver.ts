@@ -129,12 +129,10 @@ export class PatchResolver {
   private async resolvePatch(input: ResolvePatchInput, index?: number): Promise<EnginePatch> {
     const { patch, data, packStorePath } = input;
 
-    // Resolve content from contentTemplate or path
-    const content = await this.resolveContent(patch, data, packStorePath, index);
-
     // Build the engine operation based on kind
     switch (patch.kind) {
-      case "marker_insert":
+      case "marker_insert": {
+        const content = await this.resolveContent(patch, data, packStorePath, index);
         return {
           kind: "marker_insert",
           file: patch.file,
@@ -143,8 +141,10 @@ export class PatchResolver {
           markerEnd: patch.markerEnd,
           content,
         };
+      }
 
-      case "marker_replace":
+      case "marker_replace": {
+        const content = await this.resolveContent(patch, data, packStorePath, index);
         return {
           kind: "marker_replace",
           file: patch.file,
@@ -153,19 +153,49 @@ export class PatchResolver {
           markerEnd: patch.markerEnd,
           content,
         };
+      }
 
-      case "append_if_missing":
+      case "append_if_missing": {
+        const content = await this.resolveContent(patch, data, packStorePath, index);
         return {
           kind: "append_if_missing",
           file: patch.file,
           idempotencyKey: patch.idempotencyKey,
           content,
         };
+      }
 
-      default:
+      case "regex_replace":
+        return {
+          kind: "regex_replace",
+          file: patch.file,
+          idempotencyKey: patch.idempotencyKey,
+          pattern: patch.pattern,
+          replacement: this.renderTemplate(patch.replacement, data, patch, index),
+          flags: patch.flags,
+        };
+
+      case "json_merge":
+        return {
+          kind: "json_merge",
+          file: patch.file,
+          idempotencyKey: patch.idempotencyKey,
+          content: this.renderTemplate(patch.content, data, patch, index),
+        };
+
+      case "yaml_merge":
+        return {
+          kind: "yaml_merge",
+          file: patch.file,
+          idempotencyKey: patch.idempotencyKey,
+          content: this.renderTemplate(patch.content, data, patch, index),
+        };
+
+      default: {
         // TypeScript exhaustiveness check
         const _exhaustive: never = patch;
         throw new Error(`Unknown patch kind: ${(_exhaustive as ManifestPatch).kind}`);
+      }
     }
   }
 
@@ -179,7 +209,7 @@ export class PatchResolver {
    * @returns Rendered content string
    */
   private async resolveContent(
-    patch: ManifestPatch,
+    patch: Extract<ManifestPatch, { contentTemplate?: string }>,
     data: Record<string, unknown>,
     packStorePath: string,
     index?: number,
@@ -227,7 +257,7 @@ export class PatchResolver {
   private async readPatchFile(
     relativePath: string,
     packStorePath: string,
-    patch: ManifestPatch,
+    patch: Extract<ManifestPatch, { contentTemplate?: string }>,
     index?: number,
   ): Promise<string> {
     const absolutePath = path.join(packStorePath, relativePath);
