@@ -166,6 +166,7 @@ scaffoldix generate my-pack:entity --dry-run
 ```
 
 Output example:
+
 ```
   CREATE  src/entities/Order.entity.ts
   CREATE  src/entities/Order.dto.ts
@@ -239,14 +240,14 @@ scaffoldix generate my-pack:service --skip-patches # templates only
 scaffoldix generate my-pack:service --yes          # no prompts, use defaults
 ```
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--target <dir>` | `.` | Output directory for generated files |
-| `--dry-run` | false | Preview without writing |
-| `--force` | false | Overwrite existing files |
-| `--yes` | false | Use defaults, no prompts |
-| `--skip-patches` | false | Skip all patch operations |
-| `--skip-checks` | false | Skip quality gate commands |
+| Flag             | Default | Description                          |
+| ---------------- | ------- | ------------------------------------ |
+| `--target <dir>` | `.`     | Output directory for generated files |
+| `--dry-run`      | false   | Preview without writing              |
+| `--force`        | false   | Overwrite existing files             |
+| `--yes`          | false   | Use defaults, no prompts             |
+| `--skip-patches` | false   | Skip all patch operations            |
+| `--skip-checks`  | false   | Skip quality gate commands           |
 
 ### `scaffoldix pack add <source>`
 
@@ -393,14 +394,14 @@ scaffoldix completion fish
 
 These flags work with every command:
 
-| Flag | Description |
-|------|-------------|
-| `--verbose` | Show additional output and timing info |
-| `--debug` | Show all output including internal traces |
-| `--silent` | Suppress everything except errors |
-| `--json` | Output machine-readable JSON |
-| `--help` | Show help for a command |
-| `--version` | Print version number |
+| Flag        | Description                               |
+| ----------- | ----------------------------------------- |
+| `--verbose` | Show additional output and timing info    |
+| `--debug`   | Show all output including internal traces |
+| `--silent`  | Suppress everything except errors         |
+| `--json`    | Output machine-readable JSON              |
+| `--help`    | Show help for a command                   |
+| `--version` | Print version number                      |
 
 ---
 
@@ -411,9 +412,10 @@ These flags work with every command:
 In template files (`.ts`, `.yaml`, `.json`, etc.):
 
 ```handlebars
-export class {{serviceName}}Service {
-  constructor(private readonly {{repositoryName}}Repository: {{repositoryName}}Repository) {}
-}
+export class
+{{serviceName}}Service { constructor(private readonly
+{{repositoryName}}Repository:
+{{repositoryName}}Repository) {} }
 ```
 
 ### Filename Templating
@@ -431,18 +433,18 @@ templates/
 
 Every input variable can be automatically transformed. Given `entityName = "order item"`:
 
-| Transform | Result | Usage in template |
-|-----------|--------|-------------------|
-| `camelCase` | `orderItem` | `{{entityName_camelCase}}` |
-| `PascalCase` | `OrderItem` | `{{entityName_PascalCase}}` |
-| `kebab-case` | `order-item` | `{{entityName_kebabCase}}` |
-| `snake_case` | `order_item` | `{{entityName_snakeCase}}` |
+| Transform     | Result       | Usage in template            |
+| ------------- | ------------ | ---------------------------- |
+| `camelCase`   | `orderItem`  | `{{entityName_camelCase}}`   |
+| `PascalCase`  | `OrderItem`  | `{{entityName_PascalCase}}`  |
+| `kebab-case`  | `order-item` | `{{entityName_kebabCase}}`   |
+| `snake_case`  | `order_item` | `{{entityName_snakeCase}}`   |
 | `UPPER_SNAKE` | `ORDER_ITEM` | `{{entityName_UPPER_SNAKE}}` |
-| `lower` | `order item` | `{{entityName_lower}}` |
-| `upper` | `ORDER ITEM` | `{{entityName_upper}}` |
-| `title` | `Order Item` | `{{entityName_title}}` |
-| `dot.case` | `order.item` | `{{entityName_dotCase}}` |
-| `path/case` | `order/item` | `{{entityName_pathCase}}` |
+| `lower`       | `order item` | `{{entityName_lower}}`       |
+| `upper`       | `ORDER ITEM` | `{{entityName_upper}}`       |
+| `title`       | `Order Item` | `{{entityName_title}}`       |
+| `dot.case`    | `order.item` | `{{entityName_dotCase}}`     |
+| `path/case`   | `order/item` | `{{entityName_pathCase}}`    |
 
 Transforms are declared per-input in the manifest:
 
@@ -462,11 +464,11 @@ inputs:
 
 ```handlebars
 {{#if useAuth}}
-import { AuthGuard } from '@nestjs/passport';
+  import { AuthGuard } from '@nestjs/passport';
 {{/if}}
 
 {{#unless isPublic}}
-@UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
 {{/unless}}
 ```
 
@@ -474,7 +476,9 @@ import { AuthGuard } from '@nestjs/passport';
 
 ```handlebars
 {{#each dependencies}}
-import { {{this}} } from './{{this}}';
+  import {
+  {{this}}
+  } from './{{this}}';
 {{/each}}
 ```
 
@@ -615,10 +619,10 @@ checks:
   - command: "npm test -- --passWithNoTests"
     description: "Run tests"
 
-parallelChecks: true    # run all checks concurrently
-checksTimeout: "120s"   # max time per check
-checksRetries: 2        # retry up to 2 times on failure
-hooksTimeout: "60s"     # max time per hook
+parallelChecks: true # run all checks concurrently
+checksTimeout: "120s" # max time per check
+checksRetries: 2 # retry up to 2 times on failure
+hooksTimeout: "60s" # max time per hook
 ```
 
 ---
@@ -693,12 +697,13 @@ Create `templates/rest-service/__serviceName_camelCase__.service.ts`:
 ```handlebars
 import { Injectable } from '@nestjs/common';
 {{#if useAuth}}
-import { AuthGuard } from '@nestjs/passport';
+  import { AuthGuard } from '@nestjs/passport';
 {{/if}}
 
-@Injectable()
-export class {{serviceName_PascalCase}}Service {
-  // Generated by Scaffoldix — {{pack.name}} v{{pack.version}}
+@Injectable() export class
+{{serviceName_PascalCase}}Service { // Generated by Scaffoldix —
+{{pack.name}}
+v{{pack.version}}
 }
 ```
 
@@ -774,6 +779,7 @@ scaffoldix doctor
 ### Using Staging for Safety
 
 Scaffoldix always renders to a temporary staging directory first, then atomically commits files. This means:
+
 - If a check fails, **no files are written** to your project
 - The target directory is never left in a partial state
 - Safe to interrupt mid-generation
@@ -821,7 +827,7 @@ The `templateRoot` in `archetype.yaml` must point to an existing directory relat
 ```yaml
 archetypes:
   - id: service
-    templateRoot: templates/service   # Must exist in pack directory
+    templateRoot: templates/service # Must exist in pack directory
 ```
 
 ### `Cannot overwrite existing file`

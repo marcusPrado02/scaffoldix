@@ -166,6 +166,7 @@ scaffoldix generate meu-pack:entity --dry-run
 ```
 
 Exemplo de saída:
+
 ```
   CREATE  src/entities/Order.entity.ts
   CREATE  src/entities/Order.dto.ts
@@ -239,14 +240,14 @@ scaffoldix generate meu-pack:service --skip-patches   # apenas templates
 scaffoldix generate meu-pack:service --yes            # sem perguntas, usar padrões
 ```
 
-| Flag | Padrão | Descrição |
-|------|--------|-----------|
-| `--target <dir>` | `.` | Diretório de saída |
-| `--dry-run` | false | Pré-visualizar sem escrever |
-| `--force` | false | Sobrescrever arquivos existentes |
-| `--yes` | false | Usar padrões, sem perguntas |
-| `--skip-patches` | false | Pular operações de patch |
-| `--skip-checks` | false | Pular comandos de controle de qualidade |
+| Flag             | Padrão | Descrição                               |
+| ---------------- | ------ | --------------------------------------- |
+| `--target <dir>` | `.`    | Diretório de saída                      |
+| `--dry-run`      | false  | Pré-visualizar sem escrever             |
+| `--force`        | false  | Sobrescrever arquivos existentes        |
+| `--yes`          | false  | Usar padrões, sem perguntas             |
+| `--skip-patches` | false  | Pular operações de patch                |
+| `--skip-checks`  | false  | Pular comandos de controle de qualidade |
 
 ### `scaffoldix pack add <origem>`
 
@@ -391,14 +392,14 @@ scaffoldix completion fish
 
 ## Flags Globais
 
-| Flag | Descrição |
-|------|-----------|
+| Flag        | Descrição                                      |
+| ----------- | ---------------------------------------------- |
 | `--verbose` | Mostrar saída adicional e informações de tempo |
-| `--debug` | Mostrar toda a saída incluindo traces internos |
-| `--silent` | Suprimir tudo exceto erros |
-| `--json` | Saída JSON legível por máquinas |
-| `--help` | Mostrar ajuda para um comando |
-| `--version` | Imprimir número de versão |
+| `--debug`   | Mostrar toda a saída incluindo traces internos |
+| `--silent`  | Suprimir tudo exceto erros                     |
+| `--json`    | Saída JSON legível por máquinas                |
+| `--help`    | Mostrar ajuda para um comando                  |
+| `--version` | Imprimir número de versão                      |
 
 ---
 
@@ -409,9 +410,10 @@ scaffoldix completion fish
 Em arquivos de template (`.ts`, `.yaml`, `.json`, etc.):
 
 ```handlebars
-export class {{serviceName}}Service {
-  constructor(private readonly {{repositoryName}}Repository: {{repositoryName}}Repository) {}
-}
+export class
+{{serviceName}}Service { constructor(private readonly
+{{repositoryName}}Repository:
+{{repositoryName}}Repository) {} }
 ```
 
 ### Templates em Nomes de Arquivo
@@ -429,18 +431,18 @@ templates/
 
 Dada a variável `entityName = "order item"`:
 
-| Transformação | Resultado | Uso no template |
-|---------------|-----------|-----------------|
-| `camelCase` | `orderItem` | `{{entityName_camelCase}}` |
-| `PascalCase` | `OrderItem` | `{{entityName_PascalCase}}` |
-| `kebab-case` | `order-item` | `{{entityName_kebabCase}}` |
-| `snake_case` | `order_item` | `{{entityName_snakeCase}}` |
+| Transformação | Resultado    | Uso no template              |
+| ------------- | ------------ | ---------------------------- |
+| `camelCase`   | `orderItem`  | `{{entityName_camelCase}}`   |
+| `PascalCase`  | `OrderItem`  | `{{entityName_PascalCase}}`  |
+| `kebab-case`  | `order-item` | `{{entityName_kebabCase}}`   |
+| `snake_case`  | `order_item` | `{{entityName_snakeCase}}`   |
 | `UPPER_SNAKE` | `ORDER_ITEM` | `{{entityName_UPPER_SNAKE}}` |
-| `lower` | `order item` | `{{entityName_lower}}` |
-| `upper` | `ORDER ITEM` | `{{entityName_upper}}` |
-| `title` | `Order Item` | `{{entityName_title}}` |
-| `dot.case` | `order.item` | `{{entityName_dotCase}}` |
-| `path/case` | `order/item` | `{{entityName_pathCase}}` |
+| `lower`       | `order item` | `{{entityName_lower}}`       |
+| `upper`       | `ORDER ITEM` | `{{entityName_upper}}`       |
+| `title`       | `Order Item` | `{{entityName_title}}`       |
+| `dot.case`    | `order.item` | `{{entityName_dotCase}}`     |
+| `path/case`   | `order/item` | `{{entityName_pathCase}}`    |
 
 As transformações são declaradas por input no manifesto:
 
@@ -460,11 +462,11 @@ inputs:
 
 ```handlebars
 {{#if useAuth}}
-import { AuthGuard } from '@nestjs/passport';
+  import { AuthGuard } from '@nestjs/passport';
 {{/if}}
 
 {{#unless isPublic}}
-@UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
 {{/unless}}
 ```
 
@@ -472,7 +474,9 @@ import { AuthGuard } from '@nestjs/passport';
 
 ```handlebars
 {{#each dependencies}}
-import { {{this}} } from './{{this}}';
+  import {
+  {{this}}
+  } from './{{this}}';
 {{/each}}
 ```
 
@@ -613,10 +617,10 @@ checks:
   - command: "npm test -- --passWithNoTests"
     description: "Executar testes"
 
-parallelChecks: true    # executar todos os controles em paralelo
-checksTimeout: "120s"   # tempo máximo por controle
-checksRetries: 2        # tentar novamente até 2 vezes em caso de falha
-hooksTimeout: "60s"     # tempo máximo por hook
+parallelChecks: true # executar todos os controles em paralelo
+checksTimeout: "120s" # tempo máximo por controle
+checksRetries: 2 # tentar novamente até 2 vezes em caso de falha
+hooksTimeout: "60s" # tempo máximo por hook
 ```
 
 ---
@@ -691,12 +695,13 @@ Crie `templates/rest-service/__serviceName_camelCase__.service.ts`:
 ```handlebars
 import { Injectable } from '@nestjs/common';
 {{#if useAuth}}
-import { AuthGuard } from '@nestjs/passport';
+  import { AuthGuard } from '@nestjs/passport';
 {{/if}}
 
-@Injectable()
-export class {{serviceName_PascalCase}}Service {
-  // Gerado pelo Scaffoldix — {{pack.name}} v{{pack.version}}
+@Injectable() export class
+{{serviceName_PascalCase}}Service { // Gerado pelo Scaffoldix —
+{{pack.name}}
+v{{pack.version}}
 }
 ```
 
