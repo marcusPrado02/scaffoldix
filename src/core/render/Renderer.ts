@@ -374,12 +374,14 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
   for (const srcRelativePath of files) {
     const srcAbsolutePath = path.join(templateDir, srcRelativePath);
 
-    // Apply rename rules to get destination path, then sanitize
+    // Apply rename rules to get destination path
     const renamedPath = applyRenameRules(srcRelativePath, renameRules);
-    const destRelativePath = sanitizeFilename(renamedPath);
 
-    // Validate path safety
-    validateSafePath(destRelativePath, targetDir, srcRelativePath);
+    // Validate path safety on the raw renamed path, before sanitization can
+    // mask traversal sequences (e.g. ".." being converted to "__" by sanitize)
+    validateSafePath(renamedPath, targetDir, srcRelativePath);
+
+    const destRelativePath = sanitizeFilename(renamedPath);
 
     const destAbsolutePath = path.join(targetDir, destRelativePath);
 

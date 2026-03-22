@@ -64,6 +64,7 @@ async function createTestDependencies(
   options: {
     nodeVersion?: string;
     pnpmResult?: { success: boolean; version?: string; error?: string };
+    gitResult?: { success: boolean; version?: string; error?: string };
     fsWritable?: boolean;
   } = {},
 ): Promise<{
@@ -93,6 +94,16 @@ async function createTestDependencies(
         }
       }
       return { available: true, version: "9.1.0" };
+    },
+    checkGit: async () => {
+      if (options.gitResult) {
+        if (options.gitResult.success) {
+          return { available: true, version: options.gitResult.version ?? "2.39.0" };
+        } else {
+          return { available: false, error: options.gitResult.error ?? "not found" };
+        }
+      }
+      return { available: true, version: "2.39.0" };
     },
     testWriteAccess:
       options.fsWritable === false
@@ -153,17 +164,19 @@ describe("doctorHandler", () => {
 
       const result = await handleDoctor(deps);
 
-      // Should have all 4 checks
-      expect(result.checks.length).toBe(4);
+      // Should have all 5 checks
+      expect(result.checks.length).toBe(5);
 
       // Find each check by name
       const nodeCheck = result.checks.find((c) => c.name === "Node.js");
       const pnpmCheck = result.checks.find((c) => c.name === "pnpm");
+      const gitCheck = result.checks.find((c) => c.name === "git");
       const storeCheck = result.checks.find((c) => c.name === "Store writable");
       const registryCheck = result.checks.find((c) => c.name === "Registry");
 
       expect(nodeCheck).toBeDefined();
       expect(pnpmCheck).toBeDefined();
+      expect(gitCheck).toBeDefined();
       expect(storeCheck).toBeDefined();
       expect(registryCheck).toBeDefined();
     });
@@ -542,7 +555,7 @@ describe("doctorHandler", () => {
       // Verify formatting works
       const lines = formatDoctorReport(result);
       expect(lines.length).toBeGreaterThan(0);
-      expect(lines.filter((l) => l.includes("[OK]")).length).toBe(4);
+      expect(lines.filter((l) => l.includes("[OK]")).length).toBe(5);
     });
 
     it("system with multiple issues", async () => {
