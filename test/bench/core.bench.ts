@@ -84,7 +84,10 @@ describe("detectPatchConflicts", () => {
   });
 
   // Conflict scenario: duplicate key at position n-1
-  const patchesWithDup = [...makePatchList(20), { kind: "append_if_missing", file: "x.ts", idempotencyKey: "key-0" }];
+  const patchesWithDup = [
+    ...makePatchList(20),
+    { kind: "append_if_missing", file: "x.ts", idempotencyKey: "key-0" },
+  ];
 
   bench("21 patches (1 duplicate key conflict)", () => {
     detectPatchConflicts(patchesWithDup);
@@ -97,7 +100,8 @@ describe("detectPatchConflicts", () => {
 
 describe("Handlebars rendering", () => {
   const simpleTemplate = Handlebars.compile("Hello {{name}}!");
-  const complexTemplate = Handlebars.compile(`
+  const complexTemplate = Handlebars.compile(
+    `
 class {{className}} {
   {{#each fields}}
   private {{type}} {{name}};
@@ -109,7 +113,8 @@ class {{className}} {
     {{/each}}
   }
 }
-  `.trim());
+  `.trim(),
+  );
 
   const simpleData = { name: "World" };
   const complexData = {
@@ -136,11 +141,13 @@ class {{className}} {
   });
 
   bench("compile + render complex template", () => {
-    const t = Handlebars.compile(`
+    const t = Handlebars.compile(
+      `
 class {{className}} {
   {{#each fields}}private {{type}} {{name}};
   {{/each}}
-}`.trim());
+}`.trim(),
+    );
     t(complexData);
   });
 });
@@ -168,7 +175,8 @@ describe("rename rule string replacement", () => {
     Array.from({ length: 10 }, (_, i) => [`__Placeholder${i}__`, `value${i}`]),
   );
   const largeKeys = Object.keys(largeReplacements).sort((a, b) => b.length - a.length);
-  const pathWithManyPlaceholders = Array.from({ length: 5 }, (_, i) => `__Placeholder${i}__`).join("/") + "/file.ts";
+  const pathWithManyPlaceholders =
+    Array.from({ length: 5 }, (_, i) => `__Placeholder${i}__`).join("/") + "/file.ts";
 
   bench("2 replacements on realistic path", () => {
     applyReplacements(pathWithPlaceholders, smallKeys, smallReplacements);

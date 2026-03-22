@@ -38,10 +38,10 @@ archetypes: # Required, non-empty array
 
 Pack identity and metadata.
 
-| Field        | Type   | Required | Description                                    |
-| ------------ | ------ | -------- | ---------------------------------------------- |
-| `name`       | string | Yes      | Pack identifier (e.g., `my-pack`, `@org/pack`) |
-| `version`    | string | Yes      | Semantic version (e.g., `1.0.0`)               |
+| Field        | Type   | Required | Description                                     |
+| ------------ | ------ | -------- | ----------------------------------------------- |
+| `name`       | string | Yes      | Pack identifier (e.g., `my-pack`, `@org/pack`)  |
+| `version`    | string | Yes      | Semantic version (e.g., `1.0.0`)                |
 | `deprecated` | string | No       | Deprecation message shown as a warning to users |
 
 **Validation:**
@@ -93,17 +93,17 @@ Array of archetype definitions. MUST contain at least one archetype.
 
 ### Archetype Fields
 
-| Field                | Type       | Required | Default | Description                                          |
-| -------------------- | ---------- | -------- | ------- | ---------------------------------------------------- |
-| `id`                 | string     | Yes      | -       | Unique identifier within pack                        |
-| `templateRoot`       | string     | Yes      | -       | Path to templates (relative to pack root)            |
-| `extend`             | string     | No       | -       | ID of another archetype to inherit from              |
-| `inputs`             | InputDef[] | No       | `[]`    | Input definitions                                    |
-| `filters`            | FilterDef[]| No       | `[]`    | Input value transforms applied before rendering      |
-| `patches`            | Patch[]    | No       | `[]`    | Patch operations                                     |
-| `hooks`              | HooksDef   | No       | -       | Lifecycle hooks (preGenerate / postGenerate)         |
-| `checks`             | CheckDef[] | No       | `[]`    | Quality gate commands                                |
-| `extraTemplateRoots` | string[]   | No       | `[]`    | Additional template directories to render            |
+| Field                | Type        | Required | Default | Description                                     |
+| -------------------- | ----------- | -------- | ------- | ----------------------------------------------- |
+| `id`                 | string      | Yes      | -       | Unique identifier within pack                   |
+| `templateRoot`       | string      | Yes      | -       | Path to templates (relative to pack root)       |
+| `extend`             | string      | No       | -       | ID of another archetype to inherit from         |
+| `inputs`             | InputDef[]  | No       | `[]`    | Input definitions                               |
+| `filters`            | FilterDef[] | No       | `[]`    | Input value transforms applied before rendering |
+| `patches`            | Patch[]     | No       | `[]`    | Patch operations                                |
+| `hooks`              | HooksDef    | No       | -       | Lifecycle hooks (preGenerate / postGenerate)    |
+| `checks`             | CheckDef[]  | No       | `[]`    | Quality gate commands                           |
+| `extraTemplateRoots` | string[]    | No       | `[]`    | Additional template directories to render       |
 
 **Validation:**
 
@@ -150,11 +150,11 @@ archetypes:
         prompt: "Name?"
 
   - id: advanced
-    extend: base                       # inherits inputs, patches, hooks from base
-    templateRoot: templates/advanced   # overrides templateRoot
+    extend: base # inherits inputs, patches, hooks from base
+    templateRoot: templates/advanced # overrides templateRoot
     inputs:
       - id: extra
-        prompt: "Extra option?"        # added on top of inherited inputs
+        prompt: "Extra option?" # added on top of inherited inputs
 ```
 
 ---
@@ -178,14 +178,14 @@ archetypes:
 
 Define user inputs collected during generation.
 
-| Field      | Type     | Required | Default  | Description                                   |
-| ---------- | -------- | -------- | -------- | --------------------------------------------- |
-| `id`       | string   | Yes      | -        | Variable name (used in templates)             |
-| `type`     | string   | No       | `string` | One of: `string`, `number`, `boolean`, `enum` |
-| `required` | boolean  | No       | `false`  | Whether input must be provided                |
-| `default`  | any      | No       | -        | Default value if not provided                 |
-| `prompt`   | string   | No       | -        | Prompt text for interactive mode              |
-| `options`  | string[] | No       | -        | Valid options (required for `enum` type)      |
+| Field      | Type     | Required | Default  | Description                                                                  |
+| ---------- | -------- | -------- | -------- | ---------------------------------------------------------------------------- |
+| `id`       | string   | Yes      | -        | Variable name (used in templates)                                            |
+| `type`     | string   | No       | `string` | One of: `string`, `number`, `boolean`, `enum`                                |
+| `required` | boolean  | No       | `false`  | Whether input must be provided                                               |
+| `default`  | any      | No       | -        | Default value if not provided                                                |
+| `prompt`   | string   | No       | -        | Prompt text for interactive mode                                             |
+| `options`  | string[] | No       | -        | Valid options (required for `enum` type)                                     |
 | `when`     | string   | No       | -        | Expression to conditionally show this input (e.g., `inputs.useAuth == true`) |
 
 ### Type: `string`
@@ -262,23 +262,23 @@ inputs:
 
 Filters transform input values before they are available in templates. They are applied after all inputs are collected.
 
-| Field  | Type   | Required | Description                                            |
-| ------ | ------ | -------- | ------------------------------------------------------ |
-| `id`   | string | Yes      | Input variable to transform                            |
-| `as`   | string | Yes      | New variable name to expose in templates               |
-| `transform` | string | Yes | Transform to apply                               |
+| Field       | Type   | Required | Description                              |
+| ----------- | ------ | -------- | ---------------------------------------- |
+| `id`        | string | Yes      | Input variable to transform              |
+| `as`        | string | Yes      | New variable name to expose in templates |
+| `transform` | string | Yes      | Transform to apply                       |
 
 **Available transforms:**
 
-| Transform    | Example input   | Output          |
-| ------------ | --------------- | --------------- |
-| `camelCase`  | `my-service`    | `myService`     |
-| `PascalCase` | `my-service`    | `MyService`     |
-| `kebab-case` | `MyService`     | `my-service`    |
-| `snake_case` | `MyService`     | `my_service`    |
-| `UPPER_CASE` | `myService`     | `MY_SERVICE`    |
-| `lowercase`  | `MyService`     | `myservice`     |
-| `uppercase`  | `myService`     | `MYSERVICE`     |
+| Transform    | Example input | Output       |
+| ------------ | ------------- | ------------ |
+| `camelCase`  | `my-service`  | `myService`  |
+| `PascalCase` | `my-service`  | `MyService`  |
+| `kebab-case` | `MyService`   | `my-service` |
+| `snake_case` | `MyService`   | `my_service` |
+| `UPPER_CASE` | `myService`   | `MY_SERVICE` |
+| `lowercase`  | `MyService`   | `myservice`  |
+| `uppercase`  | `myService`   | `MYSERVICE`  |
 
 ```yaml
 inputs:
@@ -307,14 +307,14 @@ Patches modify existing files after template rendering.
 
 All patch types share these fields:
 
-| Field            | Type    | Required | Default | Description                                        |
-| ---------------- | ------- | -------- | ------- | -------------------------------------------------- |
-| `kind`           | string  | Yes      | -       | Patch type discriminator                           |
-| `file`           | string  | Yes      | -       | Target file path (relative to project root)        |
-| `idempotencyKey` | string  | Yes      | -       | Unique key for idempotency                         |
-| `order`          | number  | No       | `0`     | Execution order (lower runs first, ties are stable)|
-| `description`    | string  | No       | -       | Human-readable description                         |
-| `strict`         | boolean | No       | `true`  | Fail if markers not found                          |
+| Field            | Type    | Required | Default | Description                                         |
+| ---------------- | ------- | -------- | ------- | --------------------------------------------------- |
+| `kind`           | string  | Yes      | -       | Patch type discriminator                            |
+| `file`           | string  | Yes      | -       | Target file path (relative to project root)         |
+| `idempotencyKey` | string  | Yes      | -       | Unique key for idempotency                          |
+| `order`          | number  | No       | `0`     | Execution order (lower runs first, ties are stable) |
+| `description`    | string  | No       | -       | Human-readable description                          |
+| `strict`         | boolean | No       | `true`  | Fail if markers not found                           |
 
 ### Content Source
 
@@ -402,11 +402,11 @@ patches:
 
 Replaces occurrences of a regular expression pattern.
 
-| Field      | Type              | Required |
-| ---------- | ----------------- | -------- |
-| `kind`     | `"regex_replace"` | Yes      |
-| `pattern`  | string            | Yes      | Regular expression to match |
-| `flags`    | string            | No       | Regex flags (e.g., `g`, `gi`) |
+| Field     | Type              | Required |
+| --------- | ----------------- | -------- | ----------------------------- |
+| `kind`    | `"regex_replace"` | Yes      |
+| `pattern` | string            | Yes      | Regular expression to match   |
+| `flags`   | string            | No       | Regex flags (e.g., `g`, `gi`) |
 
 **Example:**
 
@@ -485,10 +485,10 @@ hooks:
 
 ### Hook Fields
 
-| Field     | Type   | Required | Default | Description                                   |
-| --------- | ------ | -------- | ------- | --------------------------------------------- |
-| `run`     | string | Yes      | -       | Shell command to execute                      |
-| `timeout` | string | No       | `30s`   | Max duration (e.g., `10s`, `2m`)             |
+| Field     | Type   | Required | Default | Description                      |
+| --------- | ------ | -------- | ------- | -------------------------------- |
+| `run`     | string | Yes      | -       | Shell command to execute         |
+| `timeout` | string | No       | `30s`   | Max duration (e.g., `10s`, `2m`) |
 
 **Execution:**
 
@@ -514,12 +514,12 @@ checks:
 
 ### Check Fields
 
-| Field      | Type    | Required | Default | Description                                         |
-| ---------- | ------- | -------- | ------- | --------------------------------------------------- |
-| `run`      | string  | Yes      | -       | Shell command to execute                            |
-| `parallel` | boolean | No       | `false` | Run concurrently with other parallel checks         |
-| `timeout`  | string  | No       | `30s`   | Max duration (e.g., `60s`, `5m`)                   |
-| `retries`  | number  | No       | `0`     | Retry count with exponential backoff on failure     |
+| Field      | Type    | Required | Default | Description                                     |
+| ---------- | ------- | -------- | ------- | ----------------------------------------------- |
+| `run`      | string  | Yes      | -       | Shell command to execute                        |
+| `parallel` | boolean | No       | `false` | Run concurrently with other parallel checks     |
+| `timeout`  | string  | No       | `30s`   | Max duration (e.g., `60s`, `5m`)                |
+| `retries`  | number  | No       | `0`     | Retry count with exponential backoff on failure |
 
 **Execution:**
 
@@ -617,7 +617,7 @@ archetypes:
         retries: 2
 
   - id: entity
-    extend: rest-service          # inherits inputs/patches as base
+    extend: rest-service # inherits inputs/patches as base
     templateRoot: templates/entity
     inputs:
       - id: entityName

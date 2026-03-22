@@ -250,9 +250,7 @@ function validateEnumLegacy(
  * @returns Resolved input values
  * @throws ScaffoldError if required inputs are missing or validation fails
  */
-export async function resolveInputs(
-  params: ResolveInputsParams,
-): Promise<Record<string, unknown>> {
+export async function resolveInputs(params: ResolveInputsParams): Promise<Record<string, unknown>> {
   const { inputsSchema, nonInteractive, prompt, provided = {}, archetypeRef } = params;
 
   // No inputs defined - return provided values as-is (backward compatibility)

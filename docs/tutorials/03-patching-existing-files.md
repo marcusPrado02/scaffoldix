@@ -1,7 +1,7 @@
 # Tutorial 3: Patching Existing Files
 
-Sometimes you don't want to *create* new files — you want to modify files
-that already exist in the target project.  Scaffoldix patches let you insert,
+Sometimes you don't want to _create_ new files — you want to modify files
+that already exist in the target project. Scaffoldix patches let you insert,
 replace, or append content to existing files using explicit markers or
 content-matching strategies.
 
@@ -9,8 +9,8 @@ content-matching strategies.
 
 ## How patches work
 
-Every patch carries an `idempotencyKey`.  On the first run Scaffoldix inserts
-a stamp (`SCAFFOLDIX_PATCH:<key>`) into the file and applies the change.  On
+Every patch carries an `idempotencyKey`. On the first run Scaffoldix inserts
+a stamp (`SCAFFOLDIX_PATCH:<key>`) into the file and applies the change. On
 subsequent runs the stamp is detected and the patch is **skipped** — so you
 can safely re-run generation without duplicating content.
 
@@ -129,10 +129,11 @@ patches:
     idempotencyKey: add-user-route
     markerStart: "// <ROUTES:START>"
     markerEnd: "// <ROUTES:END>"
-    path: patches/user-route.hbs      # relative to pack root
+    path: patches/user-route.hbs # relative to pack root
 ```
 
 `patches/user-route.hbs`:
+
 ```handlebars
 router.use("/{{entityNameKebabCase}}", {{entityName}}Router);
 ```

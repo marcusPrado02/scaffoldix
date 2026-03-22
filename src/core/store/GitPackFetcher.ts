@@ -86,12 +86,12 @@ export interface GitFetchResult {
  * - bitbucket:org/repo (Bitbucket shorthand)
  */
 const GIT_URL_PATTERNS = [
-  /^https?:\/\//i,    // HTTP(S) URLs
-  /^git@[^:]+:/i,     // SSH shorthand (git@host:path)
-  /^ssh:\/\//i,       // Explicit SSH URLs
-  /^github:/i,        // github:org/repo shorthand
-  /^gitlab:/i,        // gitlab:org/repo shorthand
-  /^bitbucket:/i,     // bitbucket:org/repo shorthand
+  /^https?:\/\//i, // HTTP(S) URLs
+  /^git@[^:]+:/i, // SSH shorthand (git@host:path)
+  /^ssh:\/\//i, // Explicit SSH URLs
+  /^github:/i, // github:org/repo shorthand
+  /^gitlab:/i, // gitlab:org/repo shorthand
+  /^bitbucket:/i, // bitbucket:org/repo shorthand
 ];
 
 /**

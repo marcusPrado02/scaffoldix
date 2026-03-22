@@ -73,6 +73,7 @@ const PackOriginZipSchema = z.object({
 const PackOriginNpmSchema = z.object({
   type: z.literal("npm"),
   packageName: z.string().min(1),
+  packageVersion: z.string().optional(), // resolved version from package.json
   registry: z.url().optional(), // custom registry URL
 });
 

@@ -74,7 +74,9 @@ Examples:
         if (result.valid) {
           ux.success(`Pack "${packId}" integrity check passed — all files are intact.`);
           if (result.extra.length > 0) {
-            ux.warn(`${result.extra.length} extra file(s) found (not tracked in integrity manifest):`);
+            ux.warn(
+              `${result.extra.length} extra file(s) found (not tracked in integrity manifest):`,
+            );
             for (const f of result.extra) ux.detail(`  + ${f}`);
           }
           return;

@@ -39,35 +39,35 @@ scaffoldix generate my-pack:component --target ./src --dry-run
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `generate <pack:archetype>` | Generate files from an archetype |
-| `pack add <source>` | Install a pack (local path, `github:org/repo`, `npm:@scope/name`) |
-| `pack list` | List installed packs |
-| `pack info <packId>` | Show pack details and archetypes |
-| `pack remove <packId>` | Uninstall a pack |
-| `pack update <packId>` | Update a pack to a newer version |
-| `pack validate <path>` | Validate a pack before publishing |
-| `pack publish` | Publish a pack to npm |
-| `pack search <keyword>` | Search the public pack registry |
-| `pack verify <packId>` | Verify pack integrity (SHA-256) |
-| `archetypes` | List all archetypes across installed packs |
-| `history` | Show generation history for the current project |
-| `rollback` | Revert the last generation |
-| `doctor` | Check runtime dependencies (node, pnpm, git) |
-| `init` | Scaffold a new pack interactively |
-| `completion` | Print shell completion script (bash / zsh / fish) |
+| Command                     | Description                                                       |
+| --------------------------- | ----------------------------------------------------------------- |
+| `generate <pack:archetype>` | Generate files from an archetype                                  |
+| `pack add <source>`         | Install a pack (local path, `github:org/repo`, `npm:@scope/name`) |
+| `pack list`                 | List installed packs                                              |
+| `pack info <packId>`        | Show pack details and archetypes                                  |
+| `pack remove <packId>`      | Uninstall a pack                                                  |
+| `pack update <packId>`      | Update a pack to a newer version                                  |
+| `pack validate <path>`      | Validate a pack before publishing                                 |
+| `pack publish`              | Publish a pack to npm                                             |
+| `pack search <keyword>`     | Search the public pack registry                                   |
+| `pack verify <packId>`      | Verify pack integrity (SHA-256)                                   |
+| `archetypes`                | List all archetypes across installed packs                        |
+| `history`                   | Show generation history for the current project                   |
+| `rollback`                  | Revert the last generation                                        |
+| `doctor`                    | Check runtime dependencies (node, pnpm, git)                      |
+| `init`                      | Scaffold a new pack interactively                                 |
+| `completion`                | Print shell completion script (bash / zsh / fish)                 |
 
 ## Global flags
 
-| Flag | Description |
-|---|---|
-| `--json` | Machine-readable JSON output |
-| `--dry-run` | Preview changes without writing files |
-| `--skip-patches` | Apply templates only, skip patches |
-| `--skip-checks` | Skip quality gate checks |
-| `--force` | Overwrite existing files |
-| `--trace` | Print per-phase timing |
+| Flag             | Description                           |
+| ---------------- | ------------------------------------- |
+| `--json`         | Machine-readable JSON output          |
+| `--dry-run`      | Preview changes without writing files |
+| `--skip-patches` | Apply templates only, skip patches    |
+| `--skip-checks`  | Skip quality gate checks              |
+| `--force`        | Overwrite existing files              |
+| `--trace`        | Print per-phase timing                |
 
 ## Pack authoring
 

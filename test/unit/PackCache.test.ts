@@ -351,9 +351,8 @@ describe("Cache Integration", () => {
   });
 
   it("cache invalidates when manifest changes", async () => {
-    const { PackIndexCache, createPackIndex } = await import(
-      "../../src/core/cache/PackIndexCache.js"
-    );
+    const { PackIndexCache, createPackIndex } =
+      await import("../../src/core/cache/PackIndexCache.js");
     const { computeManifestHash } = await import("../../src/core/cache/manifestHash.js");
     const { loadManifest } = await import("../../src/core/manifest/ManifestLoader.js");
 

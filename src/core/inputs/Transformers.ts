@@ -66,13 +66,22 @@ export const TRANSFORMERS: Record<string, (value: string) => string> = {
   },
 
   /** kebab-case: entity-name */
-  "kebab-case": (v) => splitWords(v).map((w) => w.toLowerCase()).join("-"),
+  "kebab-case": (v) =>
+    splitWords(v)
+      .map((w) => w.toLowerCase())
+      .join("-"),
 
   /** snake_case: entity_name */
-  snake_case: (v) => splitWords(v).map((w) => w.toLowerCase()).join("_"),
+  snake_case: (v) =>
+    splitWords(v)
+      .map((w) => w.toLowerCase())
+      .join("_"),
 
   /** UPPER_SNAKE: ENTITY_NAME */
-  UPPER_SNAKE: (v) => splitWords(v).map((w) => w.toUpperCase()).join("_"),
+  UPPER_SNAKE: (v) =>
+    splitWords(v)
+      .map((w) => w.toUpperCase())
+      .join("_"),
 
   /** lower: entityname */
   lower: (v) => v.toLowerCase(),
@@ -87,10 +96,16 @@ export const TRANSFORMERS: Record<string, (value: string) => string> = {
       .join(" "),
 
   /** dot.case: entity.name */
-  "dot.case": (v) => splitWords(v).map((w) => w.toLowerCase()).join("."),
+  "dot.case": (v) =>
+    splitWords(v)
+      .map((w) => w.toLowerCase())
+      .join("."),
 
   /** path/case: entity/name */
-  "path/case": (v) => splitWords(v).map((w) => w.toLowerCase()).join("/"),
+  "path/case": (v) =>
+    splitWords(v)
+      .map((w) => w.toLowerCase())
+      .join("/"),
 };
 
 // =============================================================================
@@ -104,10 +119,7 @@ export const TRANSFORMERS: Record<string, (value: string) => string> = {
  * @param transforms - Array of transformer names
  * @returns Map of transform name → transformed value
  */
-export function applyTransforms(
-  value: string,
-  transforms: string[],
-): Record<string, string> {
+export function applyTransforms(value: string, transforms: string[]): Record<string, string> {
   const result: Record<string, string> = {};
 
   for (const name of transforms) {

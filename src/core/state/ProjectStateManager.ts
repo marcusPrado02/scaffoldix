@@ -181,6 +181,9 @@ export const GenerationReportSchema = z.object({
 
   /** Error details (present on failure). */
   error: GenerationErrorSchema.optional(),
+
+  /** Relative paths of files written during generation (used by rollback). */
+  filesWritten: z.array(z.string()).optional(),
 });
 
 /**

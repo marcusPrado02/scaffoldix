@@ -280,7 +280,13 @@ export class PackResolver {
 
     const installs = await this.registryService.getPackInstalls(packId);
     if (!installs || installs.length === 0) {
-      return { packId, version: entry.version, origin: entry.origin, hash: entry.hash, installedAt: entry.installedAt };
+      return {
+        packId,
+        version: entry.version,
+        origin: entry.origin,
+        hash: entry.hash,
+        installedAt: entry.installedAt,
+      };
     }
 
     // Find all versions satisfying the range
@@ -304,7 +310,13 @@ export class PackResolver {
     }
 
     const best = matching[0];
-    return { packId, version: best.version, origin: best.origin, hash: best.hash, installedAt: best.installedAt };
+    return {
+      packId,
+      version: best.version,
+      origin: best.origin,
+      hash: best.hash,
+      installedAt: best.installedAt,
+    };
   }
 
   /**

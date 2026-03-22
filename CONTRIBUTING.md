@@ -60,26 +60,26 @@ test/
 ## Architecture principles
 
 **Handler/command separation** — Commander.js commands (`src/cli/commands/`) only
-parse CLI flags and call the corresponding handler.  Handlers (`src/cli/handlers/`)
+parse CLI flags and call the corresponding handler. Handlers (`src/cli/handlers/`)
 contain all business logic and accept typed `Input` and `Dependencies` objects.
 This makes handlers directly testable without spawning a process.
 
 **Dependency injection** — handlers receive `Dependencies` objects instead of
-importing singletons.  Tests pass fake/stub implementations.
+importing singletons. Tests pass fake/stub implementations.
 
 **Staging directory** — `generate` renders templates into a temp staging dir
-before committing atomically to the real target.  If any step fails the target
+before committing atomically to the real target. If any step fails the target
 is never modified.
 
 **Idempotent patches** — every patch carries an `idempotencyKey` that is
-stamped into the file (`SCAFFOLDIX_PATCH:<key>`).  Re-running the same archetype
+stamped into the file (`SCAFFOLDIX_PATCH:<key>`). Re-running the same archetype
 skips already-applied patches rather than duplicating content.
 
 ## Development workflow
 
 ### Branching
 
-Work on feature branches.  Branch names should follow:
+Work on feature branches. Branch names should follow:
 `feat/<topic>`, `fix/<topic>`, `test/<topic>`, `docs/<topic>`, `refactor/<topic>`.
 
 ### Commits
@@ -119,15 +119,16 @@ pnpm test        # All tests (unit + integration + contract + snapshot)
 
 ## Testing
 
-| Command | Description |
-|---------|-------------|
-| `pnpm test` | Run all tests once |
-| `pnpm test:watch` | Watch mode |
+| Command              | Description                   |
+| -------------------- | ----------------------------- |
+| `pnpm test`          | Run all tests once            |
+| `pnpm test:watch`    | Watch mode                    |
 | `pnpm test:coverage` | Coverage report (HTML + text) |
-| `pnpm bench` | Performance benchmarks |
-| `pnpm mutation` | Stryker mutation testing |
+| `pnpm bench`         | Performance benchmarks        |
+| `pnpm mutation`      | Stryker mutation testing      |
 
 Coverage thresholds (enforced in CI):
+
 - Branches: 65 %
 - Functions: 85 %
 - Lines: 80 %
@@ -146,6 +147,7 @@ Coverage thresholds (enforced in CI):
 
 Please open an issue at <https://github.com/marcusPrado02/scaffoldix/issues>
 with:
+
 - Scaffoldix version (`scaffoldix --version`)
 - OS and Node.js version
 - The command you ran

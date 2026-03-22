@@ -63,7 +63,9 @@ async function searchNpm(keyword: string, limit: number): Promise<NpmSearchResul
  */
 export function buildPackSearchCommand(): Command {
   return new Command("search")
-    .description(`Search for packs in the public Scaffoldix registry (npm keyword: ${SCAFFOLDIX_KEYWORD})`)
+    .description(
+      `Search for packs in the public Scaffoldix registry (npm keyword: ${SCAFFOLDIX_KEYWORD})`,
+    )
     .argument("<keyword>", "Search term")
     .option("--limit <n>", "Maximum number of results", "20")
     .option("--json", "Output as JSON", false)

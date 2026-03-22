@@ -21,10 +21,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 
-import {
-  handlePackAdd,
-  type PackAddDependencies,
-} from "../src/cli/handlers/packAddHandler.js";
+import { handlePackAdd, type PackAddDependencies } from "../src/cli/handlers/packAddHandler.js";
 import {
   handleGenerate,
   type GenerateInput,
@@ -172,10 +169,7 @@ describe("generate --skip-patches", () => {
 
   it("skips patch application and sets patchesSkippedByFlag", async () => {
     // Add patch-pack fixture
-    await handlePackAdd(
-      { packPath: fixturePath("patch-pack"), cwd: process.cwd() },
-      ws.packDeps,
-    );
+    await handlePackAdd({ packPath: fixturePath("patch-pack"), cwd: process.cwd() }, ws.packDeps);
 
     // Create the target file that patches would modify
     const srcDir = path.join(ws.targetDir, "src");
@@ -226,10 +220,7 @@ describe("generate --skip-checks", () => {
   });
 
   it("skips check execution and sets checksSkippedByFlag", async () => {
-    await handlePackAdd(
-      { packPath: fixturePath("check-pack"), cwd: process.cwd() },
-      ws.packDeps,
-    );
+    await handlePackAdd({ packPath: fixturePath("check-pack"), cwd: process.cwd() }, ws.packDeps);
 
     // Use the 'with-failing-check' archetype — without skip-checks this would throw
     // With skip-checks it should succeed
@@ -249,10 +240,7 @@ describe("generate --skip-checks", () => {
   });
 
   it("runs checks normally when --skip-checks is not set", async () => {
-    await handlePackAdd(
-      { packPath: fixturePath("check-pack"), cwd: process.cwd() },
-      ws.packDeps,
-    );
+    await handlePackAdd({ packPath: fixturePath("check-pack"), cwd: process.cwd() }, ws.packDeps);
 
     // 'default' archetype has a passing check
     const input: GenerateInput = {
@@ -287,10 +275,7 @@ describe("generate dry-run preview", () => {
   });
 
   it("dry-run returns filesPlanned and no files written", async () => {
-    await handlePackAdd(
-      { packPath: fixturePath("example-pack"), cwd: process.cwd() },
-      ws.packDeps,
-    );
+    await handlePackAdd({ packPath: fixturePath("example-pack"), cwd: process.cwd() }, ws.packDeps);
 
     const result = await handleGenerate(
       {
@@ -312,10 +297,7 @@ describe("generate dry-run preview", () => {
   });
 
   it("dry-run returns previewReport with CREATE entries for new files", async () => {
-    await handlePackAdd(
-      { packPath: fixturePath("example-pack"), cwd: process.cwd() },
-      ws.packDeps,
-    );
+    await handlePackAdd({ packPath: fixturePath("example-pack"), cwd: process.cwd() }, ws.packDeps);
 
     const result = await handleGenerate(
       {
@@ -350,10 +332,7 @@ describe("generate --force", () => {
   });
 
   it("overwrites existing files when force=true", async () => {
-    await handlePackAdd(
-      { packPath: fixturePath("example-pack"), cwd: process.cwd() },
-      ws.packDeps,
-    );
+    await handlePackAdd({ packPath: fixturePath("example-pack"), cwd: process.cwd() }, ws.packDeps);
 
     const input: GenerateInput = {
       ref: "example-pack:hello",
@@ -367,9 +346,7 @@ describe("generate --force", () => {
     await handleGenerate(input, ws.deps);
 
     // Second generation without force should fail
-    await expect(
-      handleGenerate(input, ws.deps),
-    ).rejects.toThrow();
+    await expect(handleGenerate(input, ws.deps)).rejects.toThrow();
 
     // Second generation with force should succeed and write files again
     const result = await handleGenerate({ ...input, force: true }, ws.deps);

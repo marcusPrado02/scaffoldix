@@ -100,10 +100,7 @@ export function getEnumValues(options: readonly EnumOption[]): string[] {
 /**
  * Validates a string value.
  */
-function validateString(
-  value: unknown,
-  def: EnhancedInputDefinition,
-): ValidationResult {
+function validateString(value: unknown, def: EnhancedInputDefinition): ValidationResult {
   const str = String(value);
 
   // Check required (empty string counts as missing)
@@ -156,10 +153,7 @@ function validateString(
 /**
  * Validates a number value.
  */
-function validateNumber(
-  value: unknown,
-  def: EnhancedInputDefinition,
-): ValidationResult {
+function validateNumber(value: unknown, def: EnhancedInputDefinition): ValidationResult {
   const num = typeof value === "number" ? value : Number(value);
 
   if (Number.isNaN(num)) {
@@ -199,10 +193,7 @@ function validateNumber(
 /**
  * Validates an enum value.
  */
-function validateEnum(
-  value: unknown,
-  def: EnhancedInputDefinition,
-): ValidationResult {
+function validateEnum(value: unknown, def: EnhancedInputDefinition): ValidationResult {
   if (!def.options || def.options.length === 0) {
     return {
       valid: false,
@@ -217,8 +208,7 @@ function validateEnum(
     return {
       valid: false,
       message:
-        def.messages?.invalid ??
-        `Input '${def.name}' must be one of: ${validValues.join(", ")}`,
+        def.messages?.invalid ?? `Input '${def.name}' must be one of: ${validValues.join(", ")}`,
     };
   }
 
@@ -228,10 +218,7 @@ function validateEnum(
 /**
  * Validates a boolean value.
  */
-function validateBoolean(
-  value: unknown,
-  def: EnhancedInputDefinition,
-): ValidationResult {
+function validateBoolean(value: unknown, def: EnhancedInputDefinition): ValidationResult {
   if (typeof value === "boolean") {
     return { valid: true };
   }
@@ -258,10 +245,7 @@ function validateBoolean(
  * @param def - The input definition with validation rules
  * @returns Validation result with valid flag and optional error message
  */
-export function validateInput(
-  value: unknown,
-  def: EnhancedInputDefinition,
-): ValidationResult {
+export function validateInput(value: unknown, def: EnhancedInputDefinition): ValidationResult {
   switch (def.type) {
     case "string":
       return validateString(value, def);

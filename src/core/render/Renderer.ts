@@ -333,7 +333,15 @@ async function hasBinaryMarker(templateDir: string, srcRelativePath: string): Pr
  * @throws ScaffoldError on validation or rendering failures
  */
 export async function renderArchetype(params: RenderParams): Promise<RenderResult> {
-  const { templateDir, targetDir, data, renameRules, dryRun = false, force = false, onProgress } = params;
+  const {
+    templateDir,
+    targetDir,
+    data,
+    renameRules,
+    dryRun = false,
+    force = false,
+    onProgress,
+  } = params;
 
   // Validate template directory exists
   try {
@@ -407,7 +415,7 @@ export async function renderArchetype(params: RenderParams): Promise<RenderResul
 
     // Detect if file is binary (NUL bytes or explicit .binary marker)
     const forceBinary = await hasBinaryMarker(templateDir, srcRelativePath);
-    const binary = forceBinary || await isBinaryFile(srcAbsolutePath);
+    const binary = forceBinary || (await isBinaryFile(srcAbsolutePath));
 
     // Get file mode for preserving permissions
     const fileMode = await getFileMode(srcAbsolutePath);

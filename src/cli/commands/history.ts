@@ -58,7 +58,9 @@ function formatReport(report: GenerationReport, index: number): string[] {
 
   const inputKeys = Object.keys(report.inputs);
   if (inputKeys.length > 0) {
-    const inputSummary = inputKeys.map((k) => `${k}=${JSON.stringify(report.inputs[k])}`).join(", ");
+    const inputSummary = inputKeys
+      .map((k) => `${k}=${JSON.stringify(report.inputs[k])}`)
+      .join(", ");
     lines.push(`   Inputs       : ${inputSummary}`);
   }
 
@@ -94,58 +96,56 @@ Examples:
   scaffoldix history --target ./my-project --limit 5
   scaffoldix history --json`,
     )
-    .action(
-      async (options: { target: string; limit: string; json: boolean }) => {
-        const ux = getCliUx();
+    .action(async (options: { target: string; limit: string; json: boolean }) => {
+      const ux = getCliUx();
 
-        try {
-          const targetDir = path.resolve(process.cwd(), options.target);
-          const limit = Math.max(1, parseInt(options.limit, 10) || 20);
+      try {
+        const targetDir = path.resolve(process.cwd(), options.target);
+        const limit = Math.max(1, parseInt(options.limit, 10) || 20);
 
-          const state = await loadState(targetDir);
+        const state = await loadState(targetDir);
 
-          if (!state) {
-            ux.info(`No generation history found in ${targetDir}`);
-            ux.detail("Run `scaffoldix generate` to create your first generation.");
-            return;
-          }
-
-          // Normalize to array (support both v1 and v2)
-          let generations: GenerationReport[] = [];
-          if (state.generations && state.generations.length > 0) {
-            generations = state.generations;
-          } else if (state.lastGeneration) {
-            generations = [state.lastGeneration];
-          }
-
-          if (generations.length === 0) {
-            ux.info(`No generation history found in ${targetDir}`);
-            return;
-          }
-
-          // Most recent first
-          const sorted = [...generations].reverse().slice(0, limit);
-
-          if (options.json) {
-            process.stdout.write(JSON.stringify(sorted, null, 2) + "\n");
-            return;
-          }
-
-          ux.info(`Generation history for ${targetDir}`);
-          ux.info(`Showing ${sorted.length} of ${generations.length} entries\n`);
-
-          for (let i = 0; i < sorted.length; i++) {
-            const lines = formatReport(sorted[i], i + 1);
-            for (const line of lines) {
-              process.stdout.write(line + "\n");
-            }
-            process.stdout.write("\n");
-          }
-        } catch (err) {
-          const msg = toUserMessage(err);
-          ux.error(msg.message, { code: msg.code });
-          process.exitCode = 1;
+        if (!state) {
+          ux.info(`No generation history found in ${targetDir}`);
+          ux.detail("Run `scaffoldix generate` to create your first generation.");
+          return;
         }
-      },
-    );
+
+        // Normalize to array (support both v1 and v2)
+        let generations: GenerationReport[] = [];
+        if (state.generations && state.generations.length > 0) {
+          generations = state.generations;
+        } else if (state.lastGeneration) {
+          generations = [state.lastGeneration];
+        }
+
+        if (generations.length === 0) {
+          ux.info(`No generation history found in ${targetDir}`);
+          return;
+        }
+
+        // Most recent first
+        const sorted = [...generations].reverse().slice(0, limit);
+
+        if (options.json) {
+          process.stdout.write(JSON.stringify(sorted, null, 2) + "\n");
+          return;
+        }
+
+        ux.info(`Generation history for ${targetDir}`);
+        ux.info(`Showing ${sorted.length} of ${generations.length} entries\n`);
+
+        for (let i = 0; i < sorted.length; i++) {
+          const lines = formatReport(sorted[i], i + 1);
+          for (const line of lines) {
+            process.stdout.write(line + "\n");
+          }
+          process.stdout.write("\n");
+        }
+      } catch (err) {
+        const msg = toUserMessage(err);
+        ux.error(msg.message, { code: msg.code });
+        process.exitCode = 1;
+      }
+    });
 }

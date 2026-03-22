@@ -315,7 +315,8 @@ export class HookRunner {
       const durationMs = Date.now() - startTime;
       const isTimeout =
         error instanceof Error &&
-        (error.message.includes("timed out") || (error as { timedOut?: boolean }).timedOut === true);
+        (error.message.includes("timed out") ||
+          (error as { timedOut?: boolean }).timedOut === true);
       const message = isTimeout
         ? `Hook timed out after ${timeoutMs}ms: ${command}`
         : error instanceof Error

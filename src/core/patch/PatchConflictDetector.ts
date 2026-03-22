@@ -133,10 +133,7 @@ export function detectPatchConflicts(patches: AnalyzablePatch[]): PatchConflictR
     }
 
     // 2. Marker conflict check (only for marker-based operations)
-    if (
-      (patch.kind === "marker_insert" || patch.kind === "marker_replace") &&
-      patch.markerStart
-    ) {
+    if ((patch.kind === "marker_insert" || patch.kind === "marker_replace") && patch.markerStart) {
       const markerKey = `${patch.file}::${patch.markerStart}`;
       const existingMarkerIdx = seenMarkers.get(markerKey);
       if (existingMarkerIdx !== undefined) {

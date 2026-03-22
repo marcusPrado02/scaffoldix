@@ -55,6 +55,7 @@ import { EngineTrace, type TraceJson } from "../../core/observability/EngineTrac
 import { parseDurationMs } from "../../core/utils/parseDuration.js";
 import { PreviewPlanner, type PreviewReport } from "../../core/preview/PreviewPlanner.js";
 import { printDryRunPreview } from "../printers/DryRunPreviewPrinter.js";
+import { getCliUx } from "../ux/CliUx.js";
 
 // =============================================================================
 // Types
@@ -337,10 +338,10 @@ interface ApplyPatchesInput {
  */
 function createHookLogger(): HookLogger {
   return {
-    info: (message: string) => console.log(`[hook] ${message}`),
-    error: (message: string) => console.error(`[hook] ${message}`),
-    stdout: (line: string) => console.log(`  ${line}`),
-    stderr: (line: string) => console.error(`  ${line}`),
+    info: (message: string) => getCliUx().verbose(`[hook] ${message}`),
+    error: (message: string) => getCliUx().warn(`[hook] ${message}`),
+    stdout: (line: string) => getCliUx().verbose(`  ${line}`),
+    stderr: (line: string) => getCliUx().verbose(`  ${line}`),
   };
 }
 
@@ -354,14 +355,13 @@ function createHookLogger(): HookLogger {
  */
 function createCheckLogger(): CheckLogger {
   return {
-    info: (message: string) => console.log(`[check] ${message}`),
-    error: (message: string) => console.error(`[check] ${message}`),
-    stdout: (line: string) => console.log(`  ${line}`),
-    stderr: (line: string) => console.error(`  ${line}`),
+    info: (message: string) => getCliUx().verbose(`[check] ${message}`),
+    error: (message: string) => getCliUx().warn(`[check] ${message}`),
+    stdout: (line: string) => getCliUx().verbose(`  ${line}`),
+    stderr: (line: string) => getCliUx().verbose(`  ${line}`),
     outputBlock: (output: string) => {
-      // Print each line of the output block
       for (const line of output.split("\n")) {
-        console.log(`  ${line}`);
+        getCliUx().verbose(`  ${line}`);
       }
     },
   };
@@ -528,7 +528,17 @@ export async function handleGenerate(
   input: GenerateInput,
   deps: GenerateDependencies,
 ): Promise<GenerateResult> {
-  const { ref, targetDir, dryRun, data, renameRules, version, force = false, skipPatches = false, skipChecks = false } = input;
+  const {
+    ref,
+    targetDir,
+    dryRun,
+    data,
+    renameRules,
+    version,
+    force = false,
+    skipPatches = false,
+    skipChecks = false,
+  } = input;
   const { registryFile, packsDir, storeDir } = deps;
 
   // Initialize trace for observability
@@ -612,7 +622,7 @@ export async function handleGenerate(
 
   // Warn if archetype is deprecated
   if ((archetype as { deprecated?: string }).deprecated) {
-    const ux = (await import("../ux/CliUx.js").then(m => m.getCliUx))();
+    const ux = (await import("../ux/CliUx.js").then((m) => m.getCliUx))();
     ux.warn(
       `Archetype "${archetypeId}" is deprecated: ${(archetype as { deprecated?: string }).deprecated}`,
     );
@@ -695,12 +705,12 @@ export async function handleGenerate(
   }
 
   if (conflictReport.hasConflicts && force && !dryRun) {
-    console.log(`[generate] Force mode: will overwrite ${conflictReport.count} existing file(s)`);
+    getCliUx().info(`Force mode: will overwrite ${conflictReport.count} existing file(s)`);
     for (const conflict of conflictReport.conflicts.slice(0, 5)) {
-      console.log(`  - ${conflict.relativePath}`);
+      getCliUx().verbose(`  - ${conflict.relativePath}`);
     }
     if (conflictReport.count > 5) {
-      console.log(`  ... and ${conflictReport.count - 5} more`);
+      getCliUx().verbose(`  ... and ${conflictReport.count - 5} more`);
     }
   }
   trace.end("detect conflicts");
@@ -778,7 +788,7 @@ export async function handleGenerate(
 
   if (hasPreGenerateHooks && !dryRun) {
     trace.start("run pre-generate hooks", { count: preGenerateHooks.length });
-    console.log(`[generate] Running ${preGenerateHooks.length} preGenerate hook(s)...`);
+    getCliUx().verbose(`Running ${preGenerateHooks.length} preGenerate hook(s)...`);
     const preHookRunner = new HookRunner();
     const preHookLogger = createHookLogger();
 
@@ -796,14 +806,14 @@ export async function handleGenerate(
   // ===========================================================================
 
   const stagingManager = new StagingManager(storeDir, {
-    info: (msg) => console.log(`[staging] ${msg}`),
-    debug: (msg) => console.log(`[staging:debug] ${msg}`),
+    info: (msg) => getCliUx().verbose(`[staging] ${msg}`),
+    debug: (msg) => getCliUx().verbose(`[staging:debug] ${msg}`),
   });
 
   // 6. Create staging directory
   trace.start("create staging");
   const stagingDir = await stagingManager.createStagingDir();
-  console.log(`[staging] Created staging directory: ${stagingDir}`);
+  getCliUx().verbose(`[staging] Created staging directory: ${stagingDir}`);
   trace.end("create staging");
 
   // Initialize reports
@@ -821,17 +831,13 @@ export async function handleGenerate(
     // 7a. Load custom Handlebars helpers from pack's helpers/ directory
     const helpersResult = await HelpersLoader.loadFromPack(manifest.packRootDir);
     if (helpersResult.loaded.length > 0) {
-      logger.debug(`Loaded ${helpersResult.loaded.length} custom Handlebars helper(s)`, {
-        helpers: helpersResult.loaded.map((h) => h.name),
-      });
+      getCliUx().verbose(`Loaded ${helpersResult.loaded.length} custom Handlebars helper(s)`);
     }
 
     // 7b. Load Handlebars partials from pack's partials/ directory
     const partialsResult = await PartialsLoader.loadFromPack(manifest.packRootDir);
     if (partialsResult.loaded.length > 0) {
-      logger.debug(`Loaded ${partialsResult.loaded.length} Handlebars partial(s)`, {
-        partials: partialsResult.loaded.map((p) => p.name),
-      });
+      getCliUx().verbose(`Loaded ${partialsResult.loaded.length} Handlebars partial(s)`);
     }
 
     // 7b. Render templates to STAGING directory
@@ -855,7 +861,9 @@ export async function handleGenerate(
     });
 
     // 7c. Render extraTemplateRoots if defined (multi-root templates)
-    const extraRoots = (archetype as { extraTemplateRoots?: Array<{ templateRoot: string; targetSubDir: string }> }).extraTemplateRoots;
+    const extraRoots = (
+      archetype as { extraTemplateRoots?: Array<{ templateRoot: string; targetSubDir: string }> }
+    ).extraTemplateRoots;
     if (extraRoots && extraRoots.length > 0) {
       for (const extra of extraRoots) {
         const extraTemplateDir = path.join(storePath, extra.templateRoot);
@@ -880,7 +888,7 @@ export async function handleGenerate(
     const hasPatches = patches && patches.length > 0;
 
     if (hasPatches && skipPatches) {
-      console.log(`[staging] Skipping ${patches.length} patch(es) (--skip-patches)`);
+      getCliUx().info(`Skipping ${patches.length} patch(es) (--skip-patches)`);
     } else if (hasPatches) {
       // Sort patches by explicit 'order' field (stable, lower = first, undefined = Infinity)
       const orderedPatches = [...patches].sort((a, b) => {
@@ -916,7 +924,7 @@ export async function handleGenerate(
       }
 
       trace.start("apply patches", { count: orderedPatches.length });
-      console.log(`[staging] Applying patches...`);
+      getCliUx().verbose(`[staging] Applying patches...`);
       patchReport = await applyPatches({
         patches: orderedPatches,
         data: resolvedData,
@@ -958,7 +966,7 @@ export async function handleGenerate(
 
     if (hasHooks) {
       trace.start("run hooks", { count: postGenerateHooks.length });
-      console.log(`[staging] Running postGenerate hooks...`);
+      getCliUx().verbose(`[staging] Running postGenerate hooks...`);
       const hookRunner = new HookRunner();
       const hookLogger = createHookLogger();
 
@@ -976,10 +984,10 @@ export async function handleGenerate(
     const hasChecks = checks && checks.length > 0;
 
     if (hasChecks && skipChecks) {
-      console.log(`[staging] Skipping ${checks.length} check(s) (--skip-checks)`);
+      getCliUx().info(`Skipping ${checks.length} check(s) (--skip-checks)`);
     } else if (hasChecks) {
       trace.start("run checks", { count: checks.length });
-      console.log(`[staging] Running quality checks...`);
+      getCliUx().verbose(`[staging] Running quality checks...`);
       const checkRunner = new CheckRunner();
       const checkLogger = createCheckLogger();
 
@@ -1006,13 +1014,13 @@ export async function handleGenerate(
       // Create .scaffoldix directory in staging if needed
       await fs.mkdir(path.dirname(stagingStatePath), { recursive: true });
       await fs.copyFile(existingStatePath, stagingStatePath);
-      console.log(`[staging] Preserved existing state for history...`);
+      getCliUx().verbose(`[staging] Preserved existing state for history...`);
     } catch {
       // No existing state - this is fine, first generation
     }
 
     // 12. Build generation report and write project state in STAGING
-    console.log(`[staging] Writing project state...`);
+    getCliUx().verbose(`[staging] Writing project state...`);
 
     // Build GenerationReport from collected data
     const generationReport: GenerationReport = {
@@ -1023,6 +1031,7 @@ export async function handleGenerate(
       archetypeId,
       inputs: resolvedData,
       status: "success",
+      filesWritten: renderResult.filesWritten.map((f) => f.destRelativePath),
     };
 
     // Add patches summary if patches were applied
@@ -1078,13 +1087,13 @@ export async function handleGenerate(
     // 13. Commit staging to target (atomic move)
     // Use force: true to allow overwriting existing target (regeneration use case)
     trace.start("commit staging");
-    console.log(`[staging] Committing to target: ${targetDir}`);
+    getCliUx().verbose(`[staging] Committing to target: ${targetDir}`);
     await stagingManager.commit(stagingDir, targetDir, { force: true });
-    console.log(`[staging] Successfully committed to target.`);
+    getCliUx().verbose(`[staging] Successfully committed to target.`);
     trace.end("commit staging");
   } catch (error) {
     // Failure: cleanup staging, do NOT touch target
-    console.error(`[staging] Aborted; target was not modified.`);
+    getCliUx().warn(`[staging] Aborted; target was not modified.`);
     await stagingManager.cleanup(stagingDir);
     throw error;
   }

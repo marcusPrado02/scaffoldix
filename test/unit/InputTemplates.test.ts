@@ -275,15 +275,15 @@ describe("isConditionMet", () => {
   });
 
   it("returns true when condition is met", () => {
-    expect(
-      isConditionMet({ input: "useDatabase", equals: true }, { useDatabase: true }),
-    ).toBe(true);
+    expect(isConditionMet({ input: "useDatabase", equals: true }, { useDatabase: true })).toBe(
+      true,
+    );
   });
 
   it("returns false when condition is not met", () => {
-    expect(
-      isConditionMet({ input: "useDatabase", equals: true }, { useDatabase: false }),
-    ).toBe(false);
+    expect(isConditionMet({ input: "useDatabase", equals: true }, { useDatabase: false })).toBe(
+      false,
+    );
   });
 
   it("works with string values", () => {

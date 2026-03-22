@@ -629,7 +629,10 @@ export class PatchEngine {
       );
     }
 
-    const merged = deepMerge(existing as Record<string, unknown>, incoming as Record<string, unknown>);
+    const merged = deepMerge(
+      existing as Record<string, unknown>,
+      incoming as Record<string, unknown>,
+    );
     return JSON.stringify(merged, null, 2) + "\n";
   }
 
@@ -673,7 +676,10 @@ export class PatchEngine {
       );
     }
 
-    const merged = deepMerge(existing as Record<string, unknown>, incoming as Record<string, unknown>);
+    const merged = deepMerge(
+      existing as Record<string, unknown>,
+      incoming as Record<string, unknown>,
+    );
     return stringifyYaml(merged, { indent: 2 });
   }
 

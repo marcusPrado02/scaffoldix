@@ -56,8 +56,16 @@ export function buildPackPublishCommand(): Command {
     .description("Publish a pack to npm so it appears in scaffoldix pack search")
     .argument("[path]", "Path to the pack directory (default: current directory)", ".")
     .option("--tag <tag>", "npm dist-tag for this publish (default: latest)")
-    .option("--access <access>", "npm access level: public | restricted (default: public)", "public")
-    .option("--dry-run", "Run validation and show what would be published without actually publishing", false)
+    .option(
+      "--access <access>",
+      "npm access level: public | restricted (default: public)",
+      "public",
+    )
+    .option(
+      "--dry-run",
+      "Run validation and show what would be published without actually publishing",
+      false,
+    )
     .option("--skip-validation", "Skip pack validation before publishing", false)
     .addHelpText(
       "after",

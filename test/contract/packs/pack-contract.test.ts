@@ -40,10 +40,7 @@ function invalidFixture(name: string): string {
   return path.join(INVALID_DIR, name);
 }
 
-async function expectLoadToFail(
-  packPath: string,
-  expectedCode: string,
-): Promise<ScaffoldError> {
+async function expectLoadToFail(packPath: string, expectedCode: string): Promise<ScaffoldError> {
   try {
     await loader.loadFromDir(packPath);
     throw new Error(`Expected loading ${packPath} to fail, but it succeeded`);
@@ -84,20 +81,14 @@ describe("Pack Contract: Valid Packs", () => {
 
 describe("Pack Contract: Manifest Issues", () => {
   it("fails with MANIFEST_NOT_FOUND when no manifest exists", async () => {
-    const error = await expectLoadToFail(
-      invalidFixture("missing-manifest"),
-      "MANIFEST_NOT_FOUND",
-    );
+    const error = await expectLoadToFail(invalidFixture("missing-manifest"), "MANIFEST_NOT_FOUND");
 
     expect(error.message).toContain("manifest");
     expect(error.hint).toBeDefined();
   });
 
   it("fails with MANIFEST_YAML_ERROR for invalid YAML syntax", async () => {
-    const error = await expectLoadToFail(
-      invalidFixture("invalid-yaml"),
-      "MANIFEST_YAML_ERROR",
-    );
+    const error = await expectLoadToFail(invalidFixture("invalid-yaml"), "MANIFEST_YAML_ERROR");
 
     expect(error.message).toMatch(/yaml|parse/i);
     expect(error.hint).toBeDefined();
@@ -183,20 +174,14 @@ describe("Pack Contract: Invalid Nested Structures", () => {
 
 describe("Pack Contract: Error Quality", () => {
   it("provides actionable hint for missing manifest", async () => {
-    const error = await expectLoadToFail(
-      invalidFixture("missing-manifest"),
-      "MANIFEST_NOT_FOUND",
-    );
+    const error = await expectLoadToFail(invalidFixture("missing-manifest"), "MANIFEST_NOT_FOUND");
 
     // Hint should tell user what files are expected
     expect(error.hint).toMatch(/archetype\.yaml|pack\.yaml/);
   });
 
   it("provides actionable hint for invalid YAML", async () => {
-    const error = await expectLoadToFail(
-      invalidFixture("invalid-yaml"),
-      "MANIFEST_YAML_ERROR",
-    );
+    const error = await expectLoadToFail(invalidFixture("invalid-yaml"), "MANIFEST_YAML_ERROR");
 
     // Hint should help user fix the YAML
     expect(error.hint).toBeDefined();
@@ -204,24 +189,15 @@ describe("Pack Contract: Error Quality", () => {
   });
 
   it("includes pack path in error details", async () => {
-    const error = await expectLoadToFail(
-      invalidFixture("missing-manifest"),
-      "MANIFEST_NOT_FOUND",
-    );
+    const error = await expectLoadToFail(invalidFixture("missing-manifest"), "MANIFEST_NOT_FOUND");
 
     expect(error.details?.packRootDir).toBe(invalidFixture("missing-manifest"));
   });
 
   it("errors are deterministic (same input = same error)", async () => {
-    const error1 = await expectLoadToFail(
-      invalidFixture("missing-manifest"),
-      "MANIFEST_NOT_FOUND",
-    );
+    const error1 = await expectLoadToFail(invalidFixture("missing-manifest"), "MANIFEST_NOT_FOUND");
 
-    const error2 = await expectLoadToFail(
-      invalidFixture("missing-manifest"),
-      "MANIFEST_NOT_FOUND",
-    );
+    const error2 = await expectLoadToFail(invalidFixture("missing-manifest"), "MANIFEST_NOT_FOUND");
 
     expect(error1.code).toBe(error2.code);
     expect(error1.message).toBe(error2.message);

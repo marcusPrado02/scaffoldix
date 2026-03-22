@@ -708,7 +708,7 @@ archetypes: []`,
       expect(stderr).toHaveLength(0);
     });
 
-it("uses cache for repeated lookups", async () => {
+    it("uses cache for repeated lookups", async () => {
       const { storeDir, packsDir, deps, registryFile } = await createTestDependencies();
       trackDir(storeDir);
 

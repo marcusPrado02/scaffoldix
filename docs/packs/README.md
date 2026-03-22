@@ -66,10 +66,10 @@ See the [Pack Authoring Guide](./pack-authoring-guide.md) for detailed instructi
 
 ## Pack Distribution
 
-| Method | Command | Notes |
-|--------|---------|-------|
-| Local path | `scaffoldix pack add ./my-pack` | Development and testing |
-| GitHub | `scaffoldix pack add github:org/repo` | Public repos |
-| npm | `scaffoldix pack add npm:@scope/pack-name` | Published packages |
-| Verify integrity | `scaffoldix pack verify my-pack` | SHA-256 check |
-| Publish to npm | `scaffoldix pack publish` | Adds `scaffoldix-pack` keyword |
+| Method           | Command                                    | Notes                          |
+| ---------------- | ------------------------------------------ | ------------------------------ |
+| Local path       | `scaffoldix pack add ./my-pack`            | Development and testing        |
+| GitHub           | `scaffoldix pack add github:org/repo`      | Public repos                   |
+| npm              | `scaffoldix pack add npm:@scope/pack-name` | Published packages             |
+| Verify integrity | `scaffoldix pack verify my-pack`           | SHA-256 check                  |
+| Publish to npm   | `scaffoldix pack publish`                  | Adds `scaffoldix-pack` keyword |

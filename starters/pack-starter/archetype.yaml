@@ -15,10 +15,11 @@ archetypes:
         type: string
         required: true
         transforms:
-          - PascalCase   # entityName -> EntityName
-          - camelCase    # entityNameCamelCase
-          - kebab-case   # entity-name-kebab-case
-          - snake_case   # entity_name_snake_case
+          - PascalCase # entityName -> EntityName
+          - camelCase # entityNameCamelCase
+          - kebab-case # entity-name-kebab-case
+          - snake_case # entity_name_snake_case
+
 
     # Optional: patch existing files after templates are written
     # patches:

@@ -137,25 +137,21 @@ describe("parseDurationMs contract", () => {
     ["1m", 60_000],
     ["2m", 120_000],
     ["1h", 3_600_000],
-    ["90", 90_000],          // bare number → seconds
-    ["0.5s", 500],           // fractional seconds
-    ["1.5m", 90_000],        // fractional minutes
+    ["90", 90_000], // bare number → seconds
+    ["0.5s", 500], // fractional seconds
+    ["1.5m", 90_000], // fractional minutes
   ])("parseDurationMs('%s') === %i", (input, expected) => {
     expect(parseDurationMs(input)).toBe(expected);
   });
 
   // ---- rejected inputs -------------------------------------------------------
 
-  it.each([
-    [undefined],
-    [""],
-    ["   "],
-    ["abc"],
-    ["30x"],
-    ["m"],
-  ])("parseDurationMs(%o) === undefined", (input) => {
-    expect(parseDurationMs(input as string | undefined)).toBeUndefined();
-  });
+  it.each([[undefined], [""], ["   "], ["abc"], ["30x"], ["m"]])(
+    "parseDurationMs(%o) === undefined",
+    (input) => {
+      expect(parseDurationMs(input as string | undefined)).toBeUndefined();
+    },
+  );
 });
 
 // =============================================================================

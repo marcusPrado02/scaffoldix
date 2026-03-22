@@ -322,15 +322,15 @@ State v2 ──────────► Engine 0.3+
 
 ### Test Categories
 
-| Category    | Location                     | Purpose                                      |
-| ----------- | ---------------------------- | -------------------------------------------- |
-| Unit        | `test/unit/`                 | Isolated module testing                      |
-| Snapshot    | `test/unit/__snapshots__/`   | Lock CLI output formatting against regressions |
-| Integration | `test/`                      | Handler-level flows (real filesystem, no mocks) |
-| E2E         | `test/integration.e2e.test.ts` | Full CLI pipeline in temp directories      |
-| Contract    | `test/contract/`             | Pin observable behavior of public core APIs  |
-| Regression  | `test/regression/`           | Known failure scenarios from past bugs       |
-| Benchmarks  | `test/bench/`                | Performance baselines for rendering pipeline |
+| Category    | Location                       | Purpose                                         |
+| ----------- | ------------------------------ | ----------------------------------------------- |
+| Unit        | `test/unit/`                   | Isolated module testing                         |
+| Snapshot    | `test/unit/__snapshots__/`     | Lock CLI output formatting against regressions  |
+| Integration | `test/`                        | Handler-level flows (real filesystem, no mocks) |
+| E2E         | `test/integration.e2e.test.ts` | Full CLI pipeline in temp directories           |
+| Contract    | `test/contract/`               | Pin observable behavior of public core APIs     |
+| Regression  | `test/regression/`             | Known failure scenarios from past bugs          |
+| Benchmarks  | `test/bench/`                  | Performance baselines for rendering pipeline    |
 
 ### Test Principles
 

@@ -48,7 +48,7 @@ export class {{serviceName}} {
 ```
 
 > **Tip:** Scaffoldix uses [Handlebars](https://handlebarsjs.com/) for template
-> rendering.  Any `{{variable}}` in file content *or* filenames is replaced
+> rendering. Any `{{variable}}` in file content _or_ filenames is replaced
 > with the value collected from the user.
 
 ## 4. Install the pack locally

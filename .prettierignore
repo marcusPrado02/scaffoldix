@@ -4,13 +4,17 @@ node_modules/
 # Build output
 dist/
 
-# Template files with Handlebars syntax
+# Template files with Handlebars syntax (can't be parsed as source)
 test/fixtures/**/templates/**
 test/regression/**/templates/**
+starters/**/templates/**
 
 # Intentionally invalid test fixtures
 test/regression/manifest/fixtures/
+test/contract/packs/fixtures/invalid/
 
 # Generated files
 coverage/
 *.tgz
+.stryker-tmp/
+reports/

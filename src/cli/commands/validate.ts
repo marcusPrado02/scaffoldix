@@ -226,7 +226,11 @@ function printResults(
 ) {
   if (options.json) {
     process.stdout.write(
-      JSON.stringify({ pack: packName, issues, valid: !issues.some((i) => i.level === "error") }, null, 2) + "\n",
+      JSON.stringify(
+        { pack: packName, issues, valid: !issues.some((i) => i.level === "error") },
+        null,
+        2,
+      ) + "\n",
     );
     return;
   }

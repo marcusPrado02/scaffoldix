@@ -76,7 +76,7 @@ export class HelpersLoader {
 
       try {
         // Dynamic import (supports both CJS and ESM)
-        const mod = await import(filePath) as Record<string, unknown>;
+        const mod = (await import(filePath)) as Record<string, unknown>;
 
         // Handle index.js with multiple named exports
         if (helperName === "index") {
